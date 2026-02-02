@@ -1,0 +1,93 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Shared/Error.cshtml                                       *@
+@* PROPÓSITO: Vista de error predeterminada del sistema                           *@
+@* DESCRIPCIÓN: Muestra información sobre errores HTTP y excepciones no           *@
+@*              controladas. Adapta el contenido según el ambiente (Dev/Prod).    *@
+@* ================================================================================ *@
+
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+    var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        @if (Model.StatusCode.HasValue)
+                        {
+                            <span>Error @Model.StatusCode</span>
+                        }
+                        else
+                        {
+                            <span>Error en la aplicación</span>
+                        }
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <strong>@Model.ErrorMessage</strong>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="lead">Ha ocurrido un error al procesar su solicitud.</p>
+                        <p>Disculpe las molestias. Nuestro equipo técnico ha sido notificado.</p>
+                    }
+
+                    @if (Model.ShowRequestId)
+                    {
+                        <div class="alert alert-info mt-3">
+                            <strong>ID de Solicitud:</strong> <code>@Model.RequestId</code>
+                            <br>
+                            <small class="text-muted">
+                                Por favor, incluya este ID al reportar el problema al soporte técnico.
+                            </small>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.RequestPath))
+                    {
+                        <p class="text-muted mt-2">
+                            <strong>Ruta:</strong> <code>@Model.RequestPath</code>
+                        </p>
+                    }
+
+                    <hr>
+
+                    <div class="mt-4">
+                        <a href="/" class="btn btn-primary">
+                            <i class="bi bi-house-door me-2"></i>
+                            Volver al Inicio
+                        </a>
+                        <a href="javascript:history.back()" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Volver Atrás
+                        </a>
+                    </div>
+
+                    @if (isDevelopment)
+                    {
+                        <div class="alert alert-warning mt-4">
+                            <h5><i class="bi bi-tools me-2"></i>Modo Desarrollo</h5>
+                            <p>
+                                Estás en modo <strong>Development</strong>. Para obtener más detalles técnicos
+                                sobre el error, revisa los logs del servidor o habilita la página de excepciones detalladas.
+                            </p>
+                            <p class="mb-0">
+                                <strong>⚠️ IMPORTANTE:</strong> El modo Development NO debe estar habilitado en producción
+                                ya que puede exponer información sensible.
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

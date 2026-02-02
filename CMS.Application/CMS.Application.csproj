@@ -1,0 +1,19 @@
+﻿<!-- ================================================================================ -->
+<!-- ARCHIVO: CMS.Application/CMS.Application.csproj -->
+<!-- CONFIGURACIÓN: Capa de aplicación (DTOs, lógica de negocio) -->
+<!-- ================================================================================ -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>CMS.Application</RootNamespace>
+		<AssemblyName>CMS.Application</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\CMS.Entities\CMS.Entities.csproj" />
+	</ItemGroup>
+
+</Project>

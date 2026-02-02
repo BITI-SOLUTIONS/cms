@@ -1,0 +1,13 @@
+﻿**/.git
+**/.vs
+**/bin
+**/obj
+**/node_modules
+*.user
+*.sln.DotSettings
+desktop.ini
+Dockerfile*
+docker-compose.yml
+README.md
+# Excluir pero mantener connectionstrings.json para copiarlo manualmente
+#!connectionstrings.json

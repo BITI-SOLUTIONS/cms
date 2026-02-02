@@ -1,0 +1,81 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Shared/Components/Menu/Default.cshtml                     *@
+@* PROPÓSITO: Vista del ViewComponent para renderizar el menú de navegación        *@
+@* DESCRIPCIÓN: Renderiza el menú jerárquico con dos niveles (padre e hijos)      *@
+@*              Resalta el menú activo según la URL actual y mantiene expandidos   *@
+@*              los grupos que contienen la página activa.                         *@
+@* ================================================================================ *@
+
+@using CMS.Application.DTOs
+@model List<MenuDto>
+
+@{
+    // Obtener la ruta actual para determinar qué menú está activo
+    var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+}
+
+@* Recorrer todos los menús de nivel raíz (ParentId == 0) *@
+@foreach (var parent in Model.Where(m => m.ID_PARENT == 0))
+{
+    // Obtener los menús hijos de este padre
+    var children = Model
+        .Where(m => m.ID_PARENT == parent.ID_MENU)
+        .OrderBy(m => m.ORDER)
+        .ToList();
+
+    // Determinar si este grupo debe estar expandido (open)
+    // Se expande si algún hijo está activo o si el padre está activo
+    bool isOpen =
+        children.Any(c => currentPath.StartsWith(c.URL.ToLower())) ||
+        currentPath.StartsWith(parent.URL.ToLower());
+
+    @* Si el menú tiene hijos, renderizar como grupo expandible *@
+    if (children.Any())
+    {
+        <li class="nav-item nav-group @(isOpen ? "open" : "")">
+            @* Toggle del grupo (menú padre con hijos) *@
+            <a class="nav-link nav-group-toggle" href="javascript:void(0)">
+                @if (!string.IsNullOrEmpty(parent.ICON))
+                {
+                    <i class="@parent.ICON"></i>
+                }
+                <span>@parent.NAME</span>
+                <i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+
+            @* Lista de menús hijos *@
+            <ul class="nav nav-group-items">
+                @foreach (var child in children)
+                {
+                    // Determinar si este hijo está activo
+                    bool isActive = currentPath.StartsWith(child.URL.ToLower());
+
+                    <li class="nav-item">
+                        <a class="nav-link @(isActive ? "active" : "")" href="@child.URL">
+                            @if (!string.IsNullOrEmpty(child.ICON))
+                            {
+                                <i class="@child.ICON"></i>
+                            }
+                            <span>@child.NAME</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </li>
+    }
+    else
+    {
+        @* Menú de nivel raíz sin hijos (menú simple) *@
+        bool isActive = currentPath.StartsWith(parent.URL.ToLower());
+
+        <li class="nav-item">
+            <a class="nav-link @(isActive ? "active" : "")" href="@parent.URL">
+                @if (!string.IsNullOrEmpty(parent.ICON))
+                {
+                    <i class="@parent.ICON"></i>
+                }
+                <span>@parent.NAME</span>
+            </a>
+        </li>
+    }
+}

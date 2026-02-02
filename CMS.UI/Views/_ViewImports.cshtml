@@ -1,0 +1,180 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/_ViewImports.cshtml                                       *@
+@* PROPÓSITO: Imports globales para todas las vistas Razor del proyecto           *@
+@* DESCRIPCIÓN:                                                                    *@
+@*   Este archivo especial de ASP.NET Core define los namespaces y Tag Helpers    *@
+@*   que estarán disponibles AUTOMÁTICAMENTE en TODAS las vistas .cshtml          *@
+@*   sin necesidad de agregarlos manualmente en cada archivo.                     *@
+@*                                                                                 *@
+@* ALCANCE:                                                                        *@
+@*   - Todas las vistas en /Views/ y sus subcarpetas                              *@
+@*   - Todas las vistas en /Views/Shared/                                         *@
+@*   - Todos los ViewComponents en /Views/Shared/Components/                      *@
+@*   - Partial Views (_PartialView.cshtml)                                        *@
+@*                                                                                 *@
+@* FUNCIONAMIENTO:                                                                 *@
+@*   ASP.NET Core busca este archivo automáticamente y aplica sus configuraciones *@
+@*   a todas las vistas Razor antes de renderizarlas. Es como tener estos         *@
+@*   @using y @addTagHelper en cada vista sin escribirlos explícitamente.         *@
+@*                                                                                 *@
+@* BENEFICIOS:                                                                     *@
+@*   ✅ Evita repetir @using en cada vista                                         *@
+@*   ✅ Mantiene las vistas más limpias y legibles                                 *@
+@*   ✅ Cambios centralizados (un solo lugar para actualizar imports)             *@
+@*   ✅ Habilita Tag Helpers automáticamente en todas las vistas                   *@
+@*                                                                                 *@
+@* JERARQUÍA:                                                                      *@
+@*   Si existe _ViewImports.cshtml en una subcarpeta, se COMBINAN ambos:          *@
+@*   - /Views/_ViewImports.cshtml (este archivo - global)                         *@
+@*   - /Views/Settings/_ViewImports.cshtml (específico de carpeta)                *@
+@*                                                                                 *@
+@* AUTOR: System CMS - BITI Solutions S.A            *@
+@* ÚLTIMA ACTUALIZACIÓN: 2024                                                      *@
+@* ================================================================================ *@
+
+@* ================================================================================ *@
+@* SECCIÓN 1: NAMESPACES DEL PROYECTO                                             *@
+@* ================================================================================ *@
+
+@* Namespace raíz del proyecto CMS.UI                                              *@
+@* Permite acceder a clases auxiliares, extensiones y helpers del proyecto        *@
+@using CMS.UI
+
+@* Namespace de modelos de vista (ViewModels)                                      *@
+@* Incluye: ErrorViewModel y otros modelos específicos de la UI                   *@
+@* USO: En vistas que usan @model ErrorViewModel                                  *@
+@using CMS.UI.Models
+
+@* Namespace de DTOs compartidos (Data Transfer Objects)                           *@
+@* Incluye: UserListDto, RoleListDto, PermissionListDto, MenuDto, StudentDtos     *@
+@* USO: En vistas que renderizan datos desde la API REST                          *@
+@* IMPORTANTE: Estos DTOs vienen desde CMS.Application, NO desde CMS.UI           *@
+@using CMS.Application.DTOs
+
+@* ================================================================================ *@
+@* SECCIÓN 2: NAMESPACES DEL FRAMEWORK (.NET)                                     *@
+@* ================================================================================ *@
+
+@* Namespace de System para tipos básicos                                          *@
+@* Incluye: String, Int32, DateTime, Guid, etc.                                   *@
+@* NOTA: Ya está disponible por ImplicitUsings en .NET 8, pero se puede agregar   *@
+@*       explícitamente si necesitas claridad                                     *@
+@* @using System                                                                   *@
+
+@* Namespace de Collections para listas y diccionarios                             *@
+@* Incluye: List<T>, Dictionary<TKey, TValue>, IEnumerable<T>                     *@
+@* NOTA: Ya está disponible por ImplicitUsings en .NET 8                          *@
+@* @using System.Collections.Generic                                              *@
+
+@* Namespace de LINQ para consultas y filtros                                      *@
+@* Incluye: Where(), Select(), OrderBy(), FirstOrDefault(), etc.                  *@
+@* NOTA: Ya está disponible por ImplicitUsings en .NET 8                          *@
+@* @using System.Linq                                                              *@
+
+@* ================================================================================ *@
+@* SECCIÓN 3: NAMESPACES OPCIONALES (Descomenta si los necesitas)                 *@
+@* ================================================================================ *@
+
+@* Namespace de servicios de la UI (para usar en vistas si es necesario)          *@
+@* USO: @inject MenuApiService menuService                                        *@
+@* NOTA: No es común usarlo directamente en vistas, prefiere usar Controllers     *@
+@* @using CMS.UI.Services                                                         *@
+
+@* Namespace de helpers de JSON                                                    *@
+@* USO: JsonSerializer.Serialize() en vistas (raro, pero posible)                *@
+@* @using System.Text.Json                                                        *@
+
+@* Namespace de Claims para trabajar con información del usuario autenticado      *@
+@* USO: User.FindFirst(ClaimTypes.Name), User.IsInRole("Admin")                  *@
+@* @using System.Security.Claims                                                  *@
+
+@* ================================================================================ *@
+@* SECCIÓN 4: TAG HELPERS                                                          *@
+@* ================================================================================ *@
+
+@* Habilita TODOS los Tag Helpers de ASP.NET Core MVC                             *@
+@* Incluye:                                                                        *@
+@*   - <a asp-controller="Home" asp-action="Index">                               *@
+@*   - <form asp-action="Submit" method="post">                                   *@
+@*   - <input asp-for="Email" />                                                  *@
+@*   - <span asp-validation-for="Email"></span>                                   *@
+@*   - <select asp-for="RoleId" asp-items="Model.Roles"></select>                *@
+@*   - <partial name="_LoginPartial" />                                           *@
+@*   - <environment include="Development">...</environment>                        *@
+@*   - <cache>...</cache>                                                         *@
+@*   - <component type="typeof(MenuViewComponent)"></component>                   *@
+@*                                                                                 *@
+@* SINTAXIS: @addTagHelper [TagHelperName|*], [Assembly]                         *@
+@*   - * = Todos los Tag Helpers del ensamblado                                   *@
+@*   - Microsoft.AspNetCore.Mvc.TagHelpers = Ensamblado con Tag Helpers de MVC   *@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@* Tag Helpers personalizados del proyecto (si existen)                            *@
+@* USO: Si creas tus propios Tag Helpers en CMS.UI/TagHelpers/                   *@
+@* SINTAXIS: <my-custom-tag></my-custom-tag>                                     *@
+@* @addTagHelper *, CMS.UI                                                        *@
+
+@* ================================================================================ *@
+@* SECCIÓN 5: VIEW COMPONENTS INJECTION (Opcional)                                *@
+@* ================================================================================ *@
+
+@* Si necesitas inyectar servicios globalmente en todas las vistas:               *@
+@* @inject MenuApiService MenuService                                             *@
+@* @inject UserManager<IdentityUser> UserManager                                 *@
+@* NOTA: Prefiere inyectar solo en vistas específicas, no globalmente            *@
+
+@* ================================================================================ *@
+@* NOTAS IMPORTANTES:                                                              *@
+@* ================================================================================ *@
+@*                                                                                 *@
+@* 1. ORDEN DE EVALUACIÓN:                                                        *@
+@*    ASP.NET Core busca _ViewImports.cshtml en este orden:                       *@
+@*    a) /Views/_ViewImports.cshtml (este archivo)                                *@
+@*    b) /Views/[Controller]/_ViewImports.cshtml (si existe)                      *@
+@*    c) /Views/Shared/_ViewImports.cshtml (si existe)                            *@
+@*                                                                                 *@
+@* 2. IMPLICIT USINGS (.NET 6+):                                                  *@
+@*    En .NET 8, estos namespaces ya están disponibles automáticamente:          *@
+@*    - System                                                                     *@
+@*    - System.Collections.Generic                                                *@
+@*    - System.Linq                                                                *@
+@*    - System.Threading.Tasks                                                     *@
+@*    Por eso NO es necesario agregarlos aquí.                                    *@
+@*                                                                                 *@
+@* 3. TAG HELPERS vs HTML HELPERS:                                                *@
+@*    Tag Helpers (modernos):  <a asp-controller="Home">Link</a>                 *@
+@*    HTML Helpers (legacy):   @Html.ActionLink("Link", "Index", "Home")         *@
+@*    RECOMENDACIÓN: Usa Tag Helpers, son más legibles y type-safe               *@
+@*                                                                                 *@
+@* 4. TROUBLESHOOTING:                                                             *@
+@*    Si los imports no funcionan:                                                *@
+@*    - Verifica que el archivo se llame exactamente "_ViewImports.cshtml"       *@
+@*    - Verifica que esté en la carpeta /Views/                                   *@
+@*    - Reinicia Visual Studio o limpia la solución (Clean + Rebuild)            *@
+@*    - Verifica que no haya errores de sintaxis en este archivo                 *@
+@*                                                                                 *@
+@* 5. DEBUGGING:                                                                   *@
+@*    Para verificar qué imports están disponibles en una vista:                  *@
+@*    - Pon un breakpoint en la vista                                             *@
+@*    - Ejecuta en modo Debug                                                      *@
+@*    - Inspecciona los namespaces disponibles en el contexto                     *@
+@*                                                                                 *@
+@* ================================================================================ *@
+
+@* ================================================================================ *@
+@* EJEMPLOS DE USO EN VISTAS                                                      *@
+@* ================================================================================ *@
+
+@* EJEMPLO 1: Usar un DTO sin importarlo manualmente                              *@
+@* @model List<UserListDto>  ✅ Funciona porque está en @using CMS.Application.DTOs *@
+
+@* EJEMPLO 2: Usar Tag Helpers para formularios                                   *@
+@* <form asp-controller="Settings" asp-action="CreateUser" method="post">         *@
+@*   <input asp-for="Username" class="form-control" />                           *@
+@*   <span asp-validation-for="Username"></span>                                 *@
+@* </form>                                                                        *@
+
+@* EJEMPLO 3: Usar ErrorViewModel sin importarlo                                  *@
+@* @model ErrorViewModel  ✅ Funciona porque está en @using CMS.UI.Models        *@
+
+@* ================================================================================ *@

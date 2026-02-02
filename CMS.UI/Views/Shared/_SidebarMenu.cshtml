@@ -1,0 +1,81 @@
+﻿<!-- Botón para toggle sidebar (solo visible en móvil) -->
+<button class="sidebar-toggle-btn" onclick="toggleSidebar()">
+    <i class="bi bi-list"></i>
+</button>
+
+<aside class="sidebar">
+    <!-- Logo y Toggle -->
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <img src="~/img/logo-cccn.png" alt="BITI Solutions S.A" class="logo" />
+            <div class="logo-text">
+                <h1>CMS</h1>
+                <span>By BITI Solutions S.A</span>
+            </div>
+        </div>
+        <button class="sidebar-close-btn" onclick="toggleSidebar()">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+    </div>
+
+    <!-- Menú de Navegación -->
+    <nav class="sidebar-nav">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-house-door"></i>
+                    <span>Inicio</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Cursos" asp-action="Index">
+                    <i class="bi bi-book"></i>
+                    <span>Cursos</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Estudiantes" asp-action="Index">
+                    <i class="bi bi-people"></i>
+                    <span>Estudiantes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Profesores" asp-action="Index">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Profesores</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Calendario" asp-action="Index">
+                    <i class="bi bi-calendar"></i>
+                    <span>Calendario</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Reportes" asp-action="Index">
+                    <i class="bi bi-bar-chart"></i>
+                    <span>Reportes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Configuracion" asp-action="Index">
+                    <i class="bi bi-gear"></i>
+                    <span>Configuración</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Footer del Sidebar -->
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            <div class="user-details">
+                <small>@User.Identity?.Name</small>
+                <span>Administrador</span>
+            </div>
+        </div>
+    </div>
+</aside>

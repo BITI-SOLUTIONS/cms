@@ -1,0 +1,213 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/_ViewStart.cshtml                                         *@
+@* PROPÓSITO: Configuración de Layout predeterminado para todas las vistas Razor  *@
+@* DESCRIPCIÓN:                                                                    *@
+@*   Este archivo especial de ASP.NET Core define el archivo de Layout que se     *@
+@*   aplicará AUTOMÁTICAMENTE a todas las vistas .cshtml que NO especifiquen      *@
+@*   explícitamente un Layout diferente.                                          *@
+@*                                                                                 *@
+@* ALCANCE:                                                                        *@
+@*   - Todas las vistas en /Views/ y sus subcarpetas                              *@
+@*   - Todas las vistas en /Views/Home/, /Views/Settings/, etc.                   *@
+@*   - NO afecta a Partial Views (porque no usan Layout)                          *@
+@*   - NO afecta a vistas que definan @{ Layout = null; } o @{ Layout = "..." }  *@
+@*                                                                                 *@
+@* FUNCIONAMIENTO:                                                                 *@
+@*   1. ASP.NET Core busca este archivo antes de renderizar cualquier vista      *@
+@*   2. Si existe, ejecuta el código que contiene (asigna Layout)                *@
+@*   3. Si la vista NO sobrescribe el Layout, usa el definido aquí               *@
+@*   4. El Layout envuelve el contenido de la vista con el HTML común            *@
+@*                                                                                 *@
+@* LAYOUT = "_Layout":                                                             *@
+@*   Apunta al archivo /Views/Shared/_Layout.cshtml que contiene:                *@
+@*   - <html>, <head>, <body>                                                     *@
+@*   - Menú de navegación común                                                   *@
+@*   - Header y Footer del sitio                                                  *@
+@*   - Referencias a CSS y JavaScript globales                                    *@
+@*   - @RenderBody() donde se inyecta el contenido de cada vista                 *@
+@*                                                                                 *@
+@* JERARQUÍA DE _ViewStart.cshtml:                                                *@
+@*   ASP.NET Core busca _ViewStart.cshtml en este orden:                         *@
+@*   1. /Views/_ViewStart.cshtml (este archivo - GLOBAL)                         *@
+@*   2. /Views/[Controller]/_ViewStart.cshtml (específico de carpeta)            *@
+@*   Si existe en una subcarpeta, el más específico SOBRESCRIBE al global        *@
+@*                                                                                 *@
+@* EJEMPLO DE JERARQUÍA:                                                          *@
+@*   /Views/_ViewStart.cshtml              → Layout = "_Layout" (para todos)     *@
+@*   /Views/Settings/_ViewStart.cshtml     → Layout = "_LayoutAdmin" (solo Settings) *@
+@*                                                                                 *@
+@* PRECEDENCIA DE LAYOUT:                                                         *@
+@*   1. Layout definido en la vista (@{ Layout = "..."; })     [MÁS PRIORITARIO] *@
+@*   2. Layout definido en _ViewStart.cshtml de subcarpeta                       *@
+@*   3. Layout definido en /Views/_ViewStart.cshtml (este archivo) [POR DEFECTO] *@
+@*                                                                                 *@
+@* AUTOR: System CMS - BITI Solutions S.A             *@
+@* ÚLTIMA ACTUALIZACIÓN: 2024                                                      *@
+@* ================================================================================ *@
+
+@{
+    // ============================================================================
+    // CONFIGURACIÓN DE LAYOUT PREDETERMINADO
+    // ============================================================================
+
+    // Asigna el Layout predeterminado para TODAS las vistas del proyecto
+    // Apunta a: /Views/Shared/_Layout.cshtml
+    //
+    // IMPORTANTE:
+    // - El nombre NO lleva extensión .cshtml (ASP.NET Core la agrega automáticamente)
+    // - El guion bajo "_" indica que es un archivo especial (no accesible directamente por URL)
+    // - La búsqueda del archivo es en este orden:
+    //   1. /Views/Shared/_Layout.cshtml
+    //   2. /Views/_Layout.cshtml
+    //   3. /Pages/Shared/_Layout.cshtml (si usas Razor Pages)
+    Layout = "_Layout";
+
+    // ============================================================================
+    // EJEMPLOS DE CONFIGURACIONES ALTERNATIVAS
+    // ============================================================================
+
+    // ⚙️ OPCIÓN 1: Layout condicional según el usuario autenticado
+    // Layout = User.Identity?.IsAuthenticated == true
+    //     ? "_Layout"           // Layout completo para usuarios autenticados
+    //     : "_LayoutPublic";    // Layout simple para visitantes
+
+    // ⚙️ OPCIÓN 2: Layout condicional según el rol del usuario
+    // Layout = User.IsInRole("Admin")
+    //     ? "_LayoutAdmin"      // Layout con menú de administración
+    //     : "_Layout";          // Layout estándar para usuarios normales
+
+    // ⚙️ OPCIÓN 3: Layout condicional según el ambiente
+    // Layout = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
+    //     ? "_LayoutDev"        // Layout con herramientas de desarrollo
+    //     : "_Layout";          // Layout de producción
+
+    // ⚙️ OPCIÓN 4: Layout condicional según ViewBag
+    // Layout = ViewBag.UseAdminLayout == true
+    //     ? "_LayoutAdmin"
+    //     : "_Layout";
+
+    // ⚙️ OPCIÓN 5: Layout condicional según el área
+    // if (ViewContext.RouteData.Values["area"]?.ToString() == "Admin")
+    // {
+    //     Layout = "_LayoutAdmin";
+    // }
+    // else
+    // {
+    //     Layout = "_Layout";
+    // }
+}
+
+@* ================================================================================ *@
+@* NOTAS IMPORTANTES                                                               *@
+@* ================================================================================ *@
+@*                                                                                 *@
+@* 1. ¿QUÉ ES UN LAYOUT?                                                          *@
+@*    Un Layout es una plantilla HTML que envuelve el contenido de las vistas    *@
+@*    Contiene elementos comunes como:                                            *@
+@*    - <!DOCTYPE html>, <html>, <head>, <body>                                  *@
+@*    - Menú de navegación                                                        *@
+@*    - Header y Footer                                                           *@
+@*    - Referencias a CSS y JS globales                                           *@
+@*    - @RenderBody() donde se inyecta el contenido de cada vista                *@
+@*                                                                                 *@
+@* 2. ¿POR QUÉ USAR _ViewStart.cshtml?                                           *@
+@*    Evita repetir @{ Layout = "_Layout"; } en CADA vista                       *@
+@*    Centraliza la configuración del Layout en un solo archivo                  *@
+@*    Facilita cambiar el Layout de todo el sitio en un solo lugar               *@
+@*                                                                                 *@
+@* 3. ¿CUÁNDO SOBRESCRIBIR EL LAYOUT EN UNA VISTA?                               *@
+@*    Casos comunes:                                                              *@
+@*    a) Vista sin Layout (página en blanco):                                     *@
+@*       @{ Layout = null; }                                                      *@
+@*       Ejemplo: Páginas de error 404, páginas de login simples                 *@
+@*                                                                                 *@
+@*    b) Vista con Layout diferente:                                              *@
+@*       @{ Layout = "_LayoutAdmin"; }                                            *@
+@*       Ejemplo: Panel de administración con menú diferente                      *@
+@*                                                                                 *@
+@*    c) Vista con Layout de un área específica:                                  *@
+@*       @{ Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml"; }              *@
+@*       Ejemplo: Áreas con identidad visual diferente                            *@
+@*                                                                                 *@
+@* 4. ¿CÓMO FUNCIONA @RenderBody()?                                              *@
+@*    En _Layout.cshtml hay una llamada a @RenderBody()                          *@
+@*    Ahí se inyecta el contenido específico de cada vista                       *@
+@*                                                                                 *@
+@*    Ejemplo:                                                                     *@
+@*    _Layout.cshtml:              Index.cshtml:                                  *@
+@*    <html>                       <h1>Home</h1>                                 *@
+@*      <body>                     <p>Bienvenido</p>                             *@
+@*        <nav>Menu</nav>                                                         *@
+@*        @RenderBody() ← AQUÍ se inyecta Index.cshtml                           *@
+@*      </body>                                                                   *@
+@*    </html>                                                                     *@
+@*                                                                                 *@
+@*    Resultado HTML final:                                                       *@
+@*    <html>                                                                      *@
+@*      <body>                                                                    *@
+@*        <nav>Menu</nav>                                                         *@
+@*        <h1>Home</h1>           ← Contenido de Index.cshtml                    *@
+@*        <p>Bienvenido</p>                                                       *@
+@*      </body>                                                                   *@
+@*    </html>                                                                     *@
+@*                                                                                 *@
+@* 5. ESTRUCTURA TÍPICA DE UN PROYECTO:                                          *@
+@*    /Views/                                                                     *@
+@*      _ViewStart.cshtml          ← Este archivo (define Layout global)         *@
+@*      _ViewImports.cshtml         ← Define @using y Tag Helpers                *@
+@*      /Shared/                                                                  *@
+@*        _Layout.cshtml            ← Layout principal del sitio                 *@
+@*        _LayoutAdmin.cshtml       ← Layout para administración (opcional)      *@
+@*        _LoginPartial.cshtml      ← Partial View de login                      *@
+@*        Error.cshtml               ← Vista de errores                           *@
+@*      /Home/                                                                    *@
+@*        Index.cshtml               ← Usa _Layout por defecto                   *@
+@*      /Settings/                                                                *@
+@*        Users.cshtml               ← Usa _Layout por defecto                   *@
+@*                                                                                 *@
+@* 6. TROUBLESHOOTING:                                                            *@
+@*    Si el Layout no se aplica:                                                  *@
+@*    - Verifica que el archivo se llame exactamente "_ViewStart.cshtml"         *@
+@*    - Verifica que esté en /Views/ (no en /Views/Shared/)                      *@
+@*    - Verifica que _Layout.cshtml exista en /Views/Shared/                     *@
+@*    - Verifica que no haya errores de sintaxis en este archivo                 *@
+@*    - Limpia y recompila el proyecto (dotnet clean && dotnet build)            *@
+@*                                                                                 *@
+@* 7. DEBUGGING:                                                                  *@
+@*    Para verificar qué Layout se está usando:                                   *@
+@*    - Agrega @ViewContext.RouteData.Values["controller"] en la vista           *@
+@*    - Agrega @Layout en la vista para ver el Layout actual                     *@
+@*    - Revisa el HTML renderizado en el navegador (View Source)                 *@
+@*                                                                                 *@
+@* ================================================================================ *@
+
+@* ================================================================================ *@
+@* EJEMPLOS PRÁCTICOS DE USO                                                      *@
+@* ================================================================================ *@
+
+@* EJEMPLO 1: Vista que USA el Layout predeterminado                              *@
+@* Index.cshtml:                                                                  *@
+@* @model List<MenuDto>                                                           *@
+@* <h1>Home Page</h1>                                                             *@
+@* <p>Bienvenido al CMS</p>                                                       *@
+@* ✅ Usa _Layout automáticamente (definido en _ViewStart.cshtml)                 *@
+
+@* EJEMPLO 2: Vista que NO USA Layout (página en blanco)                          *@
+@* Login.cshtml:                                                                  *@
+@* @{                                                                             *@
+@*     Layout = null; ← SOBRESCRIBE el Layout predeterminado                     *@
+@* }                                                                              *@
+@* <div class="login-container">                                                  *@
+@*     <form>Login Form</form>                                                    *@
+@* </div>                                                                         *@
+@* ✅ Se renderiza sin _Layout (HTML completo desde cero)                         *@
+
+@* EJEMPLO 3: Vista que USA un Layout DIFERENTE                                   *@
+@* AdminDashboard.cshtml:                                                         *@
+@* @{                                                                             *@
+@*     Layout = "_LayoutAdmin"; ← SOBRESCRIBE el Layout predeterminado           *@
+@* }                                                                              *@
+@* <h1>Panel de Administración</h1>                                              *@
+@* ✅ Usa _LayoutAdmin.cshtml en lugar de _Layout.cshtml                          *@
+
+@* ================================================================================ *@
