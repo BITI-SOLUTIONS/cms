@@ -1,0 +1,205 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Settings/Users.cshtml                                     *@
+@* PROPÓSITO: Vista principal para gestión de usuarios del sistema                *@
+@* DESCRIPCIÓN: Muestra tabla de usuarios con opciones CRUD y asignación de roles *@
+@* ================================================================================ *@
+
+@using CMS.Application.DTOs
+@model List<UserListDto>
+
+@{
+    ViewData["Title"] = "Gestión de Usuarios";
+}
+
+<div class="container-fluid my-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="bi bi-people-fill text-primary me-2"></i>
+                Gestión de Usuarios
+            </h1>
+            <p class="text-muted mb-0">Administrar usuarios, roles y permisos del sistema</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="bi bi-person-plus-fill me-2"></i>
+            Nuevo Usuario
+        </button>
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="usersTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Nombre Completo</th>
+                            <th>Roles</th>
+                            <th>Estado</th>
+                            <th>Fecha Creación</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@user.Username</strong>
+                                </td>
+                                <td>@user.Email</td>
+                                <td>@(user.DisplayName ?? "-")</td>
+                                <td>
+                                    @if (user.Roles.Any())
+                                    {
+                                        @foreach (var role in user.Roles)
+                                        {
+                                            <span class="badge bg-info me-1">@role</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Sin roles</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge bg-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    }
+                                </td>
+                                <td>@user.CreateDate.ToString("dd/MM/yyyy")</td>
+                                <td class="text-center">
+                                    <a href="@Url.Action("UserDetail", new { id = user.Id })"
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-warning"
+                                            onclick="editUser(@user.Id)" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="deleteUser(@user.Id, '@user.Username')" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Usuario -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus me-2"></i>
+                    Crear Nuevo Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="displayName">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isActive" checked>
+                            <label class="form-check-label" for="isActive">
+                                Usuario Activo
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="createUser()">
+                    <i class="bi bi-save me-2"></i>Crear Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function createUser() {
+            const dto = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                displayName: document.getElementById('displayName').value || null,
+                isActive: document.getElementById('isActive').checked
+            };
+
+            try {
+                const response = await fetch('/api/user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dto)
+                });
+
+                if (response.ok) {
+                    alert('Usuario creado exitosamente');
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.message || 'No se pudo crear el usuario'));
+                }
+            } catch (ex) {
+                console.error(ex);
+                alert('Error de conexión');
+            }
+        }
+
+        async function deleteUser(id, username) {
+            if (!confirm(`¿Está seguro de eliminar al usuario "${username}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/user/${id}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    alert('Usuario eliminado exitosamente');
+                    location.reload();
+                } else {
+                    alert('Error al eliminar usuario');
+                }
+            } catch (ex) {
+                console.error(ex);
+                alert('Error de conexión');
+            }
+        }
+
+        // DataTable
+        $(document).ready(function() {
+            $('#usersTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                order: [[0, 'asc']]
+            });
+        });
+    </script>
+}

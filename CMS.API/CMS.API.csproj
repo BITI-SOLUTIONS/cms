@@ -1,0 +1,35 @@
+<!-- ================================================================================ -->
+<!-- ARCHIVO: CMS.API/CMS.API.csproj -->
+<!-- CONFIGURACI�N: Proyecto API REST con autenticaci�n JWT (Azure AD) -->
+<!-- ================================================================================ -->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>CMS.API</RootNamespace>
+		<AssemblyName>CMS.API</AssemblyName>
+	  <UserSecretsId>591d2fba-e14b-4740-aa30-1a9001e7902d</UserSecretsId>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.22" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.22">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Identity.Web" Version="4.1.1" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\CMS.Application\CMS.Application.csproj" />
+		<ProjectReference Include="..\CMS.Data\CMS.Data.csproj" />
+		<ProjectReference Include="..\CMS.Entities\CMS.Entities.csproj" />
+	</ItemGroup>
+
+</Project>
