@@ -13,3 +13,9 @@ obj/
 # PERO incluir el backup
 !backup/
 !backup/cms_backup.sql
+
+# ==========================================
+# BACKUPS (SÍ incluir en GitHub con LFS)
+# ==========================================
+!backup/
+!backup/cms_backup.sql
