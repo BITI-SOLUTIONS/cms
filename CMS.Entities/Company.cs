@@ -19,6 +19,9 @@ namespace CMS.Entities
     [Table("company", Schema = "admin")]
     public class Company : IAuditableEntity
     {
+        // ===== CONSTANTES =====
+        private const string DEFAULT_AZURE_AD_CALLBACK_PATH = "/signin-oidc";
+
         // ===== IDENTIFICACIÓN =====
         [Key]
         [Column("id_company")]
@@ -104,6 +107,10 @@ namespace CMS.Entities
         [Column("azure_ad_ui_call_back_path")]
         [MaxLength(100)]
         public string? AZURE_AD_UI_CALL_BACK_PATH { get; set; }
+
+        [Column("azure_ad_ui_call_back_path_development")]
+        [MaxLength(100)]
+        public string? AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT { get; set; }
 
         // ===== API ENDPOINTS =====
         [Column("api_development_base_url")]
@@ -274,6 +281,13 @@ namespace CMS.Entities
             return IS_PRODUCTION
                 ? API_PRODUCTION_BASE_URL ?? throw new InvalidOperationException("API_PRODUCTION_BASE_URL no configurada")
                 : API_DEVELOPMENT_BASE_URL ?? throw new InvalidOperationException("API_DEVELOPMENT_BASE_URL no configurada");
+        }
+
+        public string GetAzureAdCallbackPath()
+        {
+            return IS_PRODUCTION
+                ? AZURE_AD_UI_CALL_BACK_PATH ?? DEFAULT_AZURE_AD_CALLBACK_PATH
+                : AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT ?? DEFAULT_AZURE_AD_CALLBACK_PATH;
         }
 
         public Company GetRootTenant()

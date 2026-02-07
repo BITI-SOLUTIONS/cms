@@ -289,6 +289,7 @@ namespace CMS.Data
                 entity.Property(e => e.AZURE_AD_UI_CLIENT_ID).HasColumnName("azure_ad_ui_client_id");
                 entity.Property(e => e.AZURE_AD_UI_CLIENT_SECRET).HasColumnName("azure_ad_ui_client_secret");
                 entity.Property(e => e.AZURE_AD_UI_CALL_BACK_PATH).HasColumnName("azure_ad_ui_call_back_path");
+                entity.Property(e => e.AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT).HasColumnName("azure_ad_ui_call_back_path_development");
                 entity.Property(e => e.API_DEVELOPMENT_BASE_URL).HasColumnName("api_development_base_url");
                 entity.Property(e => e.API_PRODUCTION_BASE_URL).HasColumnName("api_production_base_url");
                 entity.Property(e => e.API_SCOPES).HasColumnName("api_scopes");
