@@ -19,3 +19,9 @@ obj/
 # ==========================================
 !backup/
 !backup/cms_backup.sql
+
+
+# ==========================================
+# CONNECTION STRINGS (Excluir por seguridad)
+# ==========================================
+connectionstrings.json
