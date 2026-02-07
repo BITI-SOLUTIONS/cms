@@ -1,8 +1,4 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-WORKDIR /app
-EXPOSE 80
-
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+﻿FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copiar solución y proyectos
@@ -18,15 +14,17 @@ COPY ["connectionstrings.json", "CMS.API/"]
 
 RUN dotnet restore "CMS.Solution.sln"
 COPY . .
-WORKDIR "/src/CMS.API"
-RUN dotnet build "CMS.API.csproj" -c Release -o /app/build
+WORKDIR "/src/CMS.UI"
+RUN dotnet build "CMS.UI.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "CMS.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "CMS.UI.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 8081
 
 FROM base AS final
-WORKDIR /app
 COPY --from=publish /app/publish .
-# Asegurar que connectionstrings.json esté en /app
-COPY --from=build /src/CMS.API/connectionstrings.json .
-ENTRYPOINT ["dotnet", "CMS.API.dll"]
+COPY ["connectionstrings.json", "."]
+ENTRYPOINT ["dotnet", "CMS.UI.dll"]
