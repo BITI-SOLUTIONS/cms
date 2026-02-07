@@ -46,7 +46,7 @@ var sharedConfigPath = Path.Combine(
 );
 var dockerConfigPath = "/app/connectionstrings.json";
 
-string configPath;
+string? configPath = null;
 if (File.Exists(localConfigPath))
 {
     configPath = localConfigPath;
@@ -59,12 +59,8 @@ else if (File.Exists(sharedConfigPath))
 {
     configPath = Path.GetFullPath(sharedConfigPath);
 }
-else
-{
-    configPath = localConfigPath; // Use for error message
-}
 
-if (!File.Exists(configPath))
+if (configPath == null || !File.Exists(configPath))
 {
     throw new FileNotFoundException(
         $"❌ ERROR: No se encontró 'connectionstrings.json' en ninguna de las ubicaciones:\n" +
