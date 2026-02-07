@@ -36,33 +36,53 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // ⭐ OBJETIVO: Obtener SOLO la cadena de conexión para consultar la BD
 // ⭐ TODO LO DEMÁS se carga desde [ADMIN].[COMPANY]
 
+// Try to load from local CMS.UI directory first, then fallback to shared locations
+var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "connectionstrings.json");
 var sharedConfigPath = Path.Combine(
     builder.Environment.ContentRootPath,
     "..",
     "CMS.API",
     "connectionstrings.json"
 );
+var dockerConfigPath = "/app/connectionstrings.json";
 
-//sharedConfigPath = Path.GetFullPath(sharedConfigPath);
+string configPath;
+if (File.Exists(localConfigPath))
+{
+    configPath = localConfigPath;
+}
+else if (File.Exists(dockerConfigPath))
+{
+    configPath = dockerConfigPath;
+}
+else if (File.Exists(sharedConfigPath))
+{
+    configPath = Path.GetFullPath(sharedConfigPath);
+}
+else
+{
+    configPath = localConfigPath; // Use for error message
+}
 
-sharedConfigPath = "/app/connectionstrings.json";
-
-if (!File.Exists(sharedConfigPath))
+if (!File.Exists(configPath))
 {
     throw new FileNotFoundException(
-        $"❌ ERROR: No se encontró 'connectionstrings.json' en: {sharedConfigPath}\n" +
+        $"❌ ERROR: No se encontró 'connectionstrings.json' en ninguna de las ubicaciones:\n" +
+        $"   1. {localConfigPath}\n" +
+        $"   2. {dockerConfigPath}\n" +
+        $"   3. {sharedConfigPath}\n\n" +
         "   Este archivo debe contener:\n" +
         "   {\n" +
-        "     \"CompanySchema\": \"ADMIN\",\n" +
+        "     \"CompanySchema\": \"admin\",\n" +
         "     \"ConnectionString\": \"Host=...;Database=cms;...\"\n" +
         "   }\n\n" +
         "   La configuración completa se carga desde admin.company"
     );
 }
 
-Console.WriteLine($"✅ Cargando bootstrap desde: {sharedConfigPath}");
+Console.WriteLine($"✅ Cargando bootstrap desde: {configPath}");
 
-builder.Configuration.AddJsonFile(sharedConfigPath, optional: false, reloadOnChange: true);
+builder.Configuration.AddJsonFile(configPath, optional: false, reloadOnChange: true);
 
 // Leer parámetros bootstrap
 var companySchema = builder.Configuration.GetValue<string>("CompanySchema")
