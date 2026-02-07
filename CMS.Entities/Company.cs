@@ -19,6 +19,9 @@ namespace CMS.Entities
     [Table("company", Schema = "admin")]
     public class Company : IAuditableEntity
     {
+        // ===== CONSTANTES =====
+        private const string DEFAULT_AZURE_AD_CALLBACK_PATH = "/signin-oidc";
+
         // ===== IDENTIFICACIÓN =====
         [Key]
         [Column("id_company")]
@@ -283,8 +286,8 @@ namespace CMS.Entities
         public string GetAzureAdCallbackPath()
         {
             return IS_PRODUCTION
-                ? AZURE_AD_UI_CALL_BACK_PATH ?? "/signin-oidc"
-                : AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT ?? "/signin-oidc";
+                ? AZURE_AD_UI_CALL_BACK_PATH ?? DEFAULT_AZURE_AD_CALLBACK_PATH
+                : AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT ?? DEFAULT_AZURE_AD_CALLBACK_PATH;
         }
 
         public Company GetRootTenant()
