@@ -16,8 +16,18 @@ using CMS.Data;
 using CMS.Data.Services;
 using CMS.Entities;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;  //  PARA TRAEFIK HTTPS
 
 var builder = WebApplication.CreateBuilder(args);
+
+//  CONFIGURAR FORWARDED HEADERS PARA TRAEFIK
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.ForwardLimit = 2;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // ================================================================================
 // FASE 1: BOOTSTRAP - Cargar configuración mínima desde connectionstrings.json
@@ -235,6 +245,9 @@ else
 // ================================================================================
 
 var app = builder.Build();
+
+//  USAR FORWARDED HEADERS (DEBE SER UNO DE LOS PRIMEROS)
+app.UseForwardedHeaders();
 
 if (!companyConfig.IS_PRODUCTION)
 {
