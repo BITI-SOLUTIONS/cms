@@ -4,7 +4,7 @@
 // DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
 //              Lee [ADMIN].[COMPANY] para obtener TODA la configuración
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// ACTUALIZADO: 2025-12-19
+// ACTUALIZADO: 2026-02-07
 // ================================================================================
 
 using CMS.UI;
@@ -13,11 +13,22 @@ using CMS.Data;
 using CMS.Data.Services;
 using CMS.Entities;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.HttpOverrides;  // ⭐ AGREGAR ESTO
 using Microsoft.Identity.Web;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ⭐ AGREGAR ESTA SECCIÓN - Configuración de Forwarded Headers para Traefik
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.ForwardLimit = 2;
+    // Permitir desde cualquier proxy (seguro porque estamos en Kubernetes)
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // ================================================================================
 // FASE 1: BOOTSTRAP - Cargar configuración mínima desde connectionstrings.json
@@ -32,7 +43,9 @@ var sharedConfigPath = Path.Combine(
     "connectionstrings.json"
 );
 
-sharedConfigPath = Path.GetFullPath(sharedConfigPath);
+//sharedConfigPath = Path.GetFullPath(sharedConfigPath);
+
+sharedConfigPath = "/app/connectionstrings.json";
 
 if (!File.Exists(sharedConfigPath))
 {
@@ -224,6 +237,9 @@ builder.Services.AddTransient<AuthenticatedApiMessageHandler>();
 
 var app = builder.Build();
 
+// ⭐ AGREGAR ESTO - Middleware de Forwarded Headers (DEBE SER UNO DE LOS PRIMEROS)
+app.UseForwardedHeaders();
+
 if (!companyConfig.IS_PRODUCTION)
 {
     app.UseDeveloperExceptionPage();
@@ -248,6 +264,6 @@ Console.WriteLine("╔═══════════════════�
 Console.WriteLine($"║  ✅ CMS.UI INICIADA - {environmentName,-34} ║");
 Console.WriteLine($"║  🌐 URLs: {string.Join(", ", app.Urls).PadRight(46)}║");
 Console.WriteLine($"║  🔗 API: {apiBaseUrl.PadRight(50)}║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+Console.WriteLine("╚═════════════════════════════════════════════════���════════════╝");
 
 app.Run();
