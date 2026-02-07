@@ -105,6 +105,10 @@ namespace CMS.Entities
         [MaxLength(100)]
         public string? AZURE_AD_UI_CALL_BACK_PATH { get; set; }
 
+        [Column("azure_ad_ui_call_back_path_development")]
+        [MaxLength(100)]
+        public string? AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT { get; set; }
+
         // ===== API ENDPOINTS =====
         [Column("api_development_base_url")]
         [MaxLength(200)]
@@ -274,6 +278,13 @@ namespace CMS.Entities
             return IS_PRODUCTION
                 ? API_PRODUCTION_BASE_URL ?? throw new InvalidOperationException("API_PRODUCTION_BASE_URL no configurada")
                 : API_DEVELOPMENT_BASE_URL ?? throw new InvalidOperationException("API_DEVELOPMENT_BASE_URL no configurada");
+        }
+
+        public string GetAzureAdCallbackPath()
+        {
+            return IS_PRODUCTION
+                ? AZURE_AD_UI_CALL_BACK_PATH ?? "/signin-oidc"
+                : AZURE_AD_UI_CALL_BACK_PATH_DEVELOPMENT ?? "/signin-oidc";
         }
 
         public Company GetRootTenant()

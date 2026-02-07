@@ -143,7 +143,7 @@ var azureAdConfig = new Dictionary<string, string>
     ["AzureAd:Domain"] = companyConfig.AZURE_AD_UI_DOMAIN ?? throw new InvalidOperationException("AZURE_AD_UI_DOMAIN no configurado"),
     ["AzureAd:ClientId"] = companyConfig.AZURE_AD_UI_CLIENT_ID ?? throw new InvalidOperationException("AZURE_AD_UI_CLIENT_ID no configurado"),
     ["AzureAd:ClientSecret"] = companyConfig.AZURE_AD_UI_CLIENT_SECRET ?? throw new InvalidOperationException("AZURE_AD_UI_CLIENT_SECRET no configurado"),
-    ["AzureAd:CallbackPath"] = companyConfig.AZURE_AD_UI_CALL_BACK_PATH ?? "/signin-oidc"
+    ["AzureAd:CallbackPath"] = companyConfig.GetAzureAdCallbackPath()
 };
 
 var inMemoryConfig = new ConfigurationBuilder()
