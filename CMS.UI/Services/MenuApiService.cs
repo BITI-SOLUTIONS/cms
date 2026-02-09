@@ -24,7 +24,9 @@ namespace CMS.UI.Services
 
         public MenuApiService(IHttpClientFactory factory, ILogger<MenuApiService> logger)
         {
-            _http = factory.CreateClient("cmsapi");
+            // ✅ Usar "cmsapi-authenticated" para incluir el token JWT en las requests
+            // Esto permite que la API filtre los menús según los permisos del usuario autenticado
+            _http = factory.CreateClient("cmsapi-authenticated");
             _logger = logger;
         }
 

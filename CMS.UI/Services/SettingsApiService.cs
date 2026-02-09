@@ -23,7 +23,9 @@ namespace CMS.UI.Services
 
         public SettingsApiService(IHttpClientFactory factory, ILogger<SettingsApiService> logger)
         {
-            _http = factory.CreateClient("cmsapi");
+            // ✅ Usar "cmsapi-authenticated" para incluir el token JWT en las requests
+            // Los endpoints de Settings requieren autenticación para operaciones CRUD de usuarios, roles y permisos
+            _http = factory.CreateClient("cmsapi-authenticated");
             _logger = logger;
         }
 
