@@ -36,16 +36,22 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // ⭐ OBJETIVO: Obtener SOLO la cadena de conexión para consultar la BD
 // ⭐ TODO LO DEMÁS se carga desde [ADMIN].[COMPANY]
 
-var sharedConfigPath = Path.Combine(
+// Determinar la ruta del archivo de configuración según el entorno
+// En Docker: /app/connectionstrings.json (detectado por DOTNET_RUNNING_IN_CONTAINER)
+// En desarrollo: ../CMS.API/connectionstrings.json (relativo al ContentRootPath)
+var isRunningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+var dockerConfigPath = "/app/connectionstrings.json";
+var localConfigPath = Path.Combine(
     builder.Environment.ContentRootPath,
     "..",
     "CMS.API",
     "connectionstrings.json"
 );
 
-//sharedConfigPath = Path.GetFullPath(sharedConfigPath);
-
-sharedConfigPath = "/app/connectionstrings.json";
+// Usar Docker path si estamos en contenedor, sino usar local path
+var sharedConfigPath = isRunningInContainer 
+    ? dockerConfigPath 
+    : Path.GetFullPath(localConfigPath);
 
 if (!File.Exists(sharedConfigPath))
 {
@@ -143,7 +149,7 @@ var azureAdConfig = new Dictionary<string, string>
     ["AzureAd:Domain"] = companyConfig.AZURE_AD_UI_DOMAIN ?? throw new InvalidOperationException("AZURE_AD_UI_DOMAIN no configurado"),
     ["AzureAd:ClientId"] = companyConfig.AZURE_AD_UI_CLIENT_ID ?? throw new InvalidOperationException("AZURE_AD_UI_CLIENT_ID no configurado"),
     ["AzureAd:ClientSecret"] = companyConfig.AZURE_AD_UI_CLIENT_SECRET ?? throw new InvalidOperationException("AZURE_AD_UI_CLIENT_SECRET no configurado"),
-    ["AzureAd:CallbackPath"] = companyConfig.AZURE_AD_UI_CALL_BACK_PATH ?? "/signin-oidc"
+    ["AzureAd:CallbackPath"] = "/signin-oidc"  // ⭐ HARDCODED - NO usar desde BD (campo AZURE_AD_UI_CALL_BACK_PATH puede ser eliminado en el futuro)
 };
 
 var inMemoryConfig = new ConfigurationBuilder()
