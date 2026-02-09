@@ -15,7 +15,25 @@ obj/
 !backup/cms_backup.sql
 
 # ==========================================
-# BACKUPS (SÍ incluir en GitHub con LFS)
+# BACKUPS (SÃ­ incluir en GitHub con LFS)
 # ==========================================
 !backup/
 !backup/cms_backup.sql
+
+# ==========================================
+# SENSITIVE FILES (NEVER COMMIT)
+# ==========================================
+# Environment variables with credentials
+.env
+.env.local
+.env.*.local
+
+# Database connection strings
+connectionstrings.json
+appsettings.*.json
+!appsettings.Development.json
+!appsettings.Production.json
+
+# Backup files with potentially sensitive data
+*.sql.gz
+pre-restore-*.sql.gz
