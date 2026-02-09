@@ -10,12 +10,16 @@ obj/
 *.user
 *.sln.docstates
 
+# Excluir archivos de configuraciÃ³n con credenciales
+connectionstrings.json
+**/connectionstrings.json
+
 # PERO incluir el backup
 !backup/
 !backup/cms_backup.sql
 
 # ==========================================
-# BACKUPS (SÍ incluir en GitHub con LFS)
+# BACKUPS (Sï¿½ incluir en GitHub con LFS)
 # ==========================================
 !backup/
 !backup/cms_backup.sql
