@@ -104,7 +104,9 @@ print_info "Conectando al entorno: $ENVIRONMENT"
 # Cargar variables de entorno si existe .env
 if [ -f ".env" ]; then
     print_info "Cargando variables de .env..."
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 # Establecer valores por defecto según el entorno

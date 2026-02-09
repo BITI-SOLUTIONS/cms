@@ -145,7 +145,9 @@ print_info "Preparando restauración para: $ENVIRONMENT"
 # Cargar variables de entorno
 if [ -f ".env" ]; then
     print_info "Cargando variables de .env..."
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 # Establecer valores según el entorno

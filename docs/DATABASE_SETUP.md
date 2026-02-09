@@ -109,19 +109,23 @@ The application uses the following configuration files:
    - **Not in version control** - must be created manually
 
 2. **`appsettings.Development.json`** (Development environment)
-   - Development database settings
+   - Development database settings template
+   - Replace `REPLACE_WITH_DB_DEV_PASSWORD` with actual password
    - Lower connection pool limits
    - Enhanced logging
    - SSL preferred but not required
+   - **Note**: For sensitive environments, use .NET User Secrets instead of hardcoding passwords
 
 3. **`appsettings.Production.json`** (Production environment)
-   - Production database settings
+   - Production database settings template
+   - Replace `REPLACE_WITH_DB_PROD_PASSWORD` with actual password
    - Higher connection pool limits
    - Minimal logging
    - SSL required
+   - **Note**: Use Azure Key Vault or environment variables for production credentials
 
-4. **`.env`** (Environment variables)
-   - Sensitive credentials
+4. **`.env`** (Environment variables for scripts)
+   - Sensitive credentials for database scripts
    - **Not in version control** - use `.env.example` as template
 
 ---
