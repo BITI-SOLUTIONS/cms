@@ -10,6 +10,8 @@ namespace CMS.UI.Services
 
         public UserSyncApiService(IHttpClientFactory factory, ILogger<UserSyncApiService> logger)
         {
+            // ℹ️ Usar "cmsapi" (sin autenticación) porque el endpoint /api/auth/sync-user
+            // es público y se llama durante el proceso de login, antes de tener el token JWT completo
             _http = factory.CreateClient("cmsapi");
             _logger = logger;
         }
