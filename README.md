@@ -63,6 +63,8 @@ docker build -f CMS.API/Dockerfile -t cms-api .
 docker build -f Dockerfile -t cms-ui .
 ```
 
+> Note: The root `Dockerfile` builds the UI component with .NET 9.0
+
 ## 🚀 Deployment
 
 Deployments are automated via GitHub Actions. Every push to `main` triggers:

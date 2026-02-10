@@ -27,7 +27,7 @@ This directory contains the GitHub Actions workflows for automated build and dep
 - `CMS.Application/**`
 - `CMS.Data/**`
 - `CMS.Entities/**`
-- `Dockerfile`
+- `Dockerfile` (root Dockerfile builds the UI)
 - `connectionstrings.json`
 
 **What it does:**
@@ -100,6 +100,12 @@ git push origin main
 ```
 
 The appropriate workflow will automatically trigger based on which files were changed.
+
+### Important Notes
+
+- **UI Dockerfile**: The root `Dockerfile` is used for building the UI component (not `Dockerfile.UI`)
+- **API Dockerfile**: Located at `CMS.API/Dockerfile`
+- Both use .NET 9.0 SDK and runtime
 
 ## 📊 Monitoring Deployments
 
