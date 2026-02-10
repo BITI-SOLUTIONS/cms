@@ -63,6 +63,7 @@ jobs:
       - name: Configure kubectl
         run: |
           echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > kubeconfig
+          chmod 600 kubeconfig
           export KUBECONFIG=$(pwd)/kubeconfig
 
       - name: Deploy API to Kubernetes
@@ -84,6 +85,7 @@ jobs:
       - name: Configure kubectl
         run: |
           echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > kubeconfig
+          chmod 600 kubeconfig
           export KUBECONFIG=$(pwd)/kubeconfig
 
       - name: Deploy UI to Kubernetes
