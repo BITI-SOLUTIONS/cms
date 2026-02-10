@@ -1,0 +1,121 @@
+name: Build and Deploy Full Stack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Build and push API Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./CMS.API/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.HARBOR_REGISTRY }}/cms-api:latest
+            ${{ secrets.HARBOR_REGISTRY }}/cms-api:${{ github.sha }}
+
+  build-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Build and push UI Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.HARBOR_REGISTRY }}/cms-ui:latest
+            ${{ secrets.HARBOR_REGISTRY }}/cms-ui:${{ github.sha }}
+
+  deploy-api:
+    needs: build-api
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+          kubectl config view
+
+      - name: Deploy API to Kubernetes
+        run: |
+          export KUBECONFIG=$(pwd)/kubeconfig
+          kubectl set image deployment/cms-api-deployment \
+            cms-api=${{ secrets.HARBOR_REGISTRY }}/cms-api:latest \
+            --namespace=cms
+          
+          kubectl rollout status deployment/cms-api-deployment -n cms --timeout=5m
+
+  deploy-ui:
+    needs: build-ui
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+          kubectl config view
+
+      - name: Deploy UI to Kubernetes
+        run: |
+          export KUBECONFIG=$(pwd)/kubeconfig
+          kubectl set image deployment/cms-ui-deployment \
+            cms-ui=${{ secrets.HARBOR_REGISTRY }}/cms-ui:latest \
+            --namespace=cms
+          
+          kubectl rollout status deployment/cms-ui-deployment -n cms --timeout=5m
+
+  health-check:
+    needs: [deploy-api, deploy-ui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deployments to stabilize
+        run: sleep 15
+
+      - name: Health Check - API
+        run: |
+          echo "Checking API health..."
+          curl -f http://cms.biti-solutions.com/health || exit 1
+
+      - name: Health Check - UI
+        run: |
+          echo "Checking UI health..."
+          curl -f https://cms.biti-solutions.com || exit 1
+
+      - name: Deployment Success
+        run: |
+          echo "✅ Full stack deployment successful!"
+          echo "API: http://cms.biti-solutions.com/health"
+          echo "UI: https://cms.biti-solutions.com"
