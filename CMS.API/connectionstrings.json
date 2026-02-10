@@ -1,0 +1,20 @@
+{
+  "CompanySchema": "admin",
+  "Environment": "Production",
+  "ApiSettings": {
+    "Development": {
+      "BaseUrl": "https://localhost:7001"
+    },
+    "Production": {
+      "BaseUrl": "https://cms.biti-solutions.com"
+    }
+  },
+  "ConnectionStrings": {
+    "Development": {
+      "DefaultConnection": "Host=10.0.0.1;Port=5432;Database=cms;Username=cmssystem;Password=SYScmsPOStgres1024;Pooling=true;Include Error Detail=true"
+    },
+    "Production": {
+      "DefaultConnection": "Host=cms-postgres;Port=5432;Database=cms;Username=postgres;Password=POStgres2026;Pooling=true;Include Error Detail=true"
+    }
+  }
+}

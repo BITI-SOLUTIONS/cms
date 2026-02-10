@@ -8,22 +8,12 @@
       "sslPort": 44360
     }
   },
-  //"profiles": {
-  //  "http": {
-  //    "commandName": "Project",
-  //    "dotnetRunMessages": true,
-  //    "launchBrowser": true,
-  //    "applicationUrl": "http://localhost:5165",
-  //    "environmentVariables": {
-  //      "ASPNETCORE_ENVIRONMENT": "Development"
-  //    }
-  //  },
   "profiles": {
     "CMS.UI": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7080;http://localhost:5170", // <-- AQUÍ
+      "applicationUrl": "https://localhost:5001;http://localhost:5000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -32,18 +22,17 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      //"applicationUrl": "https://localhost:7203;http://localhost:5165",
-      "applicationUrl": "https://localhost:7080;http://localhost:5170",
+      "applicationUrl": "https://localhost:5001;http://localhost:5000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-  "IIS Express": {
-    "commandName": "IISExpress",
-    "launchBrowser": true,
-    "environmentVariables": {
-      "ASPNETCORE_ENVIRONMENT": "Development"
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   }
-}
 }

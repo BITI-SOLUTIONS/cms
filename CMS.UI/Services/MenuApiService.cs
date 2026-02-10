@@ -8,7 +8,8 @@
 // ================================================================================
 
 using System.Net.Http.Json;
-using CMS.Application.DTOs; // ⭐ CAMBIO: Usar DTOs de Application
+using CMS.Application.DTOs;
+using Microsoft.Identity.Web; // ✅ AGREGAR ESTA LÍNEA
 
 namespace CMS.UI.Services
 {
@@ -24,7 +25,6 @@ namespace CMS.UI.Services
 
         public MenuApiService(IHttpClientFactory factory, ILogger<MenuApiService> logger)
         {
-            //_http = factory.CreateClient("cmsapi");
             _http = factory.CreateClient("cmsapi-authenticated");
             _logger = logger;
         }
@@ -44,13 +44,19 @@ namespace CMS.UI.Services
             {
                 var response = await _http.GetAsync("api/menu");
 
+                // ✅ Si no está autenticado, devolver lista vacía (sin error)
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogInformation("ℹ️ Usuario no autenticado - sin menús disponibles");
+                    return new List<MenuDto>();
+                }
+
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("❌ Menu API error: {StatusCode}", response.StatusCode);
                     return new List<MenuDto>();
                 }
 
-                // La API devuelve: { "success": true, "count": 10, "data": [...] }
                 var json = await response.Content.ReadFromJsonAsync<MenuApiResponse>();
 
                 if (json?.data == null || json.data.Count == 0)
@@ -61,6 +67,12 @@ namespace CMS.UI.Services
 
                 _logger.LogInformation("✅ Menús obtenidos exitosamente: {Count} ítems", json.count);
                 return json.data;
+            }
+            catch (MicrosoftIdentityWebChallengeUserException)
+            {
+                // Usuario no autenticado - devolver lista vacía sin error
+                _logger.LogInformation("ℹ️ Usuario requiere autenticación - sin menús");
+                return new List<MenuDto>();
             }
             catch (HttpRequestException ex)
             {

@@ -4,7 +4,7 @@
 // DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
 //              Lee [ADMIN].[COMPANY] para obtener TODA la configuración
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// ACTUALIZADO: 2026-02-07
+// ACTUALIZADO: 2026-02-10
 // ================================================================================
 
 using CMS.UI;
@@ -13,88 +13,89 @@ using CMS.Data;
 using CMS.Data.Services;
 using CMS.Entities;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.HttpOverrides;  // ⭐ AGREGAR ESTO
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Identity.Web;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ⭐ AGREGAR ESTA SECCIÓN - Configuración de Forwarded Headers para Traefik
+// ⭐ Configuración de Forwarded Headers
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
     options.ForwardLimit = 2;
-    // Permitir desde cualquier proxy (seguro porque estamos en Kubernetes)
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
 
 // ================================================================================
-// FASE 1: BOOTSTRAP - Cargar configuración mínima desde connectionstrings.json
+// FASE 1: DETECTAR AMBIENTE
 // ================================================================================
-// ⭐ OBJETIVO: Obtener SOLO la cadena de conexión para consultar la BD
-// ⭐ TODO LO DEMÁS se carga desde [ADMIN].[COMPANY]
+var isRunningInDocker = File.Exists("/.dockerenv");
+var sharedConfigPath = isRunningInDocker
+    ? "/app/connectionstrings.json"
+    : Path.Combine(builder.Environment.ContentRootPath, "..", "CMS.API", "connectionstrings.json");
 
-var sharedConfigPath = Path.Combine(
-    builder.Environment.ContentRootPath,
-    "..",
-    "CMS.API",
-    "connectionstrings.json"
-);
-
-//sharedConfigPath = Path.GetFullPath(sharedConfigPath);
-
-sharedConfigPath = "/app/connectionstrings.json";
+sharedConfigPath = Path.GetFullPath(sharedConfigPath);
 
 if (!File.Exists(sharedConfigPath))
 {
-    throw new FileNotFoundException(
-        $"❌ ERROR: No se encontró 'connectionstrings.json' en: {sharedConfigPath}\n" +
-        "   Este archivo debe contener:\n" +
-        "   {\n" +
-        "     \"CompanySchema\": \"ADMIN\",\n" +
-        "     \"ConnectionString\": \"Host=...;Database=cms;...\"\n" +
-        "   }\n\n" +
-        "   La configuración completa se carga desde admin.company"
-    );
+    throw new FileNotFoundException($"❌ No se encontró: {sharedConfigPath}");
 }
 
-Console.WriteLine($"✅ Cargando bootstrap desde: {sharedConfigPath}");
+Console.WriteLine($"✅ Cargando desde: {sharedConfigPath}");
 
 builder.Configuration.AddJsonFile(sharedConfigPath, optional: false, reloadOnChange: true);
 
-// Leer parámetros bootstrap
-var companySchema = builder.Configuration.GetValue<string>("CompanySchema")
-    ?? throw new InvalidOperationException("❌ 'CompanySchema' no está configurado");
+// ⭐ LEER AMBIENTE
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? builder.Configuration["Environment"]
+    ?? "Development";
 
-var bootstrapConnectionString = builder.Configuration.GetValue<string>("ConnectionString")
-    ?? throw new InvalidOperationException("❌ 'ConnectionString' no está configurado");
+var isDevelopment = environment == "Development";
 
 Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-Console.WriteLine($"║  🔄 BOOTSTRAP - Compañía: {companySchema,-34} ║");
-Console.WriteLine($"║  📊 Conectando a BD para cargar configuración...            ║");
+Console.WriteLine($"║  🌍 Ambiente: {environment.PadRight(45)}║");
 Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
-// ================================================================================
-// FASE 2: CONFIGURAR DbContext CON CADENA BOOTSTRAP (PostgreSQL)
-// ================================================================================
+// ⭐ LEER CONFIGURACIÓN
+var companySchema = builder.Configuration["CompanySchema"]
+    ?? throw new InvalidOperationException("❌ 'CompanySchema' no configurado");
 
+var bootstrapConnectionString = builder.Configuration[$"ConnectionStrings:{environment}:DefaultConnection"]
+    ?? throw new InvalidOperationException($"❌ ConnectionStrings:{environment}:DefaultConnection no encontrado");
+
+var apiBaseUrlFromConfig = builder.Configuration[$"ApiSettings:{environment}:BaseUrl"];
+
+Console.WriteLine($"📂 Schema: {companySchema}");
+Console.WriteLine($"🗄️  BD: {(isDevelopment ? "10.0.0.1 (Development)" : "cms-postgres (Production)")}");
+Console.WriteLine($"🔗 API: {apiBaseUrlFromConfig}");
+
+// ================================================================================
+// FASE 2: CONFIGURAR DbContext
+// ================================================================================
 builder.Services.AddDbContext<AppDbContext>(options =>
+{
     options.UseNpgsql(bootstrapConnectionString, npgsqlOptions =>
     {
         npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
         npgsqlOptions.CommandTimeout(60);
-    })
-);
+    });
+
+    if (isDevelopment)
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CompanyConfigService>();
 
 // ================================================================================
-// FASE 3: CARGAR CONFIGURACIÓN DESDE [ADMIN].[COMPANY]
+// FASE 3: CARGAR CONFIGURACIÓN DESDE BD
 // ================================================================================
-
 var serviceProvider = builder.Services.BuildServiceProvider();
 using var scope = serviceProvider.CreateScope();
 var configService = scope.ServiceProvider.GetRequiredService<CompanyConfigService>();
@@ -106,36 +107,21 @@ try
 }
 catch (Exception ex)
 {
-    throw new InvalidOperationException(
-        $"❌ ERROR: No se pudo cargar configuración de '{companySchema}' desde admin.company\n" +
-        $"   Verifica que:\n" +
-        $"   1. La tabla admin.company existe\n" +
-        $"   2. Existe un registro con company_schema = '{companySchema}'\n" +
-        $"   3. is_active = true\n\n" +
-        $"   Error: {ex.Message}",
-        ex
-    );
+    throw new InvalidOperationException($"❌ Error cargando configuración: {ex.Message}", ex);
 }
 
-Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-Console.WriteLine($"║  ✅ Configuración cargada desde admin.company               ║");
-Console.WriteLine($"║  🏢 Compañía: {companyConfig.COMPANY_NAME.PadRight(44)}║");
-Console.WriteLine($"║  📂 Schema: {companyConfig.COMPANY_SCHEMA.PadRight(48)}║");
-Console.WriteLine($"║  🎯 Entorno: {(companyConfig.IS_PRODUCTION ? "PRODUCTION" : "DEVELOPMENT").PadRight(47)}║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+Console.WriteLine($"✅ Compañía: {companyConfig.COMPANY_NAME}");
 
-var apiBaseUrl = companyConfig.GetAPIBaseUrl();
-var environmentName = companyConfig.IS_PRODUCTION ? "PRODUCTION" : "DEVELOPMENT";
+var apiBaseUrl = apiBaseUrlFromConfig ?? companyConfig.GetAPIBaseUrl();
+var environmentName = isDevelopment ? "DEVELOPMENT" : "PRODUCTION";
 
 builder.Services.AddSingleton(companyConfig);
 
 // ================================================================================
-// CONFIGURACIÓN DE SERVICIOS
+// SERVICIOS
 // ================================================================================
 
-// -----------------------------------------------
-// 1. AUTENTICACIÓN CON AZURE AD - DESDE BD
-// -----------------------------------------------
+// 1. AUTENTICACIÓN
 var azureAdConfig = new Dictionary<string, string>
 {
     ["AzureAd:Instance"] = companyConfig.AZURE_AD_UI_INSTANCE ?? throw new InvalidOperationException("AZURE_AD_UI_INSTANCE no configurado"),
@@ -157,7 +143,7 @@ builder.Services
         inMemoryConfig.GetSection("AzureAd").Bind(options);
 
         var scopes = companyConfig.API_SCOPES?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            ?? new[] { "api://8fc7045f-dadd-4de8-892e-9ff446d7f526/access_as_user" };
+            ?? new[] { "api://b231a44d-7e9d-4d9b-8866-9a4b3c5ab5cd/access_as_user" };
 
         foreach (var scope in scopes)
         {
@@ -190,7 +176,7 @@ builder.Services
 
                 if (result == null)
                 {
-                    logger.LogWarning("⚠️ No se pudo sincronizar el usuario con CMS.API");
+                    logger.LogWarning("⚠️ No se pudo sincronizar usuario");
                 }
                 else
                 {
@@ -202,14 +188,10 @@ builder.Services
     .EnableTokenAcquisitionToCallDownstreamApi()
     .AddInMemoryTokenCaches();
 
-// -----------------------------------------------
-// 2. MVC / RAZOR PAGES
-// -----------------------------------------------
+// 2. MVC
 builder.Services.AddControllersWithViews();
 
-// -----------------------------------------------
-// 3. HTTP CLIENTS - DESDE BD
-// -----------------------------------------------
+// 3. HTTP CLIENTS
 builder.Services.AddHttpClient("cmsapi", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
@@ -223,33 +205,27 @@ builder.Services.AddHttpClient("cmsapi-authenticated", client =>
 })
 .AddHttpMessageHandler<AuthenticatedApiMessageHandler>();
 
-// -----------------------------------------------
 // 4. SERVICIOS PERSONALIZADOS
-// -----------------------------------------------
 builder.Services.AddScoped<MenuApiService>();
 builder.Services.AddScoped<UserSyncApiService>();
 builder.Services.AddScoped<SettingsApiService>();
 builder.Services.AddTransient<AuthenticatedApiMessageHandler>();
 
 // ================================================================================
-// CONFIGURACIÓN DEL PIPELINE
+// PIPELINE
 // ================================================================================
-
 var app = builder.Build();
 
-// ⭐ AGREGAR ESTO - Middleware de Forwarded Headers (DEBE SER UNO DE LOS PRIMEROS)
 app.UseForwardedHeaders();
 
-if (!companyConfig.IS_PRODUCTION)
+if (isDevelopment)
 {
     app.UseDeveloperExceptionPage();
-    Console.WriteLine("🛠️  Modo desarrollo: Excepciones detalladas habilitadas");
 }
 else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
-    Console.WriteLine("🔒 Modo producción: Manejo seguro de errores habilitado");
 }
 
 app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
@@ -261,9 +237,8 @@ app.UseAuthorization();
 app.MapDefaultControllerRoute();
 
 Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-Console.WriteLine($"║  ✅ CMS.UI INICIADA - {environmentName,-34} ║");
+Console.WriteLine($"║  ✅ CMS.UI INICIADA - {environmentName.PadRight(36)}║");
 Console.WriteLine($"║  🌐 URLs: {string.Join(", ", app.Urls).PadRight(46)}║");
-Console.WriteLine($"║  🔗 API: {apiBaseUrl.PadRight(50)}║");
-Console.WriteLine("╚═════════════════════════════════════════════════���════════════╝");
+Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
 app.Run();

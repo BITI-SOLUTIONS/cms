@@ -4,7 +4,7 @@
 // DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
 //              Lee [ADMIN].[COMPANY] para obtener TODA la configuración
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// ACTUALIZADO: 2025-12-19
+// ACTUALIZADO: 2026-02-10
 // ================================================================================
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,11 +16,11 @@ using CMS.Data;
 using CMS.Data.Services;
 using CMS.Entities;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.HttpOverrides;  //  PARA TRAEFIK HTTPS
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//  CONFIGURAR FORWARDED HEADERS PARA TRAEFIK
+// ⭐ CONFIGURAR FORWARDED HEADERS PARA TRAEFIK
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
@@ -30,49 +30,57 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // ================================================================================
-// FASE 1: BOOTSTRAP - Cargar configuración mínima desde connectionstrings.json
+// FASE 1: DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN
 // ================================================================================
-
 var connectionConfigPath = Path.Combine(builder.Environment.ContentRootPath, "connectionstrings.json");
 
 if (!File.Exists(connectionConfigPath))
 {
-    throw new FileNotFoundException(
-        $"❌ ERROR: No se encontró 'connectionstrings.json' en: {connectionConfigPath}\n" +
-        "   Este archivo debe contener:\n" +
-        "   {\n" +
-        "     \"CompanySchema\": \"admin\",\n" +
-        "     \"ConnectionString\": \"Host=...;Database=bi_cccn;...\"\n" +
-        "   }"
-    );
+    throw new FileNotFoundException($"❌ No se encontró: {connectionConfigPath}");
 }
 
-Console.WriteLine($"✅ Cargando bootstrap desde: {connectionConfigPath}");
+Console.WriteLine($"✅ Cargando desde: {connectionConfigPath}");
 
 builder.Configuration.AddJsonFile("connectionstrings.json", optional: false, reloadOnChange: true);
 
-var companySchema = builder.Configuration.GetValue<string>("CompanySchema")
-    ?? throw new InvalidOperationException("❌ 'CompanySchema' no está configurado");
+// ⭐ LEER AMBIENTE
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? builder.Configuration["Environment"]
+    ?? "Development";
 
-var bootstrapConnectionString = builder.Configuration.GetValue<string>("ConnectionString")
-    ?? throw new InvalidOperationException("❌ 'ConnectionString' no está configurado");
+var isDevelopment = environment == "Development";
 
 Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-Console.WriteLine($"║  🔄 BOOTSTRAP - Compañía: {companySchema,-34} ║");
-Console.WriteLine($"║  📊 Conectando a BD para cargar configuración...            ║");
+Console.WriteLine($"║  🌍 Ambiente: {environment.PadRight(45)}║");
 Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
-// ================================================================================
-// FASE 2: CONFIGURAR DbContext CON CADENA BOOTSTRAP (PostgreSQL)
-// ================================================================================
+// ⭐ LEER CONFIGURACIÓN SEGÚN AMBIENTE
+var companySchema = builder.Configuration["CompanySchema"]
+    ?? throw new InvalidOperationException("❌ 'CompanySchema' no configurado");
 
+var bootstrapConnectionString = builder.Configuration[$"ConnectionStrings:{environment}:DefaultConnection"]
+    ?? throw new InvalidOperationException($"❌ ConnectionStrings:{environment}:DefaultConnection no encontrado");
+
+Console.WriteLine($"📂 Schema: {companySchema}");
+Console.WriteLine($"🗄️  BD: {(isDevelopment ? "10.0.0.1 (Development)" : "cms-postgres (Production)")}");
+
+// ================================================================================
+// FASE 2: CONFIGURAR DbContext (PostgreSQL)
+// ================================================================================
 builder.Services.AddDbContext<AppDbContext>(options =>
+{
     options.UseNpgsql(bootstrapConnectionString, npgsqlOptions =>
     {
         npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
         npgsqlOptions.CommandTimeout(60);
-    })
-);
+    });
+
+    if (isDevelopment)
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CompanyConfigService>();
@@ -81,7 +89,6 @@ builder.Services.AddScoped<PermissionService>();
 // ================================================================================
 // FASE 3: CARGAR CONFIGURACIÓN DESDE [ADMIN].[COMPANY]
 // ================================================================================
-
 var serviceProvider = builder.Services.BuildServiceProvider();
 using var scope = serviceProvider.CreateScope();
 var configService = scope.ServiceProvider.GetRequiredService<CompanyConfigService>();
@@ -93,56 +100,20 @@ try
 }
 catch (Exception ex)
 {
-    throw new InvalidOperationException(
-        $"❌ ERROR: No se pudo cargar configuración de '{companySchema}' desde admin.company\n" +
-        $"   Verifica que:\n" +
-        $"   1. La tabla admin.company existe\n" +
-        $"   2. Existe un registro con company_schema = '{companySchema}'\n" +
-        $"   3. is_active = true\n\n" +
-        $"   Error: {ex.Message}",
-        ex
-    );
+    throw new InvalidOperationException($"❌ Error cargando configuración: {ex.Message}", ex);
 }
 
-Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-Console.WriteLine($"║  ✅ Configuración cargada desde admin.company               ║");
-Console.WriteLine($"║  🏢 Compañía: {companyConfig.COMPANY_NAME.PadRight(44)}║");
-Console.WriteLine($"║  📂 Schema: {companyConfig.COMPANY_SCHEMA.PadRight(48)}║");
-Console.WriteLine($"║  🎯 Entorno: {(companyConfig.IS_PRODUCTION ? "PRODUCTION" : "DEVELOPMENT").PadRight(47)}║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+Console.WriteLine($"✅ Compañía: {companyConfig.COMPANY_NAME}");
 
-var connectionString = companyConfig.GetConnectionString();
-var environmentName = companyConfig.IS_PRODUCTION ? "PRODUCTION" : "DEVELOPMENT";
+var environmentName = isDevelopment ? "DEVELOPMENT" : "PRODUCTION";
 
 builder.Services.AddSingleton(companyConfig);
-
-// ================================================================================
-// FASE 4: RECONFIGURAR DbContext CON CADENA CORRECTA DESDE BD (PostgreSQL)
-// ================================================================================
-
-builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-{
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
-        npgsqlOptions.CommandTimeout(60);
-    });
-
-    if (!companyConfig.IS_PRODUCTION)
-    {
-        options.EnableSensitiveDataLogging();
-        options.EnableDetailedErrors();
-    }
-}, ServiceLifetime.Scoped);
 
 // ================================================================================
 // CONFIGURACIÓN DE SERVICIOS
 // ================================================================================
 
-// -----------------------------------------------
-// 1. AUTENTICACIÓN (JWT con Azure AD) - DESDE BD
-// -----------------------------------------------
-// ⭐ CORRECCIÓN: Crear configuración in-memory para Azure AD
+// 1. AUTENTICACIÓN (JWT con Azure AD)
 var azureAdConfig = new Dictionary<string, string>
 {
     ["AzureAd:Instance"] = companyConfig.AZURE_AD_API_INSTANCE ?? throw new InvalidOperationException("AZURE_AD_API_INSTANCE no configurado"),
@@ -158,31 +129,20 @@ var inMemoryConfig = new ConfigurationBuilder()
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(inMemoryConfig.GetSection("AzureAd"));
 
-// -----------------------------------------------
 // 2. AUTORIZACIÓN
-// -----------------------------------------------
 builder.Services.AddAuthorization();
 
-// -----------------------------------------------
-// 3. SERVICIOS PROPIOS
-// -----------------------------------------------
-builder.Services.AddScoped<PermissionService>();
-
-// -----------------------------------------------
-// 4. CONTROLLERS Y JSON
-// -----------------------------------------------
+// 3. CONTROLLERS Y JSON
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.WriteIndented = !companyConfig.IS_PRODUCTION;
+        options.JsonSerializerOptions.WriteIndented = isDevelopment;
     });
 
-// -----------------------------------------------
-// 5. SWAGGER
-// -----------------------------------------------
+// 4. SWAGGER
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -190,7 +150,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = $"CMS API - {companyConfig.COMPANY_NAME}",
         Version = "v1",
-        Description = $"API REST del System CMS ({environmentName})"
+        Description = $"API REST del CMS ({environmentName})"
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -215,10 +175,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// -----------------------------------------------
-// 6. CORS
-// -----------------------------------------------
-if (!companyConfig.IS_PRODUCTION)
+// 5. CORS
+if (isDevelopment)
 {
     builder.Services.AddCors(options =>
     {
@@ -234,22 +192,20 @@ else
     {
         options.AddPolicy("ProductionCors", policy =>
         {
-            policy.WithOrigins("https://CMS.cccn.org", "https://www.cccn.org")
+            policy.WithOrigins("https://cms.biti-solutions.com")
                   .AllowAnyMethod().AllowAnyHeader().AllowCredentials();
         });
     });
 }
 
 // ================================================================================
-// CONFIGURACIÓN DEL PIPELINE
+// PIPELINE
 // ================================================================================
-
 var app = builder.Build();
 
-//  USAR FORWARDED HEADERS (DEBE SER UNO DE LOS PRIMEROS)
 app.UseForwardedHeaders();
 
-if (!companyConfig.IS_PRODUCTION)
+if (isDevelopment)
 {
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
@@ -257,27 +213,18 @@ if (!companyConfig.IS_PRODUCTION)
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "CMS API v1");
         c.RoutePrefix = "swagger";
-        c.DocumentTitle = $"CMS API - {companyConfig.COMPANY_NAME}";
     });
-    Console.WriteLine("📖 Swagger disponible en: /swagger");
+    app.UseCors("AllowAll");
+    Console.WriteLine("📖 Swagger: /swagger");
 }
 else
 {
     app.UseExceptionHandler("/error");
     app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-
-if (!companyConfig.IS_PRODUCTION)
-{
-    app.UseCors("AllowAll");
-}
-else
-{
     app.UseCors("ProductionCors");
 }
 
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseMiddleware<AuditUserMiddleware>();
 app.UseAuthorization();
@@ -293,7 +240,7 @@ app.MapGet("/health", () => new
 }).WithTags("Health");
 
 Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-Console.WriteLine($"║  ✅ CMS.API INICIADA - {environmentName,-34} ║");
+Console.WriteLine($"║  ✅ CMS.API INICIADA - {environmentName.PadRight(35)}║");
 Console.WriteLine($"║  🌐 URLs: {string.Join(", ", app.Urls).PadRight(46)}║");
 Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
