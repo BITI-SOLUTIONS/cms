@@ -1,0 +1,73 @@
+name: Build and Deploy UI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'CMS.UI/**'
+      - 'CMS.Application/**'
+      - 'CMS.Data/**'
+      - 'CMS.Entities/**'
+      - 'Dockerfile'
+      - 'connectionstrings.json'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.HARBOR_REGISTRY }}/cms-ui:latest
+            ${{ secrets.HARBOR_REGISTRY }}/cms-ui:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > kubeconfig
+          chmod 600 kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          export KUBECONFIG=$(pwd)/kubeconfig
+          kubectl set image deployment/cms-ui-deployment \
+            cms-ui=${{ secrets.HARBOR_REGISTRY }}/cms-ui:latest \
+            --namespace=cms
+          
+          kubectl rollout status deployment/cms-ui-deployment -n cms --timeout=5m
+
+  health-check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 10
+
+      - name: Health Check
+        run: |
+          curl -f https://cms.biti-solutions.com || exit 1
