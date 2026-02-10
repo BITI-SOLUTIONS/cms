@@ -63,9 +63,14 @@ You must configure these secrets in your repository before the workflows can run
 
 ### How to Get KUBECONFIG_BASE64
 
-> **Security Note**: Ensure you have proper SSH key authentication configured and appropriate access controls in place before accessing production servers.
+> **Security Best Practices**: 
+> - Use SSH key-based authentication (never password-based)
+> - Consider using a non-root user with sudo privileges
+> - Ensure proper firewall rules and IP whitelisting are in place
+> - Store server access details securely (e.g., in a password manager)
+> - Follow your organization's security policies for production server access
 
-1. SSH into your Kubernetes server:
+1. SSH into your Kubernetes server (ensure you have proper SSH key configured):
    ```bash
    ssh root@147.182.204.86
    ```
@@ -117,8 +122,11 @@ The appropriate workflow will automatically trigger based on which files were ch
 3. Each job (build, deploy, health-check) can be expanded to see individual steps
 
 ### Check Deployment Status in Kubernetes
+
+> **Note**: Ensure you have proper authentication and authorization before accessing the production server.
+
 ```bash
-# SSH into the server
+# SSH into the server (use your configured SSH key)
 ssh root@147.182.204.86
 
 # Check pod status
