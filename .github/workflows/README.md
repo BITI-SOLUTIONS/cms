@@ -63,6 +63,8 @@ You must configure these secrets in your repository before the workflows can run
 
 ### How to Get KUBECONFIG_BASE64
 
+> **Security Note**: Ensure you have proper SSH key authentication configured and appropriate access controls in place before accessing production servers.
+
 1. SSH into your Kubernetes server:
    ```bash
    ssh root@147.182.204.86
