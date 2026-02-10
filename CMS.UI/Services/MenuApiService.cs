@@ -24,7 +24,8 @@ namespace CMS.UI.Services
 
         public MenuApiService(IHttpClientFactory factory, ILogger<MenuApiService> logger)
         {
-            _http = factory.CreateClient("cmsapi");
+            //_http = factory.CreateClient("cmsapi");
+            _http = factory.CreateClient("cmsapi-authenticated");
             _logger = logger;
         }
 
