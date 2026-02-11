@@ -55,8 +55,8 @@ namespace CMS.UI.ViewComponents
                 // IMPORTANTE: NO construir jerarquía aquí, solo ordenar
                 // La vista Default.cshtml filtra por ID_PARENT == 0 y construye hijos
                 var orderedMenus = menus
-                    .OrderBy(m => m.ID_PARENT)
-                    .ThenBy(m => m.ORDER)
+                    .OrderBy(m => m.IdParent)
+                    .ThenBy(m => m.Order)
                     .ToList();
 
                 _logger.LogInformation("✅ Menús ordenados: {Count} ítems", orderedMenus.Count);

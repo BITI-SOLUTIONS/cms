@@ -2,12 +2,11 @@
 // ARCHIVO: CMS.UI/Program.cs
 // PROPÓSITO: Configuración y arranque de la interfaz web del Sistema CMS
 // DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
-//              Lee [ADMIN].[COMPANY] para obtener TODA la configuración
+//              Autenticación con Azure AD + JWT propio del API
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// ACTUALIZADO: 2026-02-10
+// ACTUALIZADO: 2026-02-11
 // ================================================================================
 
-using CMS.UI;
 using CMS.UI.Services;
 using CMS.Data;
 using CMS.Data.Services;
@@ -20,7 +19,7 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ⭐ Configuración de Forwarded Headers
+// ⭐ Configuración de Forwarded Headers (para proxy/reverse proxy)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
@@ -30,7 +29,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // ================================================================================
-// FASE 1: DETECTAR AMBIENTE
+// FASE 1: DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN
 // ================================================================================
 var isRunningInDocker = File.Exists("/.dockerenv");
 var sharedConfigPath = isRunningInDocker
@@ -59,7 +58,7 @@ Console.WriteLine("╔═══════════════════�
 Console.WriteLine($"║  🌍 Ambiente: {environment.PadRight(45)}║");
 Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
-// ⭐ LEER CONFIGURACIÓN
+// ⭐ LEER CONFIGURACIÓN BÁSICA
 var companySchema = builder.Configuration["CompanySchema"]
     ?? throw new InvalidOperationException("❌ 'CompanySchema' no configurado");
 
@@ -118,10 +117,8 @@ var environmentName = isDevelopment ? "DEVELOPMENT" : "PRODUCTION";
 builder.Services.AddSingleton(companyConfig);
 
 // ================================================================================
-// SERVICIOS
+// FASE 4: CONFIGURAR AUTENTICACIÓN CON AZURE AD
 // ================================================================================
-
-// 1. AUTENTICACIÓN
 var azureAdConfig = new Dictionary<string, string>
 {
     ["AzureAd:Instance"] = companyConfig.AZURE_AD_UI_INSTANCE ?? throw new InvalidOperationException("AZURE_AD_UI_INSTANCE no configurado"),
@@ -142,6 +139,7 @@ builder.Services
     {
         inMemoryConfig.GetSection("AzureAd").Bind(options);
 
+        // ⭐ AGREGAR SCOPES DEL API
         var scopes = companyConfig.API_SCOPES?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             ?? new[] { "api://b231a44d-7e9d-4d9b-8866-9a4b3c5ab5cd/access_as_user" };
 
@@ -153,45 +151,115 @@ builder.Services
         options.ResponseType = "code";
         options.SaveTokens = true;
 
+        // ⭐ EVENTO: Después de validar el token de Azure AD
         options.Events = new OpenIdConnectEvents
         {
             OnTokenValidated = async context =>
             {
                 var services = context.HttpContext.RequestServices;
                 var syncService = services.GetRequiredService<UserSyncApiService>();
+                var tokenService = services.GetRequiredService<TokenApiService>();
                 var logger = services.GetRequiredService<ILogger<Program>>();
 
                 var principal = context.Principal;
-                if (principal == null) return;
+                if (principal == null)
+                {
+                    logger.LogWarning("⚠️ Principal es null");
+                    return;
+                }
+
+                // ⭐ MEJORAR OBTENCIÓN DE CLAIMS DE AZURE AD
+                var oid = principal.FindFirstValue("oid")
+                    ?? principal.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")
+                    ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                var upn = principal.FindFirstValue("preferred_username")
+                    ?? principal.FindFirstValue(ClaimTypes.Upn)
+                    ?? principal.FindFirstValue(ClaimTypes.Email);
+
+                var email = principal.FindFirstValue(ClaimTypes.Email)
+                    ?? principal.FindFirstValue("preferred_username")
+                    ?? principal.FindFirstValue("email");
+
+                var displayName = principal.FindFirstValue("name")
+                    ?? principal.Identity?.Name
+                    ?? email;
+
+                logger.LogInformation("🔍 Claims recibidos de Azure AD:");
+                logger.LogInformation("  - OID: {Oid}", oid ?? "(null)");
+                logger.LogInformation("  - UPN: {Upn}", upn ?? "(null)");
+                logger.LogInformation("  - Email: {Email}", email ?? "(null)");
+                logger.LogInformation("  - DisplayName: {DisplayName}", displayName ?? "(null)");
+
+                if (string.IsNullOrEmpty(oid) && string.IsNullOrEmpty(upn))
+                {
+                    logger.LogError("❌ No se pudo obtener OID ni UPN del token de Azure AD");
+                    return;
+                }
 
                 var azureUser = new UserSyncApiService.AzureUserInfo
                 {
-                    ObjectId = principal.FindFirstValue("oid"),
-                    UserPrincipalName = principal.FindFirstValue("preferred_username") ?? principal.FindFirstValue(ClaimTypes.Upn),
-                    DisplayName = principal.FindFirstValue("name") ?? principal.Identity?.Name,
-                    Email = principal.FindFirstValue(ClaimTypes.Email) ?? principal.FindFirstValue("preferred_username")
+                    ObjectId = oid,
+                    UserPrincipalName = upn,
+                    DisplayName = displayName,
+                    Email = email
                 };
 
-                var result = await syncService.SyncAzureUserAsync(azureUser);
+                var syncResult = await syncService.SyncAzureUserAsync(azureUser);
 
-                if (result == null)
+                if (syncResult == null)
                 {
                     logger.LogWarning("⚠️ No se pudo sincronizar usuario");
+                    return;
+                }
+
+                logger.LogInformation("✅ Usuario sincronizado: {User}", syncResult.Username);
+
+                var tokenResult = await tokenService.GetApiTokenAsync(azureUser);
+
+                if (tokenResult?.Success == true && !string.IsNullOrEmpty(tokenResult.Token))
+                {
+                    // ⭐ GUARDAR TOKEN EN SESIÓN EN UTC
+                    context.HttpContext.Session.SetString("ApiToken", tokenResult.Token);
+                    context.HttpContext.Session.SetString("ApiTokenExpiry", tokenResult.ExpiresAt.ToUniversalTime().ToString("O"));
+
+                    logger.LogInformation("✅ JWT obtenido y guardado en sesión. Expira: {Expiry}",
+                        tokenResult.ExpiresAt.ToUniversalTime());
                 }
                 else
                 {
-                    logger.LogInformation("✅ Usuario sincronizado: {User}", result.Username);
+                    logger.LogWarning("⚠️ No se pudo obtener JWT del API: {Message}",
+                        tokenResult?.Message ?? "Sin respuesta");
                 }
+            },
+
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError(context.Exception, "❌ Error en autenticación de Azure AD");
+                context.HandleResponse();
+                context.Response.Redirect("/Home/Error?statusCode=401");
+                return Task.CompletedTask;
             }
         };
     })
     .EnableTokenAcquisitionToCallDownstreamApi()
     .AddInMemoryTokenCaches();
 
-// 2. MVC
+// ================================================================================
+// FASE 5: CONFIGURAR SERVICIOS
+// ================================================================================
+
 builder.Services.AddControllersWithViews();
 
-// 3. HTTP CLIENTS
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
 builder.Services.AddHttpClient("cmsapi", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
@@ -205,14 +273,21 @@ builder.Services.AddHttpClient("cmsapi-authenticated", client =>
 })
 .AddHttpMessageHandler<AuthenticatedApiMessageHandler>();
 
-// 4. SERVICIOS PERSONALIZADOS
+Console.WriteLine($"✅ HttpClients configurados para JWT");
+
 builder.Services.AddScoped<MenuApiService>();
 builder.Services.AddScoped<UserSyncApiService>();
+builder.Services.AddScoped<TokenApiService>();
 builder.Services.AddScoped<SettingsApiService>();
 builder.Services.AddTransient<AuthenticatedApiMessageHandler>();
 
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(
+    isDevelopment ? LogLevel.Information : LogLevel.Warning
+);
+
 // ================================================================================
-// PIPELINE
+// FASE 6: CONSTRUIR Y CONFIGURAR PIPELINE
 // ================================================================================
 var app = builder.Build();
 
@@ -229,16 +304,22 @@ else
 }
 
 app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+app.UseSession();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapDefaultControllerRoute();
 
 Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
 Console.WriteLine($"║  ✅ CMS.UI INICIADA - {environmentName.PadRight(36)}║");
-Console.WriteLine($"║  🌐 URLs: {string.Join(", ", app.Urls).PadRight(46)}║");
+Console.WriteLine($"║  🔐 Auth: Azure AD + JWT del API                            ║");
+Console.WriteLine($"║  🌐 URLs: https://localhost:5001, http://localhost:5000    ║");
 Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
 app.Run();

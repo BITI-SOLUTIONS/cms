@@ -2,19 +2,20 @@
 // ARCHIVO: CMS.API/Program.cs
 // PROPÓSITO: Configuración y arranque de la API REST del Sistema CMS
 // DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
-//              Lee [ADMIN].[COMPANY] para obtener TODA la configuración
+//              Autenticación con JWT PROPIO (sin Azure AD en API)
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// ACTUALIZADO: 2026-02-10
+// ACTUALIZADO: 2026-02-11
 // ================================================================================
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using CMS.API.Middleware;
 using CMS.Data;
 using CMS.Data.Services;
 using CMS.Entities;
+using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -61,8 +62,16 @@ var companySchema = builder.Configuration["CompanySchema"]
 var bootstrapConnectionString = builder.Configuration[$"ConnectionStrings:{environment}:DefaultConnection"]
     ?? throw new InvalidOperationException($"❌ ConnectionStrings:{environment}:DefaultConnection no encontrado");
 
+// ⭐ LEER JWT SECRET KEY
+var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"]
+    ?? throw new InvalidOperationException("❌ JwtSettings:SecretKey no configurada");
+
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "CMS.API";
+var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "CMS.UI";
+
 Console.WriteLine($"📂 Schema: {companySchema}");
 Console.WriteLine($"🗄️  BD: {(isDevelopment ? "10.0.0.1 (Development)" : "cms-postgres (Production)")}");
+Console.WriteLine($"🔑 JWT: Configurado ({jwtSecretKey.Substring(0, 10)}...)");
 
 // ================================================================================
 // FASE 2: CONFIGURAR DbContext (PostgreSQL)
@@ -85,6 +94,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CompanyConfigService>();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<JwtTokenService>();  // ⭐ NUEVO SERVICIO
 
 // ================================================================================
 // FASE 3: CARGAR CONFIGURACIÓN DESDE [ADMIN].[COMPANY]
@@ -113,21 +123,38 @@ builder.Services.AddSingleton(companyConfig);
 // CONFIGURACIÓN DE SERVICIOS
 // ================================================================================
 
-// 1. AUTENTICACIÓN (JWT con Azure AD)
-var azureAdConfig = new Dictionary<string, string>
-{
-    ["AzureAd:Instance"] = companyConfig.AZURE_AD_API_INSTANCE ?? throw new InvalidOperationException("AZURE_AD_API_INSTANCE no configurado"),
-    ["AzureAd:TenantId"] = companyConfig.AZURE_AD_API_TENANT_ID ?? throw new InvalidOperationException("AZURE_AD_API_TENANT_ID no configurado"),
-    ["AzureAd:ClientId"] = companyConfig.AZURE_AD_API_CLIENT_ID ?? throw new InvalidOperationException("AZURE_AD_API_CLIENT_ID no configurado"),
-    ["AzureAd:Audience"] = companyConfig.AZURE_AD_API_AUDIENCE ?? companyConfig.AZURE_AD_API_CLIENT_ID
-};
-
-var inMemoryConfig = new ConfigurationBuilder()
-    .AddInMemoryCollection(azureAdConfig!)
-    .Build();
-
+// 1. AUTENTICACIÓN - JWT PROPIO (SIN AZURE AD)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(inMemoryConfig.GetSection("AzureAd"));
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // ⭐ Logs para debugging
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"❌ JWT Auth Failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var userId = context.Principal?.FindFirst("userId")?.Value;
+                Console.WriteLine($"✅ JWT Validated: userId={userId}");
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 // 2. AUTORIZACIÓN
 builder.Services.AddAuthorization();
@@ -150,7 +177,15 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = $"CMS API - {companyConfig.COMPANY_NAME}",
         Version = "v1",
-        Description = $"API REST del CMS ({environmentName})"
+        Description = $"API REST del CMS ({environmentName})\n\n" +
+                      "**Autenticación:**\n" +
+                      "1. Login en UI con Azure AD\n" +
+                      "2. POST /api/auth/token con datos de Azure para obtener JWT\n" +
+                      "3. Usar JWT en header Authorization: Bearer {token}\n\n" +
+                      "**Endpoints públicos (sin auth):**\n" +
+                      "- POST /api/auth/token\n" +
+                      "- POST /api/auth/sync-user\n" +
+                      "- GET /health"
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -160,7 +195,8 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "JWT token de Azure AD"
+        Description = "JWT generado por POST /api/auth/token.\n\n" +
+                      "Ejemplo: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\""
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -168,7 +204,11 @@ builder.Services.AddSwaggerGen(c =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
             Array.Empty<string>()
         }
@@ -225,6 +265,8 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// ⭐ SIN ApiKeyMiddleware - Autenticación JWT únicamente
 app.UseAuthentication();
 app.UseMiddleware<AuditUserMiddleware>();
 app.UseAuthorization();
@@ -237,10 +279,11 @@ app.MapGet("/health", () => new
     Schema = companyConfig.COMPANY_SCHEMA,
     Environment = environmentName,
     Timestamp = DateTime.UtcNow
-}).WithTags("Health");
+}).WithTags("Health").AllowAnonymous();
 
 Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
 Console.WriteLine($"║  ✅ CMS.API INICIADA - {environmentName.PadRight(35)}║");
+Console.WriteLine($"║  🔐 Auth: JWT PROPIO (sin Azure AD)                         ║");
 Console.WriteLine($"║  🌐 URLs: {string.Join(", ", app.Urls).PadRight(46)}║");
 Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 

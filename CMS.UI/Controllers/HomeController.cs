@@ -1,37 +1,9 @@
-﻿//using CMS.UI.Services;
-//using Microsoft.AspNetCore.Authorization;
-//using Microsoft.AspNetCore.Mvc;
-
-//namespace CMS.UI.Controllers
-//{
-//    [Authorize]
-//    public class HomeController : Controller
-//    {
-//        private readonly MenuApiService _api;
-
-//        public HomeController(MenuApiService api)
-//        {
-//            _api = api;
-//        }
-
-//        public async Task<IActionResult> Index()
-//        {
-//            var menus = await _api.GetMenusAsync();
-//            return View(menus);
-//        }
-//    }
-//}
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.UI/Controllers/HomeController.cs
 // PROPÓSITO: Controller principal de la interfaz web del Sistema CMS
-// DESCRIPCIÓN: Maneja la página de inicio (Dashboard) y la página de errores.
-//              La página de inicio muestra el menú de navegación y sirve como
-//              punto de entrada principal después del login con Azure AD.
-//              La acción Error se invoca automáticamente cuando ocurren excepciones
-//              o códigos de estado HTTP (404, 500, etc.) según la configuración
-//              en Program.cs (UseExceptionHandler, UseStatusCodePagesWithReExecute).
-// AUTOR: System CMS - BITI Solutions S.A
-// CREADO: 2024
+// DESCRIPCIÓN: Maneja la página de inicio (Dashboard) con JWT autenticado
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// ACTUALIZADO: 2026-02-11
 // ================================================================================
 
 using CMS.UI.Models;
@@ -39,6 +11,7 @@ using CMS.UI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace CMS.UI.Controllers
 {
@@ -65,35 +38,40 @@ namespace CMS.UI.Controllers
 
         /// <summary>
         /// Acción principal que muestra el Dashboard o página de inicio del sistema.
-        /// Obtiene los menús desde la API REST para renderizarlos en la vista.
-        /// 
-        /// RUTA: GET /Home/Index o GET /
-        /// 
-        /// FLUJO:
-        /// 1. El usuario se autentica exitosamente con Azure AD
-        /// 2. Es redirigido a esta acción (página de inicio)
-        /// 3. Se obtienen los menús filtrados por permisos del usuario
-        /// 4. Se renderizan en la vista Index.cshtml
-        /// 
-        /// SEGURIDAD:
-        /// - Requiere autenticación (atributo [Authorize] heredado de la clase)
-        /// - Los menús ya vienen filtrados por permisos desde el backend
         /// </summary>
-        /// <returns>
-        /// Vista Index.cshtml con la lista de menús del usuario autenticado.
-        /// Si falla la API, devuelve una lista vacía para evitar errores de vista.
-        /// </returns>
         public async Task<IActionResult> Index()
         {
             try
             {
-                // Obtener menús desde la API (ya filtrados por permisos del usuario)
+                // ⭐ Obtener información del usuario autenticado
+                var userEmail = User.FindFirstValue(ClaimTypes.Email)
+                    ?? User.FindFirstValue("preferred_username")
+                    ?? "Usuario desconocido";
+
+                var displayName = User.FindFirstValue("name") ?? userEmail;
+
+                // ⭐ VERIFICAR SI HAY JWT EN SESIÓN
+                var token = HttpContext.Session.GetString("ApiToken");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("⚠️ No hay JWT en sesión para {User}. Redirigiendo a login.", userEmail);
+
+                    // Redirigir al login de Azure AD
+                    return RedirectToAction("SignIn", "Account");
+                }
+
+                // Obtener menús desde la API (con JWT en el header via AuthenticatedApiMessageHandler)
                 var menus = await _api.GetMenusAsync();
+
+                // Pasar datos a la vista
+                ViewData["UserName"] = displayName;
+                ViewData["UserEmail"] = userEmail;
 
                 // Log informativo para debugging
                 _logger.LogInformation(
                     "Usuario {User} accedió al Dashboard con {MenuCount} menús disponibles",
-                    User.Identity?.Name ?? "Desconocido",
+                    userEmail,
                     menus?.Count ?? 0
                 );
 
@@ -107,52 +85,14 @@ namespace CMS.UI.Controllers
                     User.Identity?.Name ?? "Desconocido");
 
                 // Retornar vista con lista vacía para evitar crash
-                // El usuario verá el dashboard sin menús
                 return View(new List<CMS.Application.DTOs.MenuDto>());
             }
         }
 
         /// <summary>
         /// Acción que maneja los errores HTTP y excepciones no controladas del sistema.
-        /// Se invoca automáticamente según la configuración de Program.cs:
-        /// - app.UseExceptionHandler("/Home/Error") → Excepciones no controladas
-        /// - app.UseStatusCodePagesWithReExecute("/Home/Error/{0}") → Códigos HTTP (404, 500, etc.)
-        /// 
-        /// RUTA: GET /Home/Error/{statusCode?}
-        /// 
-        /// FLUJO:
-        /// 1. Ocurre un error en la aplicación (excepción o código HTTP no exitoso)
-        /// 2. El middleware de excepciones captura el error
-        /// 3. Redirige a esta acción con el código de estado (opcional)
-        /// 4. Se crea un ErrorViewModel con información contextual
-        /// 5. Se renderiza la vista Error.cshtml
-        /// 
-        /// EJEMPLOS DE USO:
-        /// - Usuario intenta acceder a /SomeController/NonExistent → 404 → /Home/Error/404
-        /// - Excepción de base de datos → 500 → /Home/Error/500
-        /// - Timeout en llamada a API → 500 → /Home/Error/500
-        /// 
-        /// SEGURIDAD:
-        /// - NO expone detalles técnicos en producción (stack trace, mensajes internos)
-        /// - Muestra RequestId para correlacionar errores en logs
-        /// - Permite al soporte técnico rastrear problemas específicos
-        /// 
-        /// NOTAS:
-        /// - [AllowAnonymous]: Permite acceso sin autenticación para mostrar errores de login
-        /// - [ResponseCache]: Evita que los navegadores cacheen las páginas de error
         /// </summary>
-        /// <param name="statusCode">
-        /// Código de estado HTTP opcional (404, 500, 403, etc.)
-        /// Si es null, se trata de una excepción no controlada sin código específico.
-        /// </param>
-        /// <returns>
-        /// Vista Error.cshtml con un ErrorViewModel que contiene:
-        /// - RequestId: Para rastreo en logs
-        /// - StatusCode: Código HTTP si está disponible
-        /// - ErrorMessage: Mensaje amigable según el código
-        /// - RequestPath: URL que causó el error
-        /// </returns>
-        [AllowAnonymous] // Permite acceso sin autenticación (ej: errores en login)
+        [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error(int? statusCode = null)
         {
@@ -211,43 +151,5 @@ namespace CMS.UI.Controllers
             // Retornar vista de error con el modelo
             return View(model);
         }
-
-        // ========================================================================
-        // ACCIONES ADICIONALES OPCIONALES (Descomenta si las necesitas)
-        // ========================================================================
-
-        /// <summary>
-        /// Página Acerca de / About del sistema.
-        /// GET: /Home/About
-        /// </summary>
-        /*
-        public IActionResult About()
-        {
-            return View();
-        }
-        */
-
-        /// <summary>
-        /// Página de Contacto del sistema.
-        /// GET: /Home/Contact
-        /// </summary>
-        /*
-        public IActionResult Contact()
-        {
-            return View();
-        }
-        */
-
-        /// <summary>
-        /// Página de Política de Privacidad.
-        /// GET: /Home/Privacy
-        /// </summary>
-        /*
-        [AllowAnonymous] // Puede verse sin autenticación
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-        */
     }
 }

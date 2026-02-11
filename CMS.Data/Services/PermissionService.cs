@@ -6,10 +6,11 @@
 //              - Permisos asignados directamente
 //              - Permiso maestro "System.FullAccess"
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// CREADO: 2025-12-19
+// ACTUALIZADO: 2026-02-11
 // ================================================================================
 
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CMS.Data.Services
 {
@@ -31,8 +32,63 @@ namespace CMS.Data.Services
             _db = db;
         }
 
+        // =====================================================================
+        // ⭐ MÉTODO PARA JWT: Extraer permisos del token sin consultar BD
+        // =====================================================================
         /// <summary>
-        /// Calcula todos los permisos efectivos del usuario.
+        /// Extrae permisos directamente del ClaimsPrincipal (JWT).
+        /// Los permisos ya vienen en el token, no necesita consultar BD.
+        /// Usar este método cuando el usuario ya tiene JWT válido.
+        /// </summary>
+        /// <param name="user">ClaimsPrincipal del usuario autenticado</param>
+        /// <returns>HashSet con todos los permisos del token</returns>
+        public HashSet<string> GetUserPermissionsFromToken(ClaimsPrincipal user)
+        {
+            return user.FindAll("permission")
+                       .Select(c => c.Value)
+                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // =====================================================================
+        // MÉTODO PARA AZURE AD: Buscar usuario y calcular permisos
+        // =====================================================================
+        /// <summary>
+        /// Calcula permisos efectivos a partir de ClaimsPrincipal (usuario autenticado Azure AD).
+        /// Busca el usuario por Azure OID y luego calcula sus permisos desde BD.
+        /// Usar este método cuando el usuario viene de Azure AD (antes de tener JWT propio).
+        /// </summary>
+        /// <param name="user">ClaimsPrincipal del usuario autenticado (de Azure AD)</param>
+        /// <returns>HashSet con todos los PermissionKey que el usuario tiene</returns>
+        public async Task<HashSet<string>> GetUserPermissionsAsync(ClaimsPrincipal user)
+        {
+            // ⭐ Buscar OID en los claims posibles de Azure AD
+            var oidClaim = user.FindFirst("oid")?.Value
+                        ?? user.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
+                        ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(oidClaim) || !Guid.TryParse(oidClaim, out var azureOid))
+            {
+                // Usuario no tiene OID válido, devolver sin permisos
+                return new HashSet<string>();
+            }
+
+            // Buscar usuario en BD por Azure OID
+            var dbUser = await _db.Users
+                .Where(u => u.AZURE_OID == azureOid && u.IS_ACTIVE)
+                .FirstOrDefaultAsync();
+
+            if (dbUser == null)
+            {
+                // Usuario no existe o está inactivo
+                return new HashSet<string>();
+            }
+
+            // Llamar al método existente con userId
+            return await GetUserPermissionsAsync(dbUser.ID_USER);
+        }
+
+        /// <summary>
+        /// Calcula todos los permisos efectivos del usuario desde BD.
         /// Combina permisos de roles, permisos directos y el permiso maestro.
         /// </summary>
         /// <param name="userId">ID del usuario (campo ID_USER de tabla [ADMIN].[USER])</param>
@@ -50,7 +106,6 @@ namespace CMS.Data.Services
             // =====================================================================
             // 1️⃣ PERMISOS HEREDADOS POR ROLES
             // =====================================================================
-            // Query: USER → USER_ROLE → ROLE_PERMISSION → PERMISSION
             var rolePermissions = await (
                 from ur in _db.UserRoles
                 join rp in _db.RolePermissions on ur.RoleId equals rp.RoleId
@@ -67,7 +122,6 @@ namespace CMS.Data.Services
             // =====================================================================
             // 2️⃣ PERMISOS ASIGNADOS DIRECTAMENTE AL USUARIO
             // =====================================================================
-            // Query: USER → USER_PERMISSION → PERMISSION
             var userPermissions = await (
                 from up in _db.UserPermissions
                 join p in _db.Permissions on up.PermissionId equals p.ID_PERMISSION
@@ -83,7 +137,6 @@ namespace CMS.Data.Services
             // =====================================================================
             // 3️⃣ PERMISO MAESTRO "System.FullAccess"
             // =====================================================================
-            // Si el usuario tiene este permiso, automáticamente tiene TODOS los permisos
             if (final.Contains("System.FullAccess"))
             {
                 var allPermKeys = await _db.Permissions
@@ -98,11 +151,7 @@ namespace CMS.Data.Services
 
         /// <summary>
         /// Verifica si un usuario tiene un permiso específico.
-        /// Método de conveniencia para validación rápida.
         /// </summary>
-        /// <param name="userId">ID del usuario</param>
-        /// <param name="permissionKey">Clave del permiso (ej: "Users.Edit")</param>
-        /// <returns>true si el usuario tiene el permiso, false si no</returns>
         public async Task<bool> HasPermissionAsync(int userId, string permissionKey)
         {
             var permissions = await GetUserPermissionsAsync(userId);
@@ -111,11 +160,7 @@ namespace CMS.Data.Services
 
         /// <summary>
         /// Verifica si un usuario tiene ALGUNO de los permisos especificados.
-        /// Útil para validar acceso con permisos alternativos.
         /// </summary>
-        /// <param name="userId">ID del usuario</param>
-        /// <param name="permissionKeys">Lista de permisos a verificar</param>
-        /// <returns>true si tiene al menos uno de los permisos</returns>
         public async Task<bool> HasAnyPermissionAsync(int userId, params string[] permissionKeys)
         {
             var permissions = await GetUserPermissionsAsync(userId);
@@ -124,11 +169,7 @@ namespace CMS.Data.Services
 
         /// <summary>
         /// Verifica si un usuario tiene TODOS los permisos especificados.
-        /// Útil para validar operaciones que requieren múltiples permisos.
         /// </summary>
-        /// <param name="userId">ID del usuario</param>
-        /// <param name="permissionKeys">Lista de permisos requeridos</param>
-        /// <returns>true si tiene todos los permisos</returns>
         public async Task<bool> HasAllPermissionsAsync(int userId, params string[] permissionKeys)
         {
             var permissions = await GetUserPermissionsAsync(userId);
@@ -138,8 +179,6 @@ namespace CMS.Data.Services
         /// <summary>
         /// Verifica si un usuario es administrador completo del sistema.
         /// </summary>
-        /// <param name="userId">ID del usuario</param>
-        /// <returns>true si tiene el permiso "System.FullAccess"</returns>
         public async Task<bool> IsSystemAdminAsync(int userId)
         {
             return await HasPermissionAsync(userId, "System.FullAccess");

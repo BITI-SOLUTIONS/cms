@@ -45,7 +45,10 @@ namespace CMS.Entities
         [MaxLength(30)]
         public string UpdatedBy { get; set; } = default!;
 
+        // ⭐ MARCAR COMO [NotMapped] TEMPORALMENTE
+        [NotMapped]
         public virtual ICollection<User> Users { get; set; } = new List<User>();
+
         public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
     }
 }

@@ -377,6 +377,7 @@ namespace CMS.Data
                 entity.HasIndex(e => e.PageUrl).IsUnique();
             });
 
+            // ⭐ CONFIGURACIÓN EXPLÍCITA DE USER
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.ID_USER);
@@ -384,14 +385,23 @@ namespace CMS.Data
                 entity.Property(e => e.ID_LANGUAGE).HasDefaultValue(1832);
                 entity.HasIndex(e => e.USER_NAME).IsUnique();
                 entity.HasIndex(e => e.EMAIL).IsUnique();
+
+                // ⭐ CONFIGURAR RELACIÓN CON ROLE EXPLÍCITAMENTE
+                //entity.HasOne(e => e.Role)
+                //      .WithMany()
+                //      .HasForeignKey(e => e.ID_ROLE)
+                //      .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasOne(e => e.Country)
                     .WithMany(c => c.Users)
                     .HasForeignKey(e => e.ID_COUNTRY)
                     .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasOne(e => e.Language)
                     .WithMany(l => l.Users)
                     .HasForeignKey(e => e.ID_LANGUAGE)
                     .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasOne(e => e.Gender)
                     .WithMany(g => g.Users)
                     .HasForeignKey(e => e.ID_GENDER)

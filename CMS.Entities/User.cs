@@ -132,10 +132,16 @@ namespace CMS.Entities
         [MaxLength(30)]
         public string UpdatedBy { get; set; } = default!;
 
+        // ⭐ PROPIEDADES DE NAVEGACIÓN - MARCADAS COMO [NotMapped] TEMPORALMENTE
+        [NotMapped]
         public virtual Language Language { get; set; } = default!;
+
+        [NotMapped]
         public virtual Country Country { get; set; } = default!;
+
+        [NotMapped]
         public virtual Gender Gender { get; set; } = default!;
-        public virtual Role Role { get; set; } = default!;
+
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
         public virtual ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();

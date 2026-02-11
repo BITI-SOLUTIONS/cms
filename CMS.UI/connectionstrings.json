@@ -1,6 +1,12 @@
 {
   "CompanySchema": "admin",
-  "Environment": "Production",
+  "Environment": "Development",
+  "JwtSettings": {
+    "SecretKey": "CMS-Secret-Key-2026-Development-Min-32-Characters-Long",
+    "Issuer": "CMS.API",
+    "Audience": "CMS.UI",
+    "ExpirationMinutes": 60
+  },
   "ApiSettings": {
     "Development": {
       "BaseUrl": "https://localhost:7001"

@@ -1,5 +1,8 @@
 ﻿using CMS.Data;
+using CMS.Data.Services;
 using CMS.Entities;
+using CMS.Application.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,16 +13,29 @@ namespace CMS.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly JwtTokenService _jwtService;
+        private readonly PermissionService _permissionService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(AppDbContext db)
+        public AuthController(
+            AppDbContext db,
+            JwtTokenService jwtService,
+            PermissionService permissionService,
+            ILogger<AuthController> logger)
         {
             _db = db;
+            _jwtService = jwtService;
+            _permissionService = permissionService;
+            _logger = logger;
         }
 
+        // =====================================================================
+        // CLASES AUXILIARES (mantener compatibilidad)
+        // =====================================================================
         public class AzureUserInfo
         {
-            public string? ObjectId { get; set; }          // oid
-            public string? UserPrincipalName { get; set; } // UPN
+            public string? ObjectId { get; set; }
+            public string? UserPrincipalName { get; set; }
             public string? DisplayName { get; set; }
             public string? Email { get; set; }
         }
@@ -33,6 +49,10 @@ namespace CMS.API.Controllers
             public List<string> Roles { get; set; } = new();
         }
 
+        // =====================================================================
+        // ENDPOINT EXISTENTE: sync-user (mantener funcionalidad)
+        // =====================================================================
+        [AllowAnonymous]
         [HttpPost("sync-user")]
         public async Task<ActionResult<CmsUserDto>> SyncUser([FromBody] AzureUserInfo model)
         {
@@ -105,6 +125,96 @@ namespace CMS.API.Controllers
             };
 
             return Ok(dto);
+        }
+
+        // =====================================================================
+        // ⭐ NUEVO ENDPOINT: Generar JWT para el usuario
+        // =====================================================================
+        /// <summary>
+        /// Genera un JWT para el usuario después del login de Azure AD en UI.
+        /// El UI debe llamar este endpoint después de validar con Azure AD.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("token")]
+        public async Task<ActionResult<TokenResponseDto>> GenerateToken([FromBody] TokenRequestDto request)
+        {
+            try
+            {
+                _logger.LogInformation("🔑 Solicitud de token para: {Email}", request.Email);
+
+                // Validar request
+                if (string.IsNullOrEmpty(request.AzureOid))
+                {
+                    return BadRequest(new TokenResponseDto
+                    {
+                        Success = false,
+                        Message = "Azure OID es requerido"
+                    });
+                }
+
+                // Buscar usuario por Azure OID
+                if (!Guid.TryParse(request.AzureOid, out var azureOid))
+                {
+                    return BadRequest(new TokenResponseDto
+                    {
+                        Success = false,
+                        Message = "Azure OID inválido"
+                    });
+                }
+
+                var user = await _db.Users
+                    .Where(u => u.AZURE_OID == azureOid && u.IS_ACTIVE)
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    _logger.LogWarning("❌ Usuario no encontrado o inactivo: {AzureOid}", request.AzureOid);
+                    return Unauthorized(new TokenResponseDto
+                    {
+                        Success = false,
+                        Message = "Usuario no autorizado o inactivo"
+                    });
+                }
+
+                // Calcular permisos del usuario
+                var permissions = await _permissionService.GetUserPermissionsAsync(user.ID_USER);
+
+                _logger.LogInformation("🔑 Permisos calculados: {Count} para usuario {UserId}",
+                    permissions.Count, user.ID_USER);
+
+                // Generar token
+                var token = _jwtService.GenerateToken(
+                    user.ID_USER,
+                    user.USER_NAME,
+                    user.EMAIL,
+                    permissions.ToList()
+                );
+
+                var expiresIn = 3600; // 60 minutos
+                var expiresAt = DateTime.UtcNow.AddSeconds(expiresIn);
+
+                _logger.LogInformation("✅ Token generado exitosamente para: {UserName} ({UserId})",
+                    user.USER_NAME, user.ID_USER);
+
+                return Ok(new TokenResponseDto
+                {
+                    Success = true,
+                    Token = token,
+                    ExpiresIn = expiresIn,
+                    ExpiresAt = expiresAt,
+                    UserId = user.ID_USER,
+                    UserName = user.USER_NAME
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error generando token");
+                return StatusCode(500, new TokenResponseDto
+                {
+                    Success = false,
+                    Message = "Error interno del servidor"
+                });
+            }
         }
     }
 }

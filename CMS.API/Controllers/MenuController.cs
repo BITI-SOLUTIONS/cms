@@ -1,60 +1,48 @@
-﻿using CMS.Data.Services;
+﻿// ================================================================================
+// ARCHIVO: CMS.API/Controllers/MenuController.cs
+// PROPÓSITO: Controlador REST para gestión de menús
+// DESCRIPCIÓN: REQUIERE JWT, devuelve menús filtrados por permisos del token
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// ACTUALIZADO: 2026-02-11
+// ================================================================================
+
 using CMS.Data;
+using CMS.Application.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CMS.API.Controllers
 {
     /// <summary>
-    /// Controlador REST para la gestión de menús de navegación del sistema.
-    /// Proporciona endpoints para obtener menús filtrados por permisos del usuario.
-    /// 
-    /// Características:
-    /// - Devuelve solo menús activos (IS_ACTIVE = true)
-    /// - Filtra menús según permisos del usuario autenticado
-    /// - Si no hay usuario autenticado, devuelve todos los menús activos (Swagger)
-    /// - Ordena menús por padre y luego por orden
+    /// Controlador REST para la gestión de menús de navegación.
+    /// REQUIERE autenticación JWT y devuelve menús filtrados por permisos.
     /// </summary>
+    [Authorize]  // ⭐ REQUIERE JWT
     [ApiController]
     [Route("api/[controller]")]
     public class MenuController : ControllerBase
     {
         private readonly AppDbContext _db;
-        private readonly PermissionService _permService;
         private readonly ILogger<MenuController> _logger;
 
-        /// <summary>
-        /// Constructor del controlador de menús.
-        /// </summary>
-        /// <param name="db">Contexto de base de datos</param>
-        /// <param name="permService">Servicio de cálculo de permisos</param>
-        /// <param name="logger">Logger para registrar eventos</param>
-        public MenuController(AppDbContext db, PermissionService permService, ILogger<MenuController> logger)
+        public MenuController(AppDbContext db, ILogger<MenuController> logger)
         {
             _db = db;
-            _permService = permService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Obtiene los menús disponibles para el usuario actual.
-        /// 
-        /// Proceso:
-        /// 1. Obtener usuario autenticado desde Azure AD (OID)
-        /// 2. Cargar menús ACTIVOS (IS_ACTIVE = true)
-        /// 3. Si no hay usuario → devolver todos los menús (Swagger/pruebas)
-        /// 4. Si hay usuario → filtrar según permisos
-        /// 5. Ordenar por padre y orden
-        /// 
-        /// Endpoint: GET /api/menu
-        /// Autenticación: Requerida (pero funciona sin ella para Swagger)
+        /// Obtiene los menús disponibles para el usuario autenticado.
+        /// Filtra según los permisos incluidos en el JWT.
         /// </summary>
         /// <returns>
-        /// Respuesta JSON con estructura:
+        /// JSON:
         /// {
         ///   "success": true,
-        ///   "count": 15,
-        ///   "data": [ { menús filtrados } ]
+        ///   "count": 10,
+        ///   "data": [ array de MenuDto en camelCase ]
         /// }
         /// </returns>
         [HttpGet]
@@ -62,77 +50,81 @@ namespace CMS.API.Controllers
         {
             try
             {
-                /////////////////////////////////////////////////////////////////
-                // 1) Intentar obtener usuario autenticado (si viene desde UI)
-                /////////////////////////////////////////////////////////////////
-                var oid = User.FindFirst("oid")?.Value;
-                int? userId = null;
+                // =====================================================================
+                // 1. EXTRAER INFO DEL TOKEN JWT
+                // =====================================================================
+                var userIdClaim = User.FindFirst("userId")?.Value;
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-                if (!string.IsNullOrEmpty(oid) && Guid.TryParse(oid, out Guid azureOid))
+                if (string.IsNullOrEmpty(userIdClaim))
                 {
-                    var user = await _db.Users
-                        .FirstOrDefaultAsync(u => u.AZURE_OID == azureOid);
-
-                    if (user != null)
-                        userId = user.ID_USER;
+                    _logger.LogWarning("❌ Token sin userId claim");
+                    return Unauthorized(new { success = false, message = "Token inválido" });
                 }
 
-                /////////////////////////////////////////////////////////////////
-                // 2) Cargar menú ACTIVO y ordenado
-                /////////////////////////////////////////////////////////////////
-                var menus = await _db.Menus
-                    .Where(m => m.IS_ACTIVE == true)  // ✅ CORREGIDO: ACTIVE → IS_ACTIVE
+                // Obtener permisos del token (ya vienen en el JWT como claims)
+                var permissions = User.FindAll("permission")
+                                     .Select(c => c.Value)
+                                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                _logger.LogInformation("👤 Usuario: {UserName} (ID: {UserId}), Permisos: {Count}",
+                    userName, userIdClaim, permissions.Count);
+
+                // =====================================================================
+                // 2. CARGAR TODOS LOS MENÚS ACTIVOS
+                // =====================================================================
+                var allMenus = await _db.Menus
+                    .Where(m => m.IS_ACTIVE)
                     .OrderBy(m => m.ID_PARENT)
                     .ThenBy(m => m.ORDER)
                     .ToListAsync();
 
-                _logger.LogInformation("📋 Menús activos cargados: {Count}", menus.Count);
+                _logger.LogInformation("📋 Menús activos: {Count}", allMenus.Count);
 
-                /////////////////////////////////////////////////////////////////
-                // 3) Si NO hay usuario → devolver TODO (Swagger / pruebas)
-                /////////////////////////////////////////////////////////////////
-                if (userId == null)
-                {
-                    _logger.LogInformation("⚠️ Sin usuario autenticado - Devolviendo todos los menús activos");
-                    return Ok(new
-                    {
-                        success = true,
-                        count = menus.Count,
-                        data = menus
-                    });
-                }
-
-                /////////////////////////////////////////////////////////////////
-                // 4) Obtener permisos del usuario
-                /////////////////////////////////////////////////////////////////
-                var perms = await _permService.GetUserPermissionsAsync(userId.Value);
-                _logger.LogInformation("🔑 Permisos del usuario {UserId}: {Count}", userId, perms.Count);
-
-                /////////////////////////////////////////////////////////////////
-                // 5) Filtrar según permisos
-                /////////////////////////////////////////////////////////////////
-                var filtered = menus
-                    .Where(m =>
-                        string.IsNullOrEmpty(m.PERMISSION_KEY) ||
-                        perms.Contains(m.PERMISSION_KEY))
+                // =====================================================================
+                // 3. FILTRAR MENÚS SEGÚN PERMISOS DEL TOKEN
+                // =====================================================================
+                var filteredMenus = allMenus
+                    .Where(m => string.IsNullOrEmpty(m.PERMISSION_KEY) ||
+                               permissions.Contains(m.PERMISSION_KEY))
                     .ToList();
 
-                _logger.LogInformation("✅ Menús filtrados por permisos: {Count}/{Total}", filtered.Count, menus.Count);
+                _logger.LogInformation("🔒 Menús filtrados: {Filtered}/{Total}",
+                    filteredMenus.Count, allMenus.Count);
 
-                /////////////////////////////////////////////////////////////////
-                // 6) RESPUESTA FILTRADA
-                /////////////////////////////////////////////////////////////////
+                // =====================================================================
+                // 4. CONVERTIR A DTOs (camelCase)
+                // =====================================================================
+                var menuDtos = filteredMenus.Select(m => new MenuDto
+                {
+                    IdMenu = m.ID_MENU,
+                    IdParent = m.ID_PARENT,
+                    Name = m.NAME,
+                    Url = m.URL,
+                    Icon = m.ICON,
+                    Order = m.ORDER,
+                    PermissionKey = m.PERMISSION_KEY,
+                    IsActive = m.IS_ACTIVE
+                }).ToList();
+
+                // =====================================================================
+                // 5. RESPUESTA
+                // =====================================================================
                 return Ok(new
                 {
                     success = true,
-                    count = filtered.Count,
-                    data = filtered
+                    count = menuDtos.Count,
+                    data = menuDtos
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error al obtener menús");
-                return StatusCode(500, new { message = "Error al obtener menús" });
+                _logger.LogError(ex, "❌ Error obteniendo menús");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor"
+                });
             }
         }
     }
