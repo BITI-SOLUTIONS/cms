@@ -14,8 +14,9 @@ COPY ["CMS.Application/CMS.Application.csproj", "CMS.Application/"]
 COPY ["CMS.Data/CMS.Data.csproj", "CMS.Data/"]
 COPY ["CMS.Entities/CMS.Entities.csproj", "CMS.Entities/"]
 
-# ⭐ Copia el archivo de producción como el nombre esperado por el API
-COPY ["CMS.UI/connectionstrings.production.json", "CMS.API/connectionstrings.json"]
+# ⭐ Copia la versión de producción al build context (solo a context, no sobrescribe tu solución)
+COPY ["CMS.API/connectionstrings.production.json", "CMS.API/connectionstrings.json"]
+COPY ["CMS.API/connectionstrings.production.json", "CMS.API/connectionstrings.production.json"]
 
 RUN dotnet restore "CMS.Solution.sln"
 COPY . .
@@ -32,8 +33,8 @@ WORKDIR /app
 
 COPY --from=publish /app/publish .
 
-# ⭐ Copia el connectionstrings de producción al contenedor final
-COPY --from=build /src/CMS.API/connectionstrings.json .
+# ⭐ Copia el connectionstrings.production.json y lo renombra en el contenedor final a connectionstrings.json
+COPY --from=build /src/CMS.API/connectionstrings.production.json ./connectionstrings.json
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 
