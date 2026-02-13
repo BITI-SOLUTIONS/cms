@@ -1,8 +1,7 @@
 ﻿// ================================================================================
 // ARCHIVO: CMS.API/Program.cs
 // PROPÓSITO: Configuración y arranque de la API REST del Sistema CMS
-// DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
-//              Autenticación con JWT PROPIO (sin Azure AD en API)
+// DESCRIPCIÓN: BOOTSTRAP desde appsettings.json + Configuración desde BD
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // ACTUALIZADO: 2026-02-11
 // ================================================================================
@@ -31,18 +30,21 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // ================================================================================
-// FASE 1: DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN
+// FASE 1: DEBUG Y DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN
 // ================================================================================
-var connectionConfigPath = Path.Combine(builder.Environment.ContentRootPath, "connectionstrings.json");
+Console.WriteLine($"✅ Cargando desde: /app/appsettings.json");
 
-if (!File.Exists(connectionConfigPath))
+try
 {
-    throw new FileNotFoundException($"❌ No se encontró: {connectionConfigPath}");
+    var jsonText = File.ReadAllText("/app/appsettings.json");
+    Console.WriteLine("=== DEBUG: Contenido de /app/appsettings.json ===");
+    Console.WriteLine(jsonText);
+    Console.WriteLine("===============================================");
 }
-
-Console.WriteLine($"✅ Cargando desde: {connectionConfigPath}");
-
-builder.Configuration.AddJsonFile("connectionstrings.json", optional: false, reloadOnChange: true);
+catch (Exception e)
+{
+    Console.WriteLine($"ERROR leyendo /app/appsettings.json: {e.Message}");
+}
 
 // ⭐ LEER AMBIENTE
 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
@@ -59,8 +61,32 @@ Console.WriteLine("╚═══════════════════�
 var companySchema = builder.Configuration["CompanySchema"]
     ?? throw new InvalidOperationException("❌ 'CompanySchema' no configurado");
 
-var bootstrapConnectionString = builder.Configuration[$"ConnectionStrings:{environment}:DefaultConnection"]
-    ?? throw new InvalidOperationException($"❌ ConnectionStrings:{environment}:DefaultConnection no encontrado");
+// 🚩 Prints de debug para identificar keys reales y valores del config
+Console.WriteLine($"➡️  Environment variable for ConnectionStrings lookup: [{environment}]");
+Console.WriteLine("==== Todas las keys configuradas (debug) ====");
+foreach (var kv in builder.Configuration.AsEnumerable())
+{
+    Console.WriteLine($"{kv.Key} = {kv.Value}");
+}
+Console.WriteLine("=============================================");
+
+// ⭐ LECTURA ROBUSTA DEL CONNECTION STRING ANIDADO
+var defaultConnectionSection = builder.Configuration
+    .GetSection("ConnectionStrings")
+    .GetSection(environment)
+    .GetValue<string>("DefaultConnection");
+
+if (string.IsNullOrEmpty(defaultConnectionSection))
+{
+    var alternative = builder.Configuration[$"ConnectionStrings:{environment}:DefaultConnection"];
+    Console.WriteLine($"🔍 Intentando alternativa: ConnectionStrings:{environment}:DefaultConnection = [{alternative}]");
+    defaultConnectionSection = alternative;
+}
+
+if (string.IsNullOrEmpty(defaultConnectionSection))
+    throw new InvalidOperationException($"❌ ConnectionStrings:{environment}:DefaultConnection no encontrado");
+
+var bootstrapConnectionString = defaultConnectionSection;
 
 // ⭐ LEER JWT SECRET KEY
 var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"]
@@ -243,6 +269,9 @@ else
 // ================================================================================
 var app = builder.Build();
 
+// 👇 AGREGA ESTE PATHBASE para publicar TODO bajo /api
+app.UsePathBase("/api");
+
 app.UseForwardedHeaders();
 
 if (isDevelopment)
@@ -266,7 +295,6 @@ else
 
 app.UseHttpsRedirection();
 
-// ⭐ SIN ApiKeyMiddleware - Autenticación JWT únicamente
 app.UseAuthentication();
 app.UseMiddleware<AuditUserMiddleware>();
 app.UseAuthorization();

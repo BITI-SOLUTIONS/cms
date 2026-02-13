@@ -1,10 +1,10 @@
 ﻿// ================================================================================
 // ARCHIVO: CMS.UI/Program.cs
 // PROPÓSITO: Configuración y arranque de la interfaz web del Sistema CMS
-// DESCRIPCIÓN: BOOTSTRAP desde connectionstrings.json + Configuración desde BD
+// DESCRIPCIÓN: BOOTSTRAP desde appsettings.json + Configuración desde BD
 //              Autenticación con Azure AD + JWT propio del API
 // AUTOR: EAMR, BITI SOLUTIONS S.A
-// ACTUALIZADO: 2026-02-11
+// ACTUALIZADO: 2026-02-13
 // ================================================================================
 
 using CMS.UI.Services;
@@ -29,23 +29,23 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // ================================================================================
-// FASE 1: DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN
+// FASE 1: DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN DESDE /app/appsettings.json o local
 // ================================================================================
-var isRunningInDocker = File.Exists("/.dockerenv");
-var sharedConfigPath = isRunningInDocker
-    ? "/app/connectionstrings.json"
-    : Path.Combine(builder.Environment.ContentRootPath, "..", "CMS.API", "connectionstrings.json");
-
-sharedConfigPath = Path.GetFullPath(sharedConfigPath);
-
-if (!File.Exists(sharedConfigPath))
+var configFile = "/app/appsettings.json";
+if (!File.Exists(configFile))
 {
-    throw new FileNotFoundException($"❌ No se encontró: {sharedConfigPath}");
+    // fallback para desarrollo local: ContentRoot/appsettings.json
+    configFile = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
 }
 
-Console.WriteLine($"✅ Cargando desde: {sharedConfigPath}");
+if (!File.Exists(configFile))
+{
+    throw new FileNotFoundException($"❌ No se encontró: {configFile}");
+}
 
-builder.Configuration.AddJsonFile(sharedConfigPath, optional: false, reloadOnChange: true);
+Console.WriteLine($"✅ Cargando desde: {configFile}");
+
+builder.Configuration.AddJsonFile(configFile, optional: false, reloadOnChange: true);
 
 // ⭐ LEER AMBIENTE
 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
