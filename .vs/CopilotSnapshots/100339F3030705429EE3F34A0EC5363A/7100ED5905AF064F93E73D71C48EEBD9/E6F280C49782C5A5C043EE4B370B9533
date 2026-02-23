@@ -1,0 +1,123 @@
+﻿-- ================================================================================
+-- SCRIPT: Agregar submenús de Inventario
+-- PROPÓSITO: Crear los menús para gestión de artículos y etiquetas
+-- AUTOR: EAMR, BITI SOLUTIONS S.A
+-- FECHA: 2026-02-19
+-- ACTUALIZADO: 2026-02-20 - Separar Label Items de Item Master
+-- ================================================================================
+
+-- Inventory tiene id_menu = 7 según copilot-instructions.md
+
+-- 1. Insertar submenú "Label Items" (Impresión de Etiquetas)
+INSERT INTO admin.menu (
+    id_menu,
+    id_parent,
+    name,
+    url,
+    icon,
+    menu_order,
+    is_active,
+    permission_key,
+    createdate,
+    created_by
+) VALUES (
+    171,                        -- id_menu
+    7,                          -- id_parent (Inventory = 7)
+    'Label Items',              -- name
+    '/Inventory/LabelItems',    -- url - DIFERENTE a Item Master
+    'bi-tags',                  -- icon (etiquetas)
+    1,                          -- menu_order
+    true,                       -- is_active
+    'Inventory.LabelItems.View', -- permission_key
+    NOW(),                      -- createdate
+    'SYSTEM'                    -- created_by
+)
+ON CONFLICT (id_menu) DO UPDATE SET
+    name = EXCLUDED.name,
+    url = EXCLUDED.url,
+    icon = EXCLUDED.icon,
+    permission_key = EXCLUDED.permission_key;
+
+-- 2. Insertar submenú "Item Master" (Mantenimiento de Artículos)
+INSERT INTO admin.menu (
+    id_menu,
+    id_parent,
+    name,
+    url,
+    icon,
+    menu_order,
+    is_active,
+    permission_key,
+    createdate,
+    created_by
+) VALUES (
+    172,                        -- id_menu
+    7,                          -- id_parent (Inventory = 7)
+    'Item Master',              -- name
+    '/Inventory/Items',         -- url
+    'bi-box-seam',              -- icon
+    2,                          -- menu_order
+    true,                       -- is_active
+    'Inventory.Items.View',     -- permission_key
+    NOW(),                      -- createdate
+    'SYSTEM'                    -- created_by
+)
+ON CONFLICT (id_menu) DO UPDATE SET
+    name = EXCLUDED.name,
+    url = EXCLUDED.url,
+    icon = EXCLUDED.icon,
+    permission_key = EXCLUDED.permission_key;
+
+-- 3. Crear permisos correspondientes si no existen
+
+-- Permiso para Label Items
+INSERT INTO admin.permission (permission_key, name, description, module, is_active, createdate, created_by)
+VALUES ('Inventory.LabelItems.View', 'Ver Etiquetas de Artículos', 'Permite ver y usar la pantalla de etiquetas', 'Inventory', true, NOW(), 'SYSTEM')
+ON CONFLICT (permission_key) DO NOTHING;
+
+-- Permiso para Item Master
+INSERT INTO admin.permission (permission_key, name, description, module, is_active, createdate, created_by)
+VALUES ('Inventory.Items.View', 'Ver Artículos', 'Permite ver la lista de artículos', 'Inventory', true, NOW(), 'SYSTEM')
+ON CONFLICT (permission_key) DO NOTHING;
+
+-- 4. Asignar permisos al rol Admin (id_role = 1)
+INSERT INTO admin.role_permission (id_role, id_permission, is_allowed, createdate, created_by)
+SELECT 1, id_permission, true, NOW(), 'SYSTEM'
+FROM admin.permission 
+WHERE permission_key IN ('Inventory.LabelItems.View', 'Inventory.Items.View')
+ON CONFLICT DO NOTHING;
+
+-- Verificar
+SELECT id_menu, name, url, icon, menu_order 
+FROM admin.menu 
+WHERE id_parent = 7 
+ORDER BY menu_order;
+    SELECT 1 FROM admin.permission WHERE permission_key = 'Inventory.Items.View'
+);
+
+-- Permiso para editar artículos
+INSERT INTO admin.permission (
+    id_permission,
+    permission_key,
+    permission_name,
+    permission_module,
+    is_active,
+    created_at,
+    created_by
+) 
+SELECT 
+    COALESCE(MAX(id_permission), 0) + 1,
+    'Inventory.Items.Edit',
+    'Editar Artículos',
+    'Inventory',
+    true,
+    NOW(),
+    'SYSTEM'
+FROM admin.permission
+WHERE NOT EXISTS (
+    SELECT 1 FROM admin.permission WHERE permission_key = 'Inventory.Items.Edit'
+);
+
+-- Verificar
+SELECT * FROM admin.menu WHERE id_parent = 7;
+SELECT * FROM admin.permission WHERE permission_module = 'Inventory';

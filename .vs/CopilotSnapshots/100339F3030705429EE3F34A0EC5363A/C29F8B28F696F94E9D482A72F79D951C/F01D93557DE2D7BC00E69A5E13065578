@@ -1,0 +1,714 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Users/Details.cshtml                                       *@
+@* PROPÓSITO: Vista de detalle de un usuario                                        *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-14                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Users.UserDetailViewModel
+
+@{
+    ViewData["Title"] = $"Usuario: {Model.FullName}";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <a asp-action="Index" class="btn-back me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div class="user-profile-header">
+                <div class="user-avatar-large @(Model.IsActive ? "avatar-active" : "avatar-inactive")">
+                    @Model.FullName.Substring(0, 1).ToUpper()
+                </div>
+                <div>
+                    <h1>@Model.FullName</h1>
+                    <p>@@@Model.Username</p>
+                </div>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-tech-primary">
+                <i class="bi bi-pencil me-2"></i>Editar
+            </a>
+            @if (Model.IsActive)
+            {
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-tech-danger" onclick="return confirm('¿Desactivar este usuario?')">
+                        <i class="bi bi-person-dash me-2"></i>Desactivar
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="Activate" asp-route-id="@Model.Id" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-tech-success">
+                        <i class="bi bi-person-check me-2"></i>Activar
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div class="flex-grow-1">
+                <strong>⚠️ @TempData["Warning"]</strong>
+                @if (TempData["CanForceDelete"] != null)
+                {
+                    <div class="mt-2">
+                        <form asp-action="DeleteForce" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger btn-sm" 
+                                    onclick="return confirm('⚠️ ELIMINACIÓN FORZADA\\n\\nEsto eliminará TODAS las referencias del usuario (roles, permisos, compañías) y luego el usuario.\\n\\n¿Está seguro?')">
+                                <i class="bi bi-trash me-1"></i>Forzar Eliminación
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.IsEmailVerified)
+    {
+        <div class="alert alert-warning d-flex align-items-center mb-4">
+            <i class="bi bi-envelope-exclamation me-2 fs-4"></i>
+            <div class="flex-grow-1">
+                <strong>📧 Email no verificado</strong>
+                <p class="mb-0 small">El usuario no ha verificado su correo electrónico. Envíale un correo de verificación para que pueda acceder al sistema.</p>
+            </div>
+            <form asp-action="SendVerificationEmail" asp-route-id="@Model.Id" method="post" class="ms-3">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning btn-sm" 
+                        onclick="return confirm('¿Enviar email de verificación con nueva contraseña temporal?')">
+                    <i class="bi bi-envelope-check me-1"></i>Enviar Verificación
+                </button>
+            </form>
+        </div>
+    }
+
+    <div class="row">
+        <!-- ===== COLUMNA IZQUIERDA ===== -->
+        <div class="col-lg-8">
+            <!-- Info básica -->
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-person-vcard me-2"></i>Información Personal</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Nombre de Usuario</label>
+                            <p class="detail-value">@@@Model.Username</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Email</label>
+                            <p class="detail-value">
+                                @Model.Email
+                                @if (Model.IsEmailVerified)
+                                {
+                                    <span class="badge-verified ms-2">
+                                        <i class="bi bi-patch-check-fill"></i> Verificado
+                                    </span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Nombre Completo</label>
+                            <p class="detail-value">@Model.FirstName @Model.LastName</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Nombre para Mostrar</label>
+                            <p class="detail-value">@(Model.DisplayName ?? "-")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Teléfono</label>
+                            <p class="detail-value">
+                                @(Model.PhoneNumber ?? "-")
+                                @if (Model.IsPhoneVerified)
+                                {
+                                    <span class="badge-verified ms-2">
+                                        <i class="bi bi-patch-check-fill"></i>
+                                    </span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Fecha de Nacimiento</label>
+                            <p class="detail-value">@(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "-")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">País</label>
+                            <p class="detail-value">@(Model.CountryName ?? "-")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="detail-label">Zona Horaria</label>
+                            <p class="detail-value">@(Model.TimeZone ?? "-")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compañías y Autorización -->
+            <div class="card-tech mb-4">
+                <div class="card-header-tech d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-building me-2"></i>Compañías y Autorización</h5>
+                    <span class="badge bg-info">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Gestiona roles y permisos específicos por compañía
+                    </span>
+                </div>
+                <div class="card-body">
+                    @if (Model.Companies != null && Model.Companies.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var company in Model.Companies)
+                            {
+                                <div class="company-auth-row list-group-item bg-transparent border-bottom border-secondary d-flex justify-content-between align-items-center px-0 py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="company-icon me-3">
+                                            <i class="bi bi-building"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-semibold text-white">@company.CompanyName</span>
+                                            <div class="small text-muted">
+                                                @if (company.IsDefault)
+                                                {
+                                                    <span class="badge bg-warning text-dark me-1">Por defecto</span>
+                                                }
+                                                @if (!company.IsActive)
+                                                {
+                                                    <span class="badge bg-secondary me-1">Inactivo</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a asp-action="CompanyAuth" 
+                                       asp-route-userId="@Model.Id" 
+                                       asp-route-companyId="@company.CompanyId"
+                                       class="btn btn-auth-company"
+                                       title="Gestionar roles y permisos en esta compañía">
+                                        <i class="bi bi-shield-lock me-2"></i>Roles y Permisos
+                                        <i class="bi bi-chevron-right ms-2"></i>
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted-tech">Sin compañías asignadas</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Roles y Permisos -->
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-shield-check me-2"></i>Roles y Permisos</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-muted-tech mb-3">Roles Asignados</h6>
+                    @if (Model.Roles.Any())
+                    {
+                        <div class="roles-grid mb-4">
+                            @foreach (var role in Model.Roles)
+                            {
+                                <div class="role-tag">
+                                    <i class="bi bi-shield me-2"></i>@role.Name
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted-tech mb-4">Sin roles asignados</p>
+                    }
+
+                    <h6 class="text-muted-tech mb-3">Permisos Directos</h6>
+                    @if (Model.DirectPermissions.Any())
+                    {
+                        <div class="permissions-list">
+                            @foreach (var perm in Model.DirectPermissions)
+                            {
+                                <div class="permission-item">
+                                    <span class="permission-name">@perm.Name</span>
+                                    <span class="permission-key">@perm.Key</span>
+                                    @if (perm.IsAllowed)
+                                    {
+                                        <span class="badge-allowed"><i class="bi bi-check"></i></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-denied"><i class="bi bi-x"></i></span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted-tech">Sin permisos directos (hereda de roles)</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== COLUMNA DERECHA ===== -->
+        <div class="col-lg-4">
+            <!-- Estado -->
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-activity me-2"></i>Estado de la Cuenta</h5>
+                </div>
+                <div class="card-body">
+                    <div class="status-display mb-4">
+                        @if (Model.IsActive)
+                        {
+                            <div class="status-indicator status-active-indicator">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Cuenta Activa</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="status-indicator status-inactive-indicator">
+                                <i class="bi bi-x-circle-fill"></i>
+                                <span>Cuenta Inactiva</span>
+                            </div>
+                        }
+                    </div>
+
+                    @if (Model.IsLocked)
+                    {
+                        <div class="alert-mini alert-warning-mini mb-3">
+                            <i class="bi bi-lock-fill me-2"></i>
+                            <div>
+                                <strong>Cuenta Bloqueada</strong>
+                                <small>Hasta: @Model.LockoutEnd?.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="detail-item">
+                        <span class="detail-item-label">Intentos fallidos</span>
+                        <span class="detail-item-value @(Model.FailedLoginAttempts > 0 ? "text-warning" : "")">
+                            @Model.FailedLoginAttempts
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-item-label">Total de logins</span>
+                        <span class="detail-item-value">@Model.LoginCount</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actividad -->
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-clock-history me-2"></i>Actividad</h5>
+                </div>
+                <div class="card-body">
+                    <div class="detail-item">
+                        <span class="detail-item-label">Último acceso</span>
+                        <span class="detail-item-value">
+                            @(Model.LastLogin?.ToString("dd/MM/yyyy HH:mm") ?? "Nunca")
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-item-label">Última IP</span>
+                        <span class="detail-item-value">@(Model.LastLoginIp ?? "-")</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-item-label">Último cambio de contraseña</span>
+                        <span class="detail-item-value">
+                            @(Model.LastPasswordChange?.ToString("dd/MM/yyyy") ?? "Nunca")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azure AD -->
+            @if (Model.IsAzureUser)
+            {
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-microsoft me-2"></i>Azure AD</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-item">
+                            <span class="detail-item-label">Object ID</span>
+                            <span class="detail-item-value text-truncate" style="max-width: 200px;">
+                                @Model.AzureOid
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-item-label">UPN</span>
+                            <span class="detail-item-value">@(Model.AzureUpn ?? "-")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Auditoría -->
+            <div class="card-tech">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-journal-text me-2"></i>Auditoría</h5>
+                </div>
+                <div class="card-body">
+                    <div class="detail-item">
+                        <span class="detail-item-label">Creado</span>
+                        <span class="detail-item-value">@Model.CreateDate.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-item-label">Creado por</span>
+                        <span class="detail-item-value">@(Model.CreatedBy ?? "-")</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-item-label">Modificado por</span>
+                        <span class="detail-item-value">@(Model.UpdatedBy ?? "-")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="card-tech mt-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-lightning me-2"></i>Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.IsEmailVerified)
+                    {
+                        <form asp-action="SendVerificationEmail" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-tech-warning w-100 mb-2" 
+                                    onclick="return confirm('¿Enviar email de verificación con nueva contraseña temporal?')">
+                                <i class="bi bi-envelope-check me-2"></i>Enviar Email de Verificación
+                            </button>
+                        </form>
+                    }
+                    <form asp-action="ResetPassword" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-tech-outline w-100 mb-2" 
+                                onclick="return confirm('¿Enviar email de restablecimiento de contraseña?')">
+                            <i class="bi bi-key me-2"></i>Restablecer Contraseña
+                        </button>
+                    </form>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-tech-outline w-100 mb-2">
+                        <i class="bi bi-shield-lock me-2"></i>Gestionar Roles
+                    </a>
+                    <hr class="border-secondary my-3" />
+                    <form asp-action="DeletePermanent" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger w-100" 
+                                onclick="return confirm('⚠️ ¿Está seguro de ELIMINAR PERMANENTEMENTE este usuario?\\n\\nEsta acción NO se puede deshacer.\\n\\nSi el usuario tiene roles, permisos o compañías asignadas, se mostrarán primero.')">
+                            <i class="bi bi-trash me-2"></i>Eliminar Permanentemente
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-back {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(6, 182, 212, 0.1);
+        border: 1px solid var(--border-color);
+        color: var(--accent-cyan);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+        background: rgba(6, 182, 212, 0.2);
+        color: var(--accent-cyan);
+    }
+
+    .user-profile-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-avatar-large {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .user-profile-header h1 {
+        font-size: 1.5rem;
+        color: var(--text-white);
+        margin: 0;
+    }
+
+    .user-profile-header p {
+        color: var(--text-gray);
+        margin: 0;
+    }
+
+    .detail-label {
+        font-size: 0.8rem;
+        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .detail-value {
+        color: var(--text-white);
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .badge-verified {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+
+    .roles-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .role-tag {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        color: #a78bfa;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .permissions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .permission-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        background: rgba(6, 182, 212, 0.05);
+        border-radius: 8px;
+    }
+
+    .permission-name {
+        color: var(--text-white);
+        flex: 1;
+    }
+
+    .permission-key {
+        color: var(--text-gray);
+        font-size: 0.8rem;
+        margin-right: 10px;
+    }
+
+    .badge-allowed {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .badge-denied {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .status-active-indicator {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+
+    .status-inactive-indicator {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .status-indicator i {
+        font-size: 1.5rem;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-item-label {
+        color: var(--text-gray);
+        font-size: 0.9rem;
+    }
+
+    .detail-item-value {
+        color: var(--text-white);
+        font-weight: 500;
+    }
+
+    .alert-mini {
+        display: flex;
+        align-items: flex-start;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+    }
+
+    .alert-warning-mini {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+
+    .alert-mini small {
+        display: block;
+        opacity: 0.8;
+    }
+
+    .btn-tech-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-tech-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        color: white;
+    }
+
+    .btn-tech-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-tech-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        color: white;
+    }
+
+    /* ===== BOTÓN DE AUTORIZACIÓN POR COMPAÑÍA ===== */
+    .company-auth-row:hover {
+        background: rgba(6, 182, 212, 0.05);
+    }
+
+    .company-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-cyan);
+        font-size: 1.2rem;
+    }
+
+    .btn-auth-company {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        color: #a78bfa;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .btn-auth-company:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
+        border-color: rgba(139, 92, 246, 0.6);
+        color: #c4b5fd;
+        transform: translateX(5px);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-auth-company i.bi-chevron-right {
+        transition: transform 0.3s ease;
+    }
+
+    .btn-auth-company:hover i.bi-chevron-right {
+        transform: translateX(3px);
+    }
+</style>

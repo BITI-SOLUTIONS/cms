@@ -1,0 +1,102 @@
+﻿//document.addEventListener("click", function (e) {
+//    const toggle = e.target.closest(".nav-group-toggle");
+//    if (!toggle) return;
+
+//    const group = toggle.closest(".nav-group");
+//    group.classList.toggle("open");
+//});
+// ============================================================
+// FUNCIÓN PARA TOGGLE DEL SIDEBAR (responsive)
+// ============================================================
+function toggleSidebar() {
+    document.querySelector('.layout-wrapper').classList.toggle('sidebar-collapsed');
+}
+
+// ============================================================
+// COMPORTAMIENTO DE ACORDEÓN PARA EL MENÚ
+// Solo permite un submenú abierto a la vez
+// ============================================================
+document.addEventListener("DOMContentLoaded", function () {
+
+    console.log("✅ JavaScript cargado correctamente");
+
+    // Obtener todos los toggles de grupos
+    const toggles = document.querySelectorAll(".nav-group-toggle");
+
+    console.log(`📋 Encontrados ${toggles.length} grupos de menú`);
+
+    toggles.forEach((toggle, index) => {
+        toggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log(`🖱️ Clic en grupo ${index + 1}`);
+
+            const parentGroup = this.closest(".nav-group");
+            const wasOpen = parentGroup.classList.contains("open");
+
+            console.log(`Estado anterior: ${wasOpen ? 'ABIERTO' : 'CERRADO'}`);
+
+            // ⭐ CERRAR TODOS LOS GRUPOS PRIMERO ⭐
+            document.querySelectorAll(".nav-group").forEach(group => {
+                if (group !== parentGroup) {
+                    group.classList.remove("open");
+                    console.log("🔒 Cerrando otro grupo");
+                }
+            });
+
+            // ⭐ SI NO ESTABA ABIERTO, ABRIRLO ⭐
+            if (!wasOpen) {
+                parentGroup.classList.add("open");
+                console.log("🔓 Abriendo este grupo");
+
+                // ⭐ AUTO-SCROLL: Hacer scroll para que el menú expandido sea visible ⭐
+                setTimeout(() => {
+                    // Obtener el contenedor del sidebar con scroll
+                    const sidebarNav = document.querySelector('.sidebar-nav');
+                    if (sidebarNav) {
+                        // Obtener los submenús del grupo
+                        const subMenu = parentGroup.querySelector('.nav-group-items');
+                        if (subMenu) {
+                            // Calcular la posición del grupo expandido
+                            const groupRect = parentGroup.getBoundingClientRect();
+                            const sidebarRect = sidebarNav.getBoundingClientRect();
+                            const subMenuHeight = subMenu.scrollHeight;
+
+                            // Verificar si el submenú se sale del área visible
+                            const bottomOfGroup = groupRect.top + groupRect.height + subMenuHeight;
+                            const bottomOfSidebar = sidebarRect.bottom;
+
+                            if (bottomOfGroup > bottomOfSidebar) {
+                                // Calcular cuánto scroll necesitamos
+                                const scrollNeeded = bottomOfGroup - bottomOfSidebar + 20; // +20px de margen
+
+                                // Hacer scroll suave
+                                sidebarNav.scrollBy({
+                                    top: scrollNeeded,
+                                    behavior: 'smooth'
+                                });
+                                console.log(`📜 Auto-scroll: ${scrollNeeded}px hacia abajo`);
+                            }
+                        }
+                    }
+                }, 50); // Pequeño delay para que el CSS termine de expandir
+            } else {
+                parentGroup.classList.remove("open");
+                console.log("🔒 Cerrando este grupo");
+            }
+        });
+    });
+
+    // ⭐ AUTO-SCROLL EN CARGA INICIAL: Si hay un menú activo expandido, hacer scroll ⭐
+    setTimeout(() => {
+        const activeItem = document.querySelector('.nav-group.open .nav-link.active');
+        if (activeItem) {
+            const sidebarNav = document.querySelector('.sidebar-nav');
+            if (sidebarNav) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                console.log("📜 Auto-scroll inicial al menú activo");
+            }
+        }
+    }, 100);
+});

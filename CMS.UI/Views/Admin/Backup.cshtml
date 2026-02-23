@@ -1,0 +1,416 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Admin/Backup.cshtml                                        *@
+@* PROPÓSITO: Vista de Backup & Restore                                             *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Admin.BackupViewModel
+
+@{
+    ViewData["Title"] = "Backup & Restore";
+}
+
+<div class="content-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-icon bg-gradient-green">
+                <i class="bi bi-database-fill"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Backup & Restore</h1>
+                <p>Gestionar copias de seguridad y restauración de datos</p>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <form asp-action="CreateBackup" method="post" style="display: inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-tech-primary">
+                    <i class="bi bi-cloud-upload me-2"></i>Crear Backup
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Warning"]
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Storage Info -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="storage-card">
+                <div class="storage-header">
+                    <div>
+                        <h5><i class="bi bi-hdd-fill me-2"></i>Almacenamiento</h5>
+                        <p>@Model.StorageUsed de @Model.StorageLimit utilizados</p>
+                    </div>
+                    <span class="storage-percentage">@Model.StoragePercentage%</span>
+                </div>
+                <div class="storage-bar">
+                    <div class="storage-fill" style="width: @Model.StoragePercentage%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="backup-stats">
+                <div class="backup-stat">
+                    <span class="stat-value">@Model.Backups.Count</span>
+                    <span class="stat-label">Total Backups</span>
+                </div>
+                <div class="backup-stat">
+                    <span class="stat-value">@Model.Backups.FirstOrDefault()?.CreatedAt.ToString("dd/MM")</span>
+                    <span class="stat-label">Último Backup</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Backups -->
+    <div class="card-tech">
+        <div class="card-header-tech d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Backups Disponibles</h5>
+            <span class="badge-tech-info">@Model.Backups.Count archivos</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table-tech">
+                    <thead>
+                        <tr>
+                            <th>Nombre del Archivo</th>
+                            <th style="width: 100px;">Tipo</th>
+                            <th style="width: 140px;">Fecha</th>
+                            <th style="width: 100px;">Tamaño</th>
+                            <th style="width: 120px;">Creado por</th>
+                            <th style="width: 150px;" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var backup in Model.Backups)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="backup-name">
+                                        <i class="bi bi-file-earmark-zip me-2" style="color: var(--accent-cyan);"></i>
+                                        <code>@backup.Name</code>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="type-badge @backup.TypeBadgeClass">@backup.Type</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted-tech">@backup.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                </td>
+                                <td>
+                                    <span class="size-value">@backup.Size</span>
+                                </td>
+                                <td>
+                                    <span class="created-by">@backup.CreatedBy</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="backup-actions">
+                                        <a asp-action="DownloadBackup" asp-route-id="@backup.Id" 
+                                           class="btn-backup-action btn-download" title="Descargar">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <form asp-action="RestoreBackup" asp-route-id="@backup.Id" method="post" style="display: inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn-backup-action btn-restore" title="Restaurar"
+                                                    onclick="return confirm('⚠️ ADVERTENCIA: Restaurar este backup reemplazará todos los datos actuales. ¿Está seguro?')">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuración de Backup -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card-tech">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Configuración Automática</h5>
+                </div>
+                <div class="card-body">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <span class="config-name">Backup Diario</span>
+                            <span class="config-desc">Todos los días a las 02:00 AM</span>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <span class="config-name">Backup Semanal</span>
+                            <span class="config-desc">Domingos a las 03:00 AM</span>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <span class="config-name">Retención</span>
+                            <span class="config-desc">Mantener backups por 30 días</span>
+                        </div>
+                        <select class="form-select-tech form-select-sm" style="width: 120px;">
+                            <option>7 días</option>
+                            <option selected>30 días</option>
+                            <option>90 días</option>
+                            <option>1 año</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card-tech">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Recomendaciones</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="recommendations-list">
+                        <li class="rec-success">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Backup automático diario activo
+                        </li>
+                        <li class="rec-success">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Último backup hace menos de 24 horas
+                        </li>
+                        <li class="rec-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Considere habilitar backup off-site
+                        </li>
+                        <li class="rec-info">
+                            <i class="bi bi-info-circle-fill"></i>
+                            Pruebe restaurar un backup periódicamente
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    }
+
+    .alert-warning-tech {
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #f59e0b;
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .storage-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+
+    .storage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .storage-header h5 {
+        color: var(--text-white);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .storage-header p {
+        color: var(--text-gray);
+        margin: 0;
+        font-size: 0.85rem;
+    }
+
+    .storage-percentage {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--accent-cyan);
+    }
+
+    .storage-bar {
+        height: 8px;
+        background: rgba(6, 182, 212, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .storage-fill {
+        height: 100%;
+        background: var(--accent-gradient);
+        border-radius: 4px;
+        transition: width 0.5s;
+    }
+
+    .backup-stats {
+        display: flex;
+        gap: 20px;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .backup-stat {
+        text-align: center;
+    }
+
+    .backup-stat .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-white);
+        display: block;
+    }
+
+    .backup-stat .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-gray);
+    }
+
+    .backup-name {
+        display: flex;
+        align-items: center;
+    }
+
+    .backup-name code {
+        background: none;
+        color: var(--text-white);
+        font-size: 0.85rem;
+    }
+
+    .type-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .type-full { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
+    .type-incremental { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+    .type-manual { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .type-weekly { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .type-default { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+    .size-value {
+        color: var(--text-white);
+        font-family: monospace;
+    }
+
+    .created-by {
+        color: var(--text-gray);
+        font-size: 0.85rem;
+    }
+
+    .backup-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .btn-backup-action {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-download {
+        background: rgba(6, 182, 212, 0.15);
+        color: #06b6d4;
+    }
+    .btn-download:hover {
+        background: rgba(6, 182, 212, 0.3);
+        color: #06b6d4;
+    }
+
+    .btn-restore {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    .btn-restore:hover {
+        background: rgba(245, 158, 11, 0.3);
+    }
+
+    .config-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .config-item:last-child {
+        border-bottom: none;
+    }
+
+    .config-name {
+        color: var(--text-white);
+        display: block;
+        font-weight: 500;
+    }
+
+    .config-desc {
+        color: var(--text-gray);
+        font-size: 0.8rem;
+    }
+
+    .recommendations-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .recommendations-list li {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .recommendations-list li:last-child {
+        border-bottom: none;
+    }
+
+    .rec-success { color: #10b981; }
+    .rec-warning { color: #f59e0b; }
+    .rec-info { color: #06b6d4; }
+</style>

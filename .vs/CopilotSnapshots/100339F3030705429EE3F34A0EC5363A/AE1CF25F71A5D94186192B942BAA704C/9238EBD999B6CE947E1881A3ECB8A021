@@ -1,0 +1,65 @@
+﻿-- ================================================================================
+-- SCRIPT: Crear base de datos operacional para una compañía
+-- PROPÓSITO: Crear la BD y schema para datos operacionales de la compañía
+-- AUTOR: EAMR, BITI SOLUTIONS S.A
+-- FECHA: 2026-02-19
+-- USO: Ejecutar conectado al servidor PostgreSQL (no a una BD específica)
+-- ================================================================================
+
+-- ⚠️ CAMBIAR 'admin' POR EL CÓDIGO DE LA COMPAÑÍA (COMPANY_SCHEMA)
+-- Ejemplo: Si la compañía tiene COMPANY_SCHEMA = 'eamr', cambiar todas las ocurrencias de 'admin' a 'eamr'
+
+-- 1. Crear la base de datos (ejecutar como superuser conectado a 'postgres')
+-- CREATE DATABASE admin WITH OWNER = cmssystem ENCODING = 'UTF8';
+
+-- 2. Conectarse a la nueva base de datos y ejecutar lo siguiente:
+-- \c admin
+
+-- 3. Crear el schema
+CREATE SCHEMA IF NOT EXISTS admin;
+
+-- 4. Crear la tabla de artículos
+CREATE TABLE IF NOT EXISTS admin.item (
+    id_item SERIAL PRIMARY KEY,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    description VARCHAR(1000),
+    barcode VARCHAR(50),
+    category VARCHAR(100),
+    subcategory VARCHAR(100),
+    brand VARCHAR(100),
+    unit_of_measure VARCHAR(20) DEFAULT 'unidad',
+    cost_price DECIMAL(18,4) DEFAULT 0,
+    sale_price DECIMAL(18,4) DEFAULT 0,
+    tax_rate DECIMAL(5,2) DEFAULT 0,
+    min_stock DECIMAL(18,4) DEFAULT 0,
+    max_stock DECIMAL(18,4) DEFAULT 0,
+    current_stock DECIMAL(18,4) DEFAULT 0,
+    image_url VARCHAR(500),
+    is_active BOOLEAN DEFAULT TRUE,
+    is_sellable BOOLEAN DEFAULT TRUE,
+    is_purchasable BOOLEAN DEFAULT TRUE,
+    track_lots BOOLEAN DEFAULT FALSE,
+    track_serial_numbers BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    created_by VARCHAR(100),
+    updated_at TIMESTAMP,
+    updated_by VARCHAR(100)
+);
+
+-- 5. Crear índices
+CREATE UNIQUE INDEX IF NOT EXISTS idx_item_code ON admin.item(code);
+CREATE INDEX IF NOT EXISTS idx_item_barcode ON admin.item(barcode);
+CREATE INDEX IF NOT EXISTS idx_item_category ON admin.item(category);
+CREATE INDEX IF NOT EXISTS idx_item_is_active ON admin.item(is_active);
+
+-- 6. Insertar datos de ejemplo
+INSERT INTO admin.item (code, name, description, category, cost_price, sale_price, current_stock, created_by)
+VALUES 
+    ('PROD-001', 'Producto de Ejemplo 1', 'Este es un producto de prueba', 'General', 10.00, 15.00, 100, 'SYSTEM'),
+    ('PROD-002', 'Producto de Ejemplo 2', 'Otro producto de prueba', 'General', 20.00, 30.00, 50, 'SYSTEM'),
+    ('PROD-003', 'Producto de Ejemplo 3', 'Un tercer producto', 'Electrónicos', 100.00, 150.00, 25, 'SYSTEM')
+ON CONFLICT DO NOTHING;
+
+-- Verificar
+SELECT * FROM admin.item;

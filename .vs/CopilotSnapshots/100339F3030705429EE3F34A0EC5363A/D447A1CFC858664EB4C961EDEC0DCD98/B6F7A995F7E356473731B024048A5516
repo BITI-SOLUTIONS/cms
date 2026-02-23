@@ -1,0 +1,37 @@
+﻿<!-- ================================================================================ -->
+<!-- ARCHIVO: CMS.UI/CMS.UI.csproj -->
+<!-- CONFIGURACI�N: Proyecto Web (Razor Pages) con autenticaci�n OpenID Connect -->
+<!-- ================================================================================ -->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>CMS.UI</RootNamespace>
+		<AssemblyName>CMS.UI</AssemblyName>
+	</PropertyGroup>
+	
+	<!-- ? SCRIPT DE LIMPIEZA AUTOM�TICA ? -->
+	<Target Name="KillRunningProcess" BeforeTargets="Build">
+		<Exec Command="taskkill /F /IM CMS.UI.exe 2&gt;nul || exit /b 0" IgnoreExitCode="true" ContinueOnError="true" />
+		<Exec Command="timeout /t 1 /nobreak &gt;nul" IgnoreExitCode="true" ContinueOnError="true" />
+	</Target>
+	
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
+		<PackageReference Include="Microsoft.Identity.Web" Version="4.1.1" />
+		<PackageReference Include="Microsoft.Identity.Web.DownstreamApi" Version="4.1.1" />
+		<PackageReference Include="Microsoft.Identity.Web.UI" Version="4.1.1" />
+		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Referencias necesarias para la UI -->
+		<ProjectReference Include="..\CMS.Data\CMS.Data.csproj" />
+		<ProjectReference Include="..\CMS.Application\CMS.Application.csproj" />
+	</ItemGroup>
+
+</Project>

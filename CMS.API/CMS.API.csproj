@@ -32,6 +32,7 @@
 		<ProjectReference Include="..\CMS.Application\CMS.Application.csproj" />
 		<ProjectReference Include="..\CMS.Data\CMS.Data.csproj" />
 		<ProjectReference Include="..\CMS.Entities\CMS.Entities.csproj" />
+		<ProjectReference Include="..\CMS.Shared\CMS.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

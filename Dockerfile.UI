@@ -21,6 +21,8 @@ COPY CMS.Application/ CMS.Application/
 COPY CMS.Data/ CMS.Data/
 COPY CMS.Entities/ CMS.Entities/
 
+COPY CMS.UI/appsettings.json CMS.UI/appsettings.json
+
 WORKDIR "/src/CMS.UI"
 RUN dotnet restore "../CMS.Solution.sln"
 RUN dotnet build "CMS.UI.csproj" -c Release -o /app/build

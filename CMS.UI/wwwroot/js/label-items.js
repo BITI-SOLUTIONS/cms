@@ -1,0 +1,184 @@
+// ================================================================================
+// ARCHIVO: CMS.UI/wwwroot/js/label-items.js
+// PROPÓSITO: JavaScript para la vista de impresión de etiquetas de artículos
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-23
+// ================================================================================
+
+var originalData = {};
+
+function selectItem(element) {
+    console.log('selectItem called');
+    
+    var itemId = element.getAttribute('data-item-id');
+    var itemCode = element.getAttribute('data-item-code');
+    var itemName = element.getAttribute('data-item-name');
+    var labelItem = element.getAttribute('data-item-label') || itemName;
+    var labelPrice = parseFloat(element.getAttribute('data-item-price')) || 0;
+    var labelBarcode = element.getAttribute('data-item-barcode') || '';
+
+    console.log('Item selected:', itemId, itemCode, itemName);
+
+    // Resaltar el item seleccionado
+    var rows = document.querySelectorAll('.item-row');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].style.background = 'rgba(0,0,0,0.2)';
+        rows[i].style.borderLeft = 'none';
+    }
+    element.style.background = 'rgba(6, 182, 212, 0.2)';
+    element.style.borderLeft = '4px solid #06b6d4';
+
+    // Guardar datos originales
+    originalData = {
+        labelItem: labelItem,
+        labelPrice: labelPrice,
+        labelBarcode: labelBarcode
+    };
+
+    // Mostrar formulario
+    var noItemSelected = document.getElementById('noItemSelected');
+    var labelForm = document.getElementById('labelForm');
+    var btnPrint = document.getElementById('btnPrint');
+    
+    if (noItemSelected) noItemSelected.style.display = 'none';
+    if (labelForm) labelForm.style.display = 'block';
+    if (btnPrint) btnPrint.disabled = false;
+
+    // Llenar datos
+    var selectedItemIdEl = document.getElementById('selectedItemId');
+    var itemCodeEl = document.getElementById('itemCode');
+    var itemNameEl = document.getElementById('itemName');
+    var labelItemEl = document.getElementById('labelItem');
+    var labelPriceEl = document.getElementById('labelPrice');
+    var labelBarcodeEl = document.getElementById('labelBarcode');
+
+    if (selectedItemIdEl) selectedItemIdEl.value = itemId;
+    if (itemCodeEl) itemCodeEl.textContent = itemCode;
+    if (itemNameEl) itemNameEl.textContent = itemName;
+    if (labelItemEl) labelItemEl.value = labelItem;
+    if (labelPriceEl) labelPriceEl.value = labelPrice;
+    if (labelBarcodeEl) labelBarcodeEl.value = labelBarcode;
+
+    // Actualizar vista previa
+    updatePreview();
+    
+    console.log('selectItem completed successfully');
+}
+
+function updatePreview() {
+    var labelItemEl = document.getElementById('labelItem');
+    var labelPriceEl = document.getElementById('labelPrice');
+    var labelBarcodeEl = document.getElementById('labelBarcode');
+    
+    var name = labelItemEl ? labelItemEl.value : 'Nombre del Producto';
+    var price = labelPriceEl ? parseFloat(labelPriceEl.value) || 0 : 0;
+    var barcode = labelBarcodeEl ? labelBarcodeEl.value : '';
+
+    var previewName = document.getElementById('previewName');
+    var previewPrice = document.getElementById('previewPrice');
+    var previewBarcode = document.getElementById('previewBarcode');
+
+    if (previewName) previewName.textContent = name || 'Nombre del Producto';
+    if (previewPrice) previewPrice.textContent = String.fromCharCode(8353) + price.toFixed(2);
+    if (previewBarcode) previewBarcode.textContent = barcode || '||||||||||||||||';
+}
+
+function saveLabel() {
+    var selectedItemIdEl = document.getElementById('selectedItemId');
+    var labelItemEl = document.getElementById('labelItem');
+    var labelPriceEl = document.getElementById('labelPrice');
+    var labelBarcodeEl = document.getElementById('labelBarcode');
+
+    var itemId = selectedItemIdEl ? selectedItemIdEl.value : '';
+    var data = {
+        itemId: parseInt(itemId),
+        labelItem: labelItemEl ? labelItemEl.value : '',
+        labelPrice: labelPriceEl ? parseFloat(labelPriceEl.value) || 0 : 0,
+        labelItemBarcode: labelBarcodeEl ? labelBarcodeEl.value : ''
+    };
+
+    fetch('/Inventory/LabelItems/SaveLabel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(result) {
+        if (result.success) {
+            originalData = {
+                labelItem: data.labelItem,
+                labelPrice: data.labelPrice,
+                labelBarcode: data.labelItemBarcode
+            };
+            alert('Etiqueta guardada exitosamente');
+        } else {
+            alert('Error: ' + result.message);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        alert('Error al guardar la etiqueta');
+    });
+}
+
+function resetLabel() {
+    var labelItemEl = document.getElementById('labelItem');
+    var labelPriceEl = document.getElementById('labelPrice');
+    var labelBarcodeEl = document.getElementById('labelBarcode');
+
+    if (labelItemEl) labelItemEl.value = originalData.labelItem || '';
+    if (labelPriceEl) labelPriceEl.value = originalData.labelPrice || 0;
+    if (labelBarcodeEl) labelBarcodeEl.value = originalData.labelBarcode || '';
+    updatePreview();
+}
+
+function printLabel() {
+    var previewName = document.getElementById('previewName');
+    var previewPrice = document.getElementById('previewPrice');
+    var previewBarcode = document.getElementById('previewBarcode');
+
+    var name = previewName ? previewName.textContent : '';
+    var price = previewPrice ? previewPrice.textContent : '';
+    var barcode = previewBarcode ? previewBarcode.textContent : '';
+    
+    var printWindow = window.open('', '_blank');
+    var html = '<!DOCTYPE html><html><head><title>Imprimir Etiqueta</title>' +
+        '<style>' +
+        'body { font-family: Arial, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }' +
+        '.label { border: 2px solid black; padding: 20px 40px; text-align: center; }' +
+        '.name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }' +
+        '.price { font-size: 36px; font-weight: bold; color: #16a34a; margin-bottom: 10px; }' +
+        '.barcode { font-family: monospace; font-size: 18px; }' +
+        '</style>' +
+        '</head><body>' +
+        '<div class="label">' +
+        '<div class="name">' + name + '</div>' +
+        '<div class="price">' + price + '</div>' +
+        '<div class="barcode">' + barcode + '</div>' +
+        '</div>' +
+        '<scr' + 'ipt>window.print(); window.close();</scr' + 'ipt>' +
+        '</body></html>';
+    printWindow.document.write(html);
+    printWindow.document.close();
+}
+
+// Inicializar event listeners cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    var labelItemEl = document.getElementById('labelItem');
+    var labelPriceEl = document.getElementById('labelPrice');
+    var labelBarcodeEl = document.getElementById('labelBarcode');
+
+    if (labelItemEl) {
+        labelItemEl.addEventListener('input', updatePreview);
+    }
+    if (labelPriceEl) {
+        labelPriceEl.addEventListener('input', updatePreview);
+    }
+    if (labelBarcodeEl) {
+        labelBarcodeEl.addEventListener('input', updatePreview);
+    }
+    
+    console.log('Label Items JS initialized');
+});

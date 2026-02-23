@@ -1,0 +1,165 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Menus/Index.cshtml                                         *@
+@* PROPÓSITO: Lista de menús del sistema en estructura jerárquica                   *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-16                                                               *@
+@* ================================================================================ *@
+
+@model List<CMS.UI.Services.MenusAdminApiService.MenuDto>
+
+@{
+    ViewData["Title"] = "Gestión de Menús";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1><i class="bi bi-list-nested me-2"></i>Gestión de Menús</h1>
+            <p class="text-muted mb-0">Administra la estructura de navegación del sistema</p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Create" class="btn btn-tech-primary">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo Menú
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ===== INFO ===== -->
+    <div class="alert alert-info-tech mb-4">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <strong>Tip:</strong> Los menús con <code>permission_key</code> solo se mostrarán a usuarios con ese permiso.
+        Los menús sin permiso son visibles para todos los usuarios autenticados.
+    </div>
+
+    <!-- ===== TABLA ===== -->
+    <div class="card bg-dark-card border-0">
+        <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>@Model.Count menús</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Orden</th>
+                            <th>Menú</th>
+                            <th>URL</th>
+                            <th>Permiso Requerido</th>
+                            <th>Estado</th>
+                            <th style="width: 120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <i class="bi bi-inbox display-6 d-block mb-2 text-secondary"></i>
+                                    <span class="text-light">No hay menús registrados</span>
+                                    <p class="text-secondary small mt-2 mb-0">Crea un nuevo menú usando el botón "Nuevo Menú"</p>
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var menu in Model)
+                        {
+                            var isChild = menu.IdParent != 0;
+                            <tr class="@(isChild ? "" : "table-active border-top border-secondary")">
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">@menu.Order</span>
+                                </td>
+                                <td>
+                                    @if (isChild)
+                                    {
+                                        <span class="text-muted me-2">└─</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(menu.Icon))
+                                    {
+                                        <i class="@menu.Icon me-2 text-info"></i>
+                                    }
+                                    <span class="fw-semibold @(isChild ? "" : "text-primary")">@menu.Name</span>
+                                    @if (isChild)
+                                    {
+                                        <small class="text-muted ms-2">(en @menu.ParentName)</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(menu.Url))
+                                    {
+                                        <code class="text-success">@menu.Url</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">(Contenedor)</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(menu.PermissionKey))
+                                    {
+                                        <code class="text-warning">@menu.PermissionKey</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Público</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (menu.IsActive)
+                                    {
+                                        <span class="badge bg-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@menu.IdMenu" 
+                                       class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@menu.IdMenu" method="post" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                onclick="return confirm('¿Eliminar este menú? Los submenús quedarán huérfanos.')" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .table-dark { --bs-table-bg: transparent; }
+    .alert-info-tech { 
+        background: rgba(0, 255, 255, 0.1); 
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        color: #7dd3fc;
+    }
+</style>

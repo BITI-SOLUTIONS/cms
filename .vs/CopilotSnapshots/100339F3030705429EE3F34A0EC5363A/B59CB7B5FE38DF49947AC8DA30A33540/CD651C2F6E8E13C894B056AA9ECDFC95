@@ -1,0 +1,434 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Inventory/LabelItems.cshtml                               *@
+@* PROPÓSITO: Vista de impresión de etiquetas de artículos                         *@
+@* DESCRIPCIÓN: Permite buscar artículos de etiqueta, editar los datos de la       *@
+@*              etiqueta (label_item, label_price, label_item_barcode) e imprimir  *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                 *@
+@* CREADO: 2026-02-20                                                              *@
+@* ================================================================================ *@
+
+@model CMS.UI.Controllers.LabelItemsViewModel
+
+@{
+    ViewData["Title"] = "Etiquetas de Artículos";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-printer me-2"></i>
+                Etiquetas de Artículos
+            </h1>
+            <p class="text-light-emphasis mb-0">Seleccione un artículo para imprimir su etiqueta</p>
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- ===== PANEL IZQUIERDO: LISTA DE ARTÍCULOS ===== -->
+        <div class="col-md-5">
+            <div class="card bg-dark-card border-0 h-100">
+                <div class="card-header bg-dark-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-search me-2"></i>Buscar Artículos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Búsqueda -->
+                    <form asp-action="LabelItems" method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Buscar por código, nombre..."
+                                   value="@Model.Search"
+                                   style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(255,255,255,0.3);">
+                            <button type="submit" class="btn btn-outline-info">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Lista de artículos -->
+                    <div class="item-list" style="max-height: 400px; overflow-y: auto;">
+                        @if (Model.Items.Any())
+                        {
+                            @foreach (var item in Model.Items)
+                            {
+                                <div class="item-row p-3 mb-2 rounded cursor-pointer" 
+                                     data-item-id="@item.Id"
+                                     data-item-code="@item.Code"
+                                     data-item-name="@item.Name"
+                                     data-item-label="@(item.LabelItem ?? item.Name)"
+                                     data-item-price="@item.LabelPrice"
+                                     data-item-barcode="@(item.LabelItemBarcode ?? item.Barcode)"
+                                     onclick="selectItem(this)"
+                                     style="background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <code class="text-info">@item.Code</code>
+                                            <div class="fw-semibold text-white">@item.Name</div>
+                                            @if (!string.IsNullOrEmpty(item.LabelItem))
+                                            {
+                                                <small class="text-success">
+                                                    <i class="bi bi-tag me-1"></i>@item.LabelItem
+                                                </small>
+                                            }
+                                        </div>
+                                        <span class="badge bg-success fs-6">
+                                            ₡@item.LabelPrice.ToString("N2")
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-inbox display-4 text-secondary"></i>
+                                <p class="text-light mt-2">No hay artículos de etiqueta</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Paginación -->
+                    @if (Model.TotalPages > 1)
+                    {
+                        <nav class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                @for (int i = 1; i <= Model.TotalPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="?page=@i&search=@Model.Search">@i</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PANEL DERECHO: EDICIÓN DE ETIQUETA ===== -->
+        <div class="col-md-7">
+            <div class="card bg-dark-card border-0 h-100">
+                <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-tag me-2"></i>Datos de la Etiqueta
+                    </h5>
+                    <button type="button" class="btn btn-success" id="btnPrint" disabled onclick="printLabel()">
+                        <i class="bi bi-printer me-2"></i>Imprimir Etiqueta
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Mensaje cuando no hay artículo seleccionado -->
+                    <div id="noItemSelected" class="text-center py-5">
+                        <i class="bi bi-hand-index display-1 text-secondary"></i>
+                        <h5 class="text-white mt-3">Seleccione un artículo</h5>
+                        <p class="text-light-emphasis">Haga clic en un artículo de la lista para ver y editar su etiqueta</p>
+                    </div>
+
+                    <!-- Formulario de etiqueta (oculto inicialmente) -->
+                    <div id="labelForm" style="display: none;">
+                        <input type="hidden" id="selectedItemId" />
+                        
+                        <!-- Info del artículo -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-info">Código</label>
+                                <div class="fs-5 text-cyan" id="itemCode" style="color: #22d3ee;">-</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-info">Nombre Original</label>
+                                <div class="fs-5 text-white" id="itemName">-</div>
+                            </div>
+                        </div>
+
+                        <hr class="border-secondary my-4" />
+
+                        <!-- Campos editables de la etiqueta -->
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label text-white">
+                                    <i class="bi bi-fonts me-1 text-info"></i>Texto de Etiqueta
+                                </label>
+                                <input type="text" id="labelItem" class="form-control form-control-lg"
+                                       placeholder="Nombre que aparecerá en la etiqueta"
+                                       style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                <small class="text-light-emphasis">Este texto se imprimirá como nombre del producto</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-white">
+                                    <i class="bi bi-currency-dollar me-1 text-success"></i>Precio de Etiqueta
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text" style="background-color: #334155; border-color: rgba(6, 182, 212, 0.5); color: #06b6d4;">₡</span>
+                                    <input type="number" id="labelPrice" class="form-control form-control-lg" step="0.01" min="0"
+                                           placeholder="0.00"
+                                           style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-white">
+                                    <i class="bi bi-upc me-1 text-warning"></i>Código de Barras
+                                </label>
+                                <input type="text" id="labelBarcode" class="form-control form-control-lg"
+                                       placeholder="Código de barras para la etiqueta"
+                                       style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="button" class="btn btn-tech-primary btn-lg flex-grow-1" onclick="saveLabel()">
+                                <i class="bi bi-check-lg me-2"></i>Guardar Cambios
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg" onclick="resetLabel()">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Restaurar
+                            </button>
+                        </div>
+
+                        <!-- Vista previa de la etiqueta -->
+                        <div class="mt-4 p-4 rounded" style="background: white; color: black;">
+                            <h6 class="text-muted mb-3">Vista Previa de Etiqueta:</h6>
+                            <div class="text-center border border-dark p-3" id="labelPreview" style="min-height: 120px;">
+                                <div id="previewName" class="fw-bold fs-4">Nombre del Producto</div>
+                                <div id="previewPrice" class="fs-2 fw-bold text-success">₡0.00</div>
+                                <div id="previewBarcode" class="font-monospace mt-2">||||||||||||||||</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let originalData = {};
+
+    function selectItem(element) {
+        const itemId = element.getAttribute('data-item-id');
+        const itemCode = element.getAttribute('data-item-code');
+        const itemName = element.getAttribute('data-item-name');
+        const labelItem = element.getAttribute('data-item-label') || itemName;
+        const labelPrice = parseFloat(element.getAttribute('data-item-price')) || 0;
+        const labelBarcode = element.getAttribute('data-item-barcode') || '';
+
+        // Resaltar el item seleccionado
+        document.querySelectorAll('.item-row').forEach(row => {
+            row.style.background = 'rgba(0,0,0,0.2)';
+            row.style.borderLeft = 'none';
+        });
+        element.style.background = 'rgba(6, 182, 212, 0.2)';
+        element.style.borderLeft = '4px solid #06b6d4';
+
+        // Guardar datos originales
+        originalData = {
+            labelItem: labelItem,
+            labelPrice: labelPrice,
+            labelBarcode: labelBarcode
+        };
+
+        // Mostrar formulario
+        document.getElementById('noItemSelected').style.display = 'none';
+        document.getElementById('labelForm').style.display = 'block';
+        document.getElementById('btnPrint').disabled = false;
+
+        // Llenar datos
+        document.getElementById('selectedItemId').value = itemId;
+        document.getElementById('itemCode').textContent = itemCode;
+        document.getElementById('itemName').textContent = itemName;
+        document.getElementById('labelItem').value = labelItem;
+        document.getElementById('labelPrice').value = labelPrice;
+        document.getElementById('labelBarcode').value = labelBarcode;
+
+        // Actualizar vista previa
+        updatePreview();
+    }
+
+    function updatePreview() {
+        const name = document.getElementById('labelItem').value || 'Nombre del Producto';
+        const price = parseFloat(document.getElementById('labelPrice').value) || 0;
+        const barcode = document.getElementById('labelBarcode').value || '';
+
+        document.getElementById('previewName').textContent = name;
+        document.getElementById('previewPrice').textContent = '₡' + price.toFixed(2);
+        document.getElementById('previewBarcode').textContent = barcode || '||||||||||||||||';
+    }
+
+    // Actualizar vista previa al escribir
+    document.getElementById('labelItem')?.addEventListener('input', updatePreview);
+    document.getElementById('labelPrice')?.addEventListener('input', updatePreview);
+    document.getElementById('labelBarcode')?.addEventListener('input', updatePreview);
+
+    function saveLabel() {
+        const itemId = document.getElementById('selectedItemId').value;
+        const data = {
+            itemId: parseInt(itemId),
+            labelItem: document.getElementById('labelItem').value,
+            labelPrice: parseFloat(document.getElementById('labelPrice').value) || 0,
+            labelItemBarcode: document.getElementById('labelBarcode').value
+        };
+
+        fetch('/Inventory/LabelItems/SaveLabel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Actualizar datos originales
+                originalData = {
+                    labelItem: data.labelItem,
+                    labelPrice: data.labelPrice,
+                    labelBarcode: data.labelItemBarcode
+                };
+                alert('✅ ' + result.message);
+            } else {
+                alert('❌ ' + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al guardar la etiqueta');
+        });
+    }
+
+    function resetLabel() {
+        document.getElementById('labelItem').value = originalData.labelItem || '';
+        document.getElementById('labelPrice').value = originalData.labelPrice || 0;
+        document.getElementById('labelBarcode').value = originalData.labelBarcode || '';
+        updatePreview();
+    }
+
+    function printLabel() {
+        const previewContent = document.getElementById('labelPreview').innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Imprimir Etiqueta</title>
+                <style>
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        margin: 0; 
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                    }
+                    .label {
+                        border: 2px solid black;
+                        padding: 20px 40px;
+                        text-align: center;
+                    }
+                    .name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+                    .price { font-size: 36px; font-weight: bold; color: #16a34a; margin-bottom: 10px; }
+                    .barcode { font-family: monospace; font-size: 18px; }
+                </style>
+            </head>
+            <body>
+                <div class="label">
+                    <div class="name">${document.getElementById('previewName').textContent}</div>
+                    <div class="price">${document.getElementById('previewPrice').textContent}</div>
+                    <div class="barcode">${document.getElementById('previewBarcode').textContent}</div>
+                </div>
+                <script>window.print(); window.close();<\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+</script>
+}
+
+@Html.AntiForgeryToken()
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+
+    .item-row:hover {
+        background: rgba(6, 182, 212, 0.15) !important;
+        transform: translateX(5px);
+    }
+
+    .page-link {
+        background-color: #1e293b;
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+    }
+
+    .page-link:hover {
+        background-color: #334155;
+        border-color: rgba(6, 182, 212, 0.5);
+        color: #06b6d4;
+    }
+
+    .page-item.active .page-link {
+        background-color: #06b6d4;
+        border-color: #06b6d4;
+    }
+
+    /* Mejor visibilidad del texto */
+    .text-light-emphasis {
+        color: #94a3b8 !important;
+    }
+
+    /* Scroll suave para la lista de items */
+    .item-list {
+        scrollbar-width: thin;
+        scrollbar-color: #06b6d4 #1e293b;
+    }
+
+    .item-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .item-list::-webkit-scrollbar-track {
+        background: #1e293b;
+        border-radius: 4px;
+    }
+
+    .item-list::-webkit-scrollbar-thumb {
+        background-color: #06b6d4;
+        border-radius: 4px;
+    }
+
+    /* Labels más visibles */
+    .form-label {
+        color: #e2e8f0 !important;
+        font-weight: 500;
+    }
+
+    /* Small text más visible */
+    small.text-muted {
+        color: #94a3b8 !important;
+    }
+</style>

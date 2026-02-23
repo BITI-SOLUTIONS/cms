@@ -1,0 +1,321 @@
+﻿@* ================================================================================
+   ARCHIVO: CMS.UI/Views/Account/SelectCompany.cshtml
+   PROPÓSITO: Pantalla de selección de compañía (primer paso del login)
+   AUTOR: EAMR, BITI SOLUTIONS S.A
+   CREADO: 2026-02-13
+   ACTUALIZADO: 2026-02-14 - Nuevo diseño tech moderno
+   ================================================================================ *@
+
+@model CMS.UI.Models.Auth.SelectCompanyViewModel
+@{
+    ViewData["Title"] = "Seleccionar Compañía";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CMS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Paleta Tech Moderna */
+            --bg-dark: #0f172a;
+            --bg-medium: #1e293b;
+            --bg-light: #334155;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            --text-white: #f8fafc;
+            --text-gray: #94a3b8;
+            --card-bg: rgba(30, 41, 59, 0.8);
+            --border-color: rgba(6, 182, 212, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a365d 50%, var(--bg-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efecto de partículas/grid tech */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Grid animado de fondo */
+        body::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(6, 182, 212, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            max-width: 420px;
+            width: 100%;
+            margin: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-header {
+            background: linear-gradient(180deg, rgba(6, 182, 212, 0.15) 0%, transparent 100%);
+            color: var(--text-white);
+            padding: 40px 30px 30px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .login-header h1 {
+            font-size: 1.75rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-header p {
+            color: var(--text-gray);
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .login-body {
+            padding: 30px;
+        }
+
+        .form-floating {
+            margin-bottom: 20px;
+        }
+
+        .form-floating input {
+            background: var(--bg-dark);
+            border: 2px solid var(--bg-light);
+            border-radius: 12px;
+            padding: 18px 15px;
+            height: auto;
+            color: var(--text-white);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-floating input::placeholder {
+            color: var(--text-gray);
+        }
+
+        .form-floating input:focus {
+            background: var(--bg-dark);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15), 0 0 20px rgba(6, 182, 212, 0.2);
+            color: var(--text-white);
+        }
+
+        .form-floating label {
+            padding: 18px 15px;
+            color: var(--text-gray);
+        }
+
+        .form-floating input:focus ~ label,
+        .form-floating input:not(:placeholder-shown) ~ label {
+            color: var(--accent-cyan);
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            color: white;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .alert {
+            border-radius: 12px;
+            border: none;
+            padding: 15px;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .company-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--accent-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(6, 182, 212, 0.3);
+        }
+
+        .company-icon i {
+            font-size: 36px;
+            color: white;
+        }
+
+        .footer-text {
+            text-align: center;
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .footer-text i {
+            color: var(--accent-cyan);
+        }
+
+        .text-danger {
+            color: #f87171 !important;
+        }
+
+        /* Animación de entrada */
+        .login-card {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @@keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <!-- Logo SVG del sistema -->
+            <img src="/img/logo-tech.svg" 
+                 alt="BITI Solutions" 
+                 style="width: 100px; height: 100px; margin-bottom: 20px;"
+                 onerror="this.onerror=null; this.src='/img/logo.png'; this.style.width='80px'; this.style.height='80px';" />
+            <h1>Bienvenido al CMS</h1>
+            <p>Ingrese el código de su compañía para continuar</p>
+        </div>
+
+        <div class="login-body">
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>@Model.ErrorMessage</div>
+                </div>
+            }
+
+            <form asp-action="SelectCompany" method="post">
+                <input type="hidden" asp-for="ReturnUrl" />
+                
+                <div class="form-floating">
+                    <input type="text" 
+                           class="form-control" 
+                           id="companySchema" 
+                           asp-for="CompanySchema" 
+                           placeholder="Código de compañía"
+                           autocomplete="off"
+                           autofocus />
+                    <label for="companySchema">
+                        <i class="bi bi-building me-2"></i>Código de Compañía
+                    </label>
+                    <span asp-validation-for="CompanySchema" class="text-danger small"></span>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-arrow-right-circle me-2"></i>Continuar
+                </button>
+            </form>
+            
+            <div class="footer-text">
+                <p class="mb-0">
+                    <i class="bi bi-shield-check me-1"></i>
+                    Conexión segura
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.20.0/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

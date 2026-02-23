@@ -1,0 +1,565 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.UI/Controllers/AccountController.cs
+// PROPÓSITO: Maneja login, logout, selección de compañía y recuperación de contraseña
+// DESCRIPCIÓN: Soporta autenticación dual: Azure AD y local (email + contraseña)
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-11
+// ACTUALIZADO: 2026-02-13
+// ================================================================================
+
+using CMS.Entities;
+using CMS.UI.Models.Auth;
+using CMS.UI.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace CMS.UI.Controllers
+{
+    [AllowAnonymous]
+    public class AccountController : Controller
+    {
+        private readonly ILogger<AccountController> _logger;
+        private readonly LocalAuthService _localAuthService;
+        private readonly EmailService _emailService;
+
+        public AccountController(
+            ILogger<AccountController> logger,
+            LocalAuthService localAuthService,
+            EmailService emailService)
+        {
+            _logger = logger;
+            _localAuthService = localAuthService;
+            _emailService = emailService;
+        }
+
+        #region Selección de Compañía
+
+        /// <summary>
+        /// Pantalla inicial: Selección de compañía
+        /// Siempre consulta la BD para determinar el tipo de autenticación
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SelectCompany(string? returnUrl = null, bool forceLogout = false)
+        {
+            // ⭐ SIEMPRE limpiar sesión al entrar a SelectCompany
+            // Esto asegura que el usuario debe seleccionar compañía cada vez
+            HttpContext.Session.Clear();
+
+            // Eliminar cookies de sesión
+            foreach (var cookie in Request.Cookies.Keys)
+            {
+                // No eliminar cookies del sistema de ASP.NET necesarias para el antiforgery
+                if (!cookie.StartsWith(".AspNetCore.Antiforgery"))
+                {
+                    Response.Cookies.Delete(cookie);
+                }
+            }
+
+            // Cerrar sesión de autenticación si existe
+            if (User.Identity?.IsAuthenticated == true || forceLogout)
+            {
+                try
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    _logger.LogInformation("🔄 Sesión de autenticación cerrada en SelectCompany");
+                }
+                catch
+                {
+                    // Ignorar si no hay sesión activa
+                }
+            }
+
+            _logger.LogInformation("📋 Mostrando SelectCompany - Sesión limpiada");
+
+            var model = new SelectCompanyViewModel
+            {
+                ReturnUrl = returnUrl
+            };
+
+            return View(model);
+        }
+
+        /// <summary>
+        /// Procesa la selección de compañía
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SelectCompany(SelectCompanyViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // ⭐ SIEMPRE consultar la BD para obtener la configuración actual
+            var result = await _localAuthService.ValidateCompanyAsync(model.CompanySchema);
+
+            if (!result.Success || result.Company == null)
+            {
+                model.ErrorMessage = result.Message ?? "Compañía no encontrada";
+                return View(model);
+            }
+
+            var company = result.Company;
+
+            // Limpiar sesión anterior antes de configurar la nueva
+            HttpContext.Session.Clear();
+
+            // Guardar compañía seleccionada en sesión
+            HttpContext.Session.SetInt32("SelectedCompanyId", company.ID);
+            HttpContext.Session.SetString("SelectedCompanySchema", company.COMPANY_SCHEMA);
+            HttpContext.Session.SetString("SelectedCompanyName", company.COMPANY_NAME);
+            HttpContext.Session.SetString("UsesAzureAD", company.USES_AZURE_AD.ToString());
+
+            _logger.LogInformation("🏢 Compañía seleccionada: {Name} ({Schema})", 
+                company.COMPANY_NAME, company.COMPANY_SCHEMA);
+            _logger.LogInformation("🔐 Tipo de autenticación: {AuthType}", 
+                company.USES_AZURE_AD ? "Azure AD" : "Local (email/password)");
+
+            // Verificar que la sesión se guardó correctamente
+            var savedCompanyId = HttpContext.Session.GetInt32("SelectedCompanyId");
+            _logger.LogInformation("📋 Sesión guardada - CompanyId: {CompanyId}", savedCompanyId?.ToString() ?? "null");
+
+            // Decidir flujo de autenticación basado en la BD (NO en la config inicial)
+            if (company.USES_AZURE_AD)
+            {
+                _logger.LogInformation("➡️ Redirigiendo a Azure AD para autenticación");
+                return RedirectToAction(nameof(SignIn), new { returnUrl = model.ReturnUrl });
+            }
+            else
+            {
+                _logger.LogInformation("➡️ Redirigiendo a Login local para autenticación");
+                // Usar ReturnUrl o ir a Home por defecto
+                var returnUrl = string.IsNullOrEmpty(model.ReturnUrl) ? Url.Content("~/Home/Index") : model.ReturnUrl;
+                return RedirectToAction(nameof(Login), new { returnUrl });
+            }
+        }
+
+        #endregion
+
+        #region Login Local (Email + Contraseña)
+
+        /// <summary>
+        /// Pantalla de login con email y contraseña
+        /// </summary>
+        [HttpGet]
+        public IActionResult Login(string? returnUrl = null)
+        {
+            var companyId = HttpContext.Session.GetInt32("SelectedCompanyId");
+            var companySchema = HttpContext.Session.GetString("SelectedCompanySchema");
+            var companyName = HttpContext.Session.GetString("SelectedCompanyName");
+
+            _logger.LogInformation("📋 Login GET - CompanyId: {CompanyId}, Schema: {Schema}", 
+                companyId?.ToString() ?? "null", companySchema ?? "null");
+
+            if (companyId == null || string.IsNullOrEmpty(companySchema))
+            {
+                _logger.LogWarning("⚠️ Sesión sin compañía seleccionada, redirigiendo a SelectCompany");
+                return RedirectToAction(nameof(SelectCompany), new { returnUrl });
+            }
+
+            var model = new LoginViewModel
+            {
+                CompanySchema = companySchema,
+                CompanyName = companyName,
+                ReturnUrl = returnUrl ?? Url.Content("~/Home/Index")
+            };
+
+            _logger.LogInformation("📝 Mostrando formulario de Login para compañía: {Company}", companyName);
+            return View(model);
+        }
+
+        /// <summary>
+        /// Procesa el login local
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model)
+        {
+            var companyId = HttpContext.Session.GetInt32("SelectedCompanyId");
+            var companySchema = HttpContext.Session.GetString("SelectedCompanySchema");
+            var companyName = HttpContext.Session.GetString("SelectedCompanyName");
+
+            model.CompanySchema = companySchema;
+            model.CompanyName = companyName;
+
+            if (companyId == null)
+            {
+                return RedirectToAction(nameof(SelectCompany), new { returnUrl = model.ReturnUrl });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _localAuthService.LoginAsync(model.Email, model.Password, companyId.Value);
+
+            if (!result.Success)
+            {
+                model.ErrorMessage = result.Message;
+                model.RemainingAttempts = result.RemainingAttempts;
+                model.IsLocked = result.IsLocked;
+                model.LockoutEnd = result.LockoutEnd;
+
+                // Si se bloqueó, enviar email
+                if (result.IsLocked && result.User != null && result.LockoutEnd.HasValue)
+                {
+                    _ = _emailService.SendAccountLockedEmailAsync(
+                        result.User.EMAIL,
+                        result.User.DISPLAY_NAME,
+                        companyName ?? "CMS",
+                        result.LockoutEnd.Value);
+                }
+
+                return View(model);
+            }
+
+            // Login exitoso - crear claims y sesión
+            var user = result.User!;
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.ID_USER.ToString()),
+                new(ClaimTypes.Name, user.USER_NAME),
+                new(ClaimTypes.Email, user.EMAIL),
+                new("display_name", user.DISPLAY_NAME),
+                new("company_id", companyId.Value.ToString()),
+                new("company_schema", companySchema ?? ""),
+                new("auth_type", "local")
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                principal,
+                new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+                });
+
+            // Guardar token JWT en sesión
+            if (!string.IsNullOrEmpty(result.Token))
+            {
+                HttpContext.Session.SetString("ApiToken", result.Token);
+                HttpContext.Session.SetString("ApiTokenExpiry", result.TokenExpiry?.ToString("O") ?? "");
+            }
+
+            _logger.LogInformation("✅ Login local exitoso: {Email} en {Company}", 
+                model.Email, companySchema);
+
+            var returnUrl = model.ReturnUrl ?? Url.Content("~/");
+            return LocalRedirect(returnUrl);
+        }
+
+        #endregion
+
+        #region Azure AD Login
+
+        /// <summary>
+        /// Inicia el flujo de login con Azure AD
+        /// </summary>
+        [HttpGet]
+        public IActionResult SignIn(string? returnUrl = null)
+        {
+            returnUrl ??= Url.Content("~/");
+
+            var redirectUrl = Url.Action(nameof(SignInCallback), "Account", new { returnUrl });
+
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = redirectUrl
+            };
+
+            _logger.LogInformation("🔐 Iniciando login con Azure AD. ReturnUrl: {ReturnUrl}", returnUrl);
+
+            return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
+        }
+
+        /// <summary>
+        /// Callback después del login exitoso de Azure AD.
+        /// El token JWT ya se obtuvo en Program.cs (OnTokenValidated).
+        /// </summary>
+        [HttpGet]
+        public IActionResult SignInCallback(string? returnUrl = null)
+        {
+            returnUrl ??= Url.Content("~/");
+
+            // Verificar si hay JWT en sesión
+            var hasToken = !string.IsNullOrEmpty(HttpContext.Session.GetString("ApiToken"));
+
+            if (hasToken)
+            {
+                _logger.LogInformation("✅ Login completado exitosamente. Redirigiendo a: {ReturnUrl}", returnUrl);
+                return LocalRedirect(returnUrl);
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ Login completado pero no se obtuvo JWT");
+                return RedirectToAction("Error", "Home");
+            }
+        }
+
+        #endregion
+
+        #region Logout
+
+        /// <summary>
+        /// Cierra la sesión del usuario (GET - para Azure AD callback)
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SignOut()
+        {
+            return await PerformSignOutAsync();
+        }
+
+        /// <summary>
+        /// Cierra la sesión del usuario (POST - para formulario con confirmación)
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SignOutPost()
+        {
+            return await PerformSignOutAsync();
+        }
+
+        /// <summary>
+        /// Lógica común de cierre de sesión
+        /// </summary>
+        private async Task<IActionResult> PerformSignOutAsync()
+        {
+            _logger.LogInformation("🚪 Usuario cerrando sesión: {User}", User.Identity?.Name ?? "Desconocido");
+
+            var authType = HttpContext.Session.GetString("AuthType") ?? "local";
+
+            // ⭐ Limpiar TODA la sesión
+            HttpContext.Session.Clear();
+
+            // ⭐ Eliminar cookies de sesión manualmente
+            foreach (var cookie in Request.Cookies.Keys)
+            {
+                Response.Cookies.Delete(cookie);
+            }
+
+            try
+            {
+                // Cerrar sesión de cookies siempre
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ No se pudo cerrar sesión de cookies");
+            }
+
+            if (authType == "azure")
+            {
+                try
+                {
+                    // Logout Azure AD
+                    var callbackUrl = Url.Action(nameof(SignedOut), "Account", values: null, protocol: Request.Scheme);
+
+                    await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme,
+                        new AuthenticationProperties
+                        {
+                            RedirectUri = callbackUrl
+                        });
+
+                    return new EmptyResult(); // Azure AD manejará la redirección
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "⚠️ Error cerrando sesión de Azure AD, redirigiendo a SignedOut");
+                }
+            }
+
+            // Para auth local o si Azure AD falló
+            return RedirectToAction(nameof(SignedOut));
+        }
+
+        /// <summary>
+        /// Página después de cerrar sesión
+        /// </summary>
+        [HttpGet]
+        public IActionResult SignedOut()
+        {
+            _logger.LogInformation("✅ Sesión cerrada exitosamente");
+            return View();
+        }
+
+        #endregion
+
+        #region Recuperación de Contraseña
+
+        /// <summary>
+        /// Pantalla para solicitar recuperación de contraseña
+        /// </summary>
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            var companySchema = HttpContext.Session.GetString("SelectedCompanySchema");
+            var companyName = HttpContext.Session.GetString("SelectedCompanyName");
+
+            if (string.IsNullOrEmpty(companySchema))
+            {
+                return RedirectToAction(nameof(SelectCompany));
+            }
+
+            var model = new ForgotPasswordViewModel
+            {
+                CompanySchema = companySchema,
+                CompanyName = companyName
+            };
+
+            return View(model);
+        }
+
+        /// <summary>
+        /// Procesa la solicitud de recuperación de contraseña
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            var companyId = HttpContext.Session.GetInt32("SelectedCompanyId");
+            var companySchema = HttpContext.Session.GetString("SelectedCompanySchema");
+            var companyName = HttpContext.Session.GetString("SelectedCompanyName");
+
+            model.CompanySchema = companySchema;
+            model.CompanyName = companyName;
+
+            if (companyId == null)
+            {
+                return RedirectToAction(nameof(SelectCompany));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // ⭐ VALIDAR SI EL USUARIO EXISTE EN ESTA COMPAÑÍA
+            var userValidation = await _localAuthService.ValidateUserExistsInCompanyAsync(
+                model.Email, companyId.Value);
+
+            if (!userValidation.Exists)
+            {
+                model.ErrorMessage = userValidation.Message ?? "No se encontró una cuenta con ese correo en esta compañía.";
+                _logger.LogWarning("⚠️ Intento de reset para usuario inexistente: {Email} en compañía {CompanyId}", 
+                    model.Email, companyId);
+                return View(model);
+            }
+
+            // Usuario existe, generar token
+            var requestIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var result = await _localAuthService.GeneratePasswordResetTokenAsync(
+                model.Email, companyId.Value, requestIp);
+
+            if (result.Success && !string.IsNullOrEmpty(result.Token))
+            {
+                // Enviar correo
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var emailSent = await _emailService.SendPasswordResetEmailAsync(
+                    model.Email,
+                    userValidation.DisplayName ?? model.Email,
+                    result.Token,
+                    companySchema ?? "",
+                    companyName ?? "CMS",
+                    baseUrl);
+
+                if (emailSent)
+                {
+                    model.SuccessMessage = $"Se ha enviado un enlace de recuperación a {model.Email}. Revisa tu bandeja de entrada.";
+                }
+                else
+                {
+                    model.ErrorMessage = "No se pudo enviar el correo. Por favor contacte al administrador.";
+                    _logger.LogError("❌ Error enviando email de reset a: {Email}", model.Email);
+                }
+            }
+            else
+            {
+                model.ErrorMessage = "Error generando el enlace de recuperación. Intente nuevamente.";
+            }
+
+            return View(model);
+        }
+
+        /// <summary>
+        /// Pantalla para restablecer contraseña
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> ResetPassword(string token, string email, string? company = null)
+        {
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
+            {
+                return RedirectToAction(nameof(SelectCompany));
+            }
+
+            var (isValid, _) = await _localAuthService.ValidatePasswordResetTokenAsync(token, email);
+
+            var model = new ResetPasswordViewModel
+            {
+                Token = token,
+                Email = email,
+                CompanySchema = company,
+                TokenValid = isValid
+            };
+
+            if (!isValid)
+            {
+                model.ErrorMessage = "El enlace ha expirado o es inválido. Solicite uno nuevo.";
+            }
+
+            return View(model);
+        }
+
+        /// <summary>
+        /// Procesa el restablecimiento de contraseña
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var requestIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var success = await _localAuthService.ResetPasswordAsync(
+                model.Token, model.Email, model.NewPassword, requestIp);
+
+            if (!success)
+            {
+                model.ErrorMessage = "No se pudo restablecer la contraseña. El enlace puede haber expirado.";
+                model.TokenValid = false;
+                return View(model);
+            }
+
+            model.SuccessMessage = "¡Contraseña restablecida exitosamente! Ya puede iniciar sesión.";
+            return View(model);
+        }
+
+        #endregion
+
+        #region Access Denied
+
+        /// <summary>
+        /// Maneja acceso denegado
+        /// </summary>
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            _logger.LogWarning("⛔ Acceso denegado");
+            return View();
+        }
+
+        #endregion
+    }
+}

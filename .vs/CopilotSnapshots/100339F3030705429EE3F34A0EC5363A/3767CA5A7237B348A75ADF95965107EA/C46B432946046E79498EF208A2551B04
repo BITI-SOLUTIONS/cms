@@ -1,0 +1,197 @@
+﻿@using System.Security.Principal
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using CMS.UI.Extensions
+
+<style>
+    .user-avatar-navbar {
+        width: 36px;
+        height: 36px;
+        background: var(--accent-gradient);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: white;
+    }
+
+    .nav-link.user-dropdown {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 12px !important;
+        border-radius: 10px;
+        background: rgba(6, 182, 212, 0.1);
+        border: 1px solid var(--border-color);
+        color: var(--text-white) !important;
+        transition: all 0.3s ease;
+    }
+
+    .nav-link.user-dropdown:hover {
+        background: rgba(6, 182, 212, 0.2);
+        border-color: var(--border-glow);
+    }
+
+    .btn-logout-tech {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #f87171;
+        padding: 8px 12px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-logout-tech:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #fca5a5;
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+    }
+
+    .modal-tech .modal-content {
+        background: var(--bg-medium);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+    }
+
+    .modal-tech .modal-header {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-tech .modal-title {
+        color: var(--text-white);
+    }
+
+    .modal-tech .btn-close {
+        filter: invert(1);
+    }
+
+    .modal-tech .modal-body {
+        color: var(--text-gray);
+    }
+
+    .modal-tech .modal-body h5 {
+        color: var(--text-white);
+    }
+
+    .modal-tech .modal-footer {
+        border-top: 1px solid var(--border-color);
+    }
+
+    .badge-admin {
+        background: var(--accent-gradient);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+    }
+</style>
+
+<ul class="navbar-nav align-items-center">
+    @if (User.Identity is not null && User.Identity.IsAuthenticated)
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link user-dropdown dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="user-avatar-navbar">
+                    <i class="bi bi-person"></i>
+                </div>
+                @if (!string.IsNullOrEmpty(User.GetDisplayName()))
+                {
+                    <span class="d-none d-md-inline">@User.GetDisplayName()</span>
+                }
+                else
+                {
+                    <span class="d-none d-md-inline">@User.Identity?.Name</span>
+                }
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                <li class="dropdown-header px-3 py-2">
+                    <small style="color: var(--text-gray);">Sesión activa</small>
+                    <div style="color: var(--text-white); font-weight: 600;">@User.GetDisplayName()</div>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Home" asp-action="Profile">
+                        <i class="bi bi-person-circle"></i>Mi perfil
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Home" asp-action="Settings">
+                        <i class="bi bi-gear"></i>Configuración
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal" style="color: #f87171;">
+                        <i class="bi bi-box-arrow-right" style="color: #f87171;"></i>Cerrar sesión
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Botón de salida rápida (visible en desktop) -->
+        <li class="nav-item d-none d-lg-block ms-2">
+            <button class="btn-logout-tech" data-bs-toggle="modal" data-bs-target="#logoutModal" title="Cerrar sesión">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </li>
+
+        @if (User.IsInRole("Admin"))
+        {
+            <li class="nav-item ms-2">
+                <span class="badge-admin">
+                    <i class="bi bi-shield-check me-1"></i>Admin
+                </span>
+            </li>
+        }
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="btn btn-tech btn-sm" asp-controller="Account" asp-action="SelectCompany">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión
+            </a>
+        </li>
+    }
+</ul>
+
+<!-- ===== MODAL DE CONFIRMACIÓN DE LOGOUT ===== -->
+@if (User.Identity is not null && User.Identity.IsAuthenticated)
+{
+    <div class="modal fade modal-tech" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="logoutModalLabel">
+                        <i class="bi bi-box-arrow-right me-2" style="color: #f87171;"></i>
+                        Cerrar sesión
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <div style="width: 80px; height: 80px; background: rgba(245, 158, 11, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                            <i class="bi bi-question-lg" style="font-size: 2.5rem; color: #f59e0b;"></i>
+                        </div>
+                    </div>
+                    <h5>¿Estás seguro que deseas salir?</h5>
+                    <p class="mb-0">
+                        Tu sesión será cerrada y tendrás que volver a iniciar sesión.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-outline-tech" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>Cancelar
+                    </button>
+                    <form asp-controller="Account" asp-action="SignOutPost" method="post" id="logoutForm">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600;">
+                            <i class="bi bi-box-arrow-right me-1"></i>Sí, cerrar sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

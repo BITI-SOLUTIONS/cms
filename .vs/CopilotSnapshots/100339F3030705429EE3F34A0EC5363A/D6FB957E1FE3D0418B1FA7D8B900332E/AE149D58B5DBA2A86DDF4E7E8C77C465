@@ -1,0 +1,241 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.UI/Services/MenusAdminApiService.cs
+// PROPÓSITO: Servicio para administrar Menús (CRUD)
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-16
+// ================================================================================
+
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace CMS.UI.Services
+{
+    public class MenusAdminApiService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<MenusAdminApiService> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public MenusAdminApiService(
+            HttpClient httpClient,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<MenusAdminApiService> logger,
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
+        {
+            _httpClient = httpClient;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+            _configuration = configuration;
+            _environment = environment;
+        }
+
+        #region DTOs
+
+        public class MenuDto
+        {
+            public int IdMenu { get; set; }
+            public int IdParent { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string? Url { get; set; }
+            public string? Icon { get; set; }
+            public int Order { get; set; }
+            public string? PermissionKey { get; set; }
+            public bool IsActive { get; set; }
+            public string? ParentName { get; set; }
+        }
+
+        public class MenuCreateDto
+        {
+            public int IdParent { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string? Url { get; set; }
+            public string? Icon { get; set; }
+            public int Order { get; set; }
+            public string? PermissionKey { get; set; }
+            public bool IsActive { get; set; } = true;
+        }
+
+        public class MenuUpdateDto
+        {
+            public int IdParent { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string? Url { get; set; }
+            public string? Icon { get; set; }
+            public int Order { get; set; }
+            public string? PermissionKey { get; set; }
+            public bool IsActive { get; set; }
+        }
+
+        #endregion
+
+        private void ConfigureAuthHeader()
+        {
+            var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        private string GetApiBaseUrl()
+        {
+            var environment = _environment.IsDevelopment() ? "Development" : "Production";
+            var baseUrl = _configuration[$"ApiSettings:{environment}:BaseUrl"] ?? "https://localhost:7001";
+            _logger.LogInformation("📡 MenusAdminApiService - Ambiente: {Env}, URL Base: {Url}", environment, baseUrl);
+            return baseUrl;
+        }
+
+        public async Task<List<MenuDto>> GetAllAsync()
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/menu/admin";
+                _logger.LogInformation("📡 Llamando API: {Url}", url);
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var wrapper = JsonSerializer.Deserialize<MenuListWrapper>(json, JsonOptions);
+                    _logger.LogInformation("✅ Menús obtenidos: {Count}", wrapper?.Data?.Count ?? 0);
+                    return wrapper?.Data ?? new();
+                }
+
+                _logger.LogWarning("❌ Error obteniendo menús: {Status}", response.StatusCode);
+                return new();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error obteniendo menús");
+                return new();
+            }
+        }
+
+        private class MenuListWrapper
+        {
+            public bool Success { get; set; }
+            public int Count { get; set; }
+            public List<MenuDto> Data { get; set; } = new();
+        }
+
+        public async Task<MenuDto?> GetByIdAsync(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/menu/admin/{id}";
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<MenuDto>(json, JsonOptions);
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo menú {Id}", id);
+                return null;
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage, int? Id)> CreateAsync(MenuCreateDto dto)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/menu/admin";
+                var content = new StringContent(
+                    JsonSerializer.Serialize(dto),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await _httpClient.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<MenuDto>(json, JsonOptions);
+                    return (true, null, result?.IdMenu);
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                return (false, $"Error: {response.StatusCode} - {errorJson}", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando menú");
+                return (false, ex.Message, null);
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(int id, MenuUpdateDto dto)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/menu/admin/{id}";
+                var content = new StringContent(
+                    JsonSerializer.Serialize(dto),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await _httpClient.PutAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                return (false, $"Error: {response.StatusCode} - {errorJson}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando menú {Id}", id);
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/menu/admin/{id}";
+                var response = await _httpClient.DeleteAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                return (false, $"Error: {response.StatusCode} - {errorJson}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando menú {Id}", id);
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<List<MenuDto>> GetParentMenusAsync()
+        {
+            var menus = await GetAllAsync();
+            // Solo menús de nivel 0 (padres) o que no tengan URL (son contenedores)
+            return menus.Where(m => m.IdParent == 0).OrderBy(m => m.Order).ToList();
+        }
+    }
+}

@@ -1,0 +1,768 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Users/Edit.cshtml                                          *@
+@* PROPÓSITO: Formulario para editar un usuario existente                           *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-14                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Users.UserEditViewModel
+
+@{
+    ViewData["Title"] = $"Editar Usuario: {Model.Username}";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn-back me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div class="page-header-icon bg-gradient-orange">
+                <i class="bi bi-pencil-square"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Editar Usuario</h1>
+                <p>@@@Model.Username - @Model.Email</p>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post" id="editUserForm">
+        <input type="hidden" asp-for="Id" />
+        
+        <div class="row">
+            <!-- ===== FORMULARIO PRINCIPAL ===== -->
+            <div class="col-lg-8">
+                <!-- Información de Cuenta -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-key me-2"></i>Información de Cuenta</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Username" class="form-label-tech">
+                                    Nombre de Usuario
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-at"></i></span>
+                                    <input asp-for="Username" class="form-control-tech" readonly disabled 
+                                           style="opacity: 0.6;" />
+                                </div>
+                                <small class="form-text-tech">El nombre de usuario no se puede cambiar</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label-tech">
+                                    Correo Electrónico <span class="required">*</span>
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-envelope"></i></span>
+                                    <input asp-for="Email" type="email" class="form-control-tech" />
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Personal -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-person-vcard me-2"></i>Información Personal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label-tech">
+                                    Nombre <span class="required">*</span>
+                                </label>
+                                <input asp-for="FirstName" class="form-control-tech" />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label-tech">
+                                    Apellido <span class="required">*</span>
+                                </label>
+                                <input asp-for="LastName" class="form-control-tech" />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DisplayName" class="form-label-tech">
+                                    Nombre para Mostrar
+                                </label>
+                                <input asp-for="DisplayName" class="form-control-tech" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label-tech">
+                                    Teléfono
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-telephone"></i></span>
+                                    <input asp-for="PhoneNumber" class="form-control-tech" />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="DateOfBirth" class="form-label-tech">
+                                    Fecha de Nacimiento
+                                </label>
+                                <input asp-for="DateOfBirth" type="date" class="form-control-tech" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="IdCountry" class="form-label-tech">
+                                    País <span class="required">*</span>
+                                </label>
+                                <select asp-for="IdCountry" asp-items="Model.AvailableCountries" class="form-select-tech">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="IdGender" class="form-label-tech">
+                                    Género <span class="required">*</span>
+                                </label>
+                                <select asp-for="IdGender" asp-items="Model.AvailableGenders" class="form-select-tech">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TimeZone" class="form-label-tech">
+                                    Zona Horaria
+                                </label>
+                                <select asp-for="TimeZone" class="form-select-tech">
+                                    <option value="America/Costa_Rica">Costa Rica (UTC-6)</option>
+                                    <option value="America/Mexico_City">México (UTC-6)</option>
+                                    <option value="America/New_York">Nueva York (UTC-5)</option>
+                                    <option value="America/Los_Angeles">Los Ángeles (UTC-8)</option>
+                                    <option value="Europe/Madrid">Madrid (UTC+1)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PANEL LATERAL ===== -->
+            <div class="col-lg-4">
+                <!-- Estado y Opciones -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-gear me-2"></i>Estado de la Cuenta</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check-tech mb-3">
+                            <input asp-for="IsActive" type="checkbox" class="form-check-input-tech" id="isActive" />
+                            <label for="isActive" class="form-check-label-tech">
+                                <i class="bi bi-check-circle me-2"></i>Usuario Activo
+                            </label>
+                            <small class="form-text-tech d-block">El usuario podrá acceder al sistema</small>
+                        </div>
+                        <div class="form-check-tech">
+                            <input asp-for="IsEmailVerified" type="checkbox" class="form-check-input-tech" id="isEmailVerified" />
+                            <label for="isEmailVerified" class="form-check-label-tech">
+                                <i class="bi bi-envelope-check me-2"></i>Email Verificado
+                            </label>
+                            <small class="form-text-tech d-block">Marcar email como verificado</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roles - Botón para abrir modal -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-shield me-2"></i>Roles Asignados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="selectedRolesDisplay" class="selected-items-display mb-3">
+                            @if (Model.SelectedRoleIds.Any())
+                            {
+                                @foreach (var role in Model.AvailableRoles.Where(r => Model.SelectedRoleIds.Contains(int.Parse(r.Value))))
+                                {
+                                    <span class="badge-item role-badge">
+                                        <i class="bi bi-shield-check me-1"></i>@role.Text
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted-tech">Sin roles asignados</span>
+                            }
+                        </div>
+                        <button type="button" class="btn btn-tech-outline w-100" data-bs-toggle="modal" data-bs-target="#rolesModal">
+                            <i class="bi bi-pencil-square me-2"></i>Administrar Roles
+                        </button>
+                        @* Campos hidden para el formulario *@
+                        <div id="rolesHiddenInputs">
+                            @foreach (var roleId in Model.SelectedRoleIds)
+                            {
+                                <input type="hidden" name="SelectedRoleIds" value="@roleId" />
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compañías - Botón para abrir modal -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-building me-2"></i>Compañías Asignadas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="selectedCompaniesDisplay" class="selected-items-display mb-3">
+                            @if (Model.SelectedCompanyIds.Any())
+                            {
+                                @foreach (var company in Model.AvailableCompanies.Where(c => Model.SelectedCompanyIds.Contains(int.Parse(c.Value))))
+                                {
+                                    <span class="badge-item company-badge">
+                                        <i class="bi bi-building me-1"></i>@company.Text
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted-tech text-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Sin compañías (no podrá iniciar sesión)
+                                </span>
+                            }
+                        </div>
+                        <button type="button" class="btn btn-tech-outline w-100" data-bs-toggle="modal" data-bs-target="#companiesModal">
+                            <i class="bi bi-pencil-square me-2"></i>Administrar Compañías
+                        </button>
+                        @* Campos hidden para el formulario *@
+                        <div id="companiesHiddenInputs">
+                            @foreach (var companyId in Model.SelectedCompanyIds)
+                            {
+                                <input type="hidden" name="SelectedCompanyIds" value="@companyId" />
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seguridad -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-shield-lock me-2"></i>Seguridad</h5>
+                    </div>
+                    <div class="card-body">
+                        <button type="button" class="btn btn-tech-outline w-100" id="btnResetPassword">
+                            <i class="bi bi-key me-2"></i>Restablecer Contraseña
+                        </button>
+                        <small class="form-text-tech d-block mt-2 text-center">
+                            Se enviará un email con un enlace para cambiar la contraseña
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="card-tech">
+                    <div class="card-body">
+                        <button type="button" class="btn btn-tech-primary w-100 mb-2" id="btnSaveUser">
+                            <i class="bi bi-check-lg me-2"></i>Guardar Cambios
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-tech-outline w-100">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Formulario de Reset Password (FUERA del formulario principal) -->
+    <form asp-action="ResetPassword" asp-route-id="@Model.Id" method="post" id="resetPasswordForm" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+</div>
+
+<!-- ===== MODAL DE ROLES ===== -->
+<div class="modal fade" id="rolesModal" tabindex="-1" aria-labelledby="rolesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-tech">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rolesModalLabel">
+                    <i class="bi bi-shield me-2"></i>Administrar Roles
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box mb-3">
+                    <input type="text" class="form-control-tech" id="searchRolesModal" placeholder="🔍 Buscar roles...">
+                </div>
+                <div class="items-selector" id="rolesModalContainer">
+                    @foreach (var role in Model.AvailableRoles)
+                    {
+                        var isChecked = Model.SelectedRoleIds.Contains(int.Parse(role.Value));
+                        <div class="item-checkbox @(isChecked ? "selected" : "")" data-name="@role.Text.ToLower()" data-value="@role.Value">
+                            <input type="checkbox" value="@role.Value" 
+                                   id="modal_role_@role.Value" class="form-check-input-tech modal-role-check"
+                                   @(isChecked ? "checked" : "") />
+                            <label for="modal_role_@role.Value" class="item-label">
+                                <i class="bi bi-shield-check me-2"></i>@role.Text
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-tech-outline" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-tech-success" id="btnApplyRoles">
+                    <i class="bi bi-check-lg me-2"></i>Aplicar y Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL DE COMPAÑÍAS ===== -->
+<div class="modal fade" id="companiesModal" tabindex="-1" aria-labelledby="companiesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-tech">
+            <div class="modal-header">
+                <h5 class="modal-title" id="companiesModalLabel">
+                    <i class="bi bi-building me-2"></i>Administrar Compañías
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning-tech mb-3">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Importante:</strong> El usuario debe tener al menos una compañía asignada para poder iniciar sesión.
+                </div>
+                <div class="search-box mb-3">
+                    <input type="text" class="form-control-tech" id="searchCompaniesModal" placeholder="🔍 Buscar compañías...">
+                </div>
+                <div class="items-selector" id="companiesModalContainer">
+                    @foreach (var company in Model.AvailableCompanies)
+                    {
+                        var isChecked = Model.SelectedCompanyIds.Contains(int.Parse(company.Value));
+                        <div class="item-checkbox @(isChecked ? "selected" : "")" data-name="@company.Text.ToLower()" data-value="@company.Value">
+                            <input type="checkbox" value="@company.Value" 
+                                   id="modal_company_@company.Value" class="form-check-input-tech modal-company-check"
+                                   @(isChecked ? "checked" : "") />
+                            <label for="modal_company_@company.Value" class="item-label">
+                                <i class="bi bi-building me-2"></i>@company.Text
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-tech-outline" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-tech-success" id="btnApplyCompanies">
+                    <i class="bi bi-check-lg me-2"></i>Aplicar y Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const userId = @Model.Id;
+        const availableRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableRoles.Select(r => new { value = r.Value, text = r.Text })));
+        const availableCompanies = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableCompanies.Select(c => new { value = c.Value, text = c.Text })));
+
+        // ===== CONFIRMACIÓN ANTES DE GUARDAR =====
+        document.getElementById('btnSaveUser').addEventListener('click', function(e) {
+            if (confirm('¿Está seguro de que desea guardar los cambios del usuario?')) {
+                document.getElementById('editUserForm').submit();
+            }
+        });
+
+        // ===== RESET PASSWORD =====
+        document.getElementById('btnResetPassword').addEventListener('click', function() {
+            if (confirm('¿Enviar email de restablecimiento de contraseña al usuario?')) {
+                document.getElementById('resetPasswordForm').submit();
+            }
+        });
+
+        // ===== MOVER MODALES AL BODY PARA EVITAR PROBLEMAS DE Z-INDEX =====
+        const rolesModal = document.getElementById('rolesModal');
+        const companiesModal = document.getElementById('companiesModal');
+        if (rolesModal) document.body.appendChild(rolesModal);
+        if (companiesModal) document.body.appendChild(companiesModal);
+
+        // ===== BÚSQUEDA EN MODALES =====
+        document.getElementById('searchRolesModal').addEventListener('input', function() {
+            filterItems(this.value, '#rolesModalContainer .item-checkbox');
+        });
+
+        document.getElementById('searchCompaniesModal').addEventListener('input', function() {
+            filterItems(this.value, '#companiesModalContainer .item-checkbox');
+        });
+
+        function filterItems(filter, selector) {
+            const lowerFilter = filter.toLowerCase();
+            document.querySelectorAll(selector).forEach(item => {
+                const name = item.dataset.name;
+                item.style.display = name.includes(lowerFilter) ? 'flex' : 'none';
+            });
+        }
+
+        // ===== TOGGLE VISUAL CHECKBOXES =====
+        document.querySelectorAll('.item-checkbox input').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                this.closest('.item-checkbox').classList.toggle('selected', this.checked);
+            });
+        });
+
+        // ===== APLICAR Y GUARDAR ROLES =====
+        document.getElementById('btnApplyRoles').addEventListener('click', async function() {
+            const btn = this;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Guardando...';
+            btn.disabled = true;
+
+            const roleIds = Array.from(document.querySelectorAll('.modal-role-check:checked'))
+                                 .map(cb => parseInt(cb.value));
+
+            try {
+                const response = await fetch('/Admin/Users/AssignRoles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, roleIds: roleIds })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('✅ Roles guardados exitosamente', 'success');
+                    updateRolesDisplay(roleIds);
+                    updateHiddenInputs('rolesHiddenInputs', 'SelectedRoleIds', roleIds);
+                    bootstrap.Modal.getInstance(document.getElementById('rolesModal')).hide();
+                } else {
+                    showToast('❌ ' + (result.message || 'Error al guardar roles'), 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ Error de conexión', 'error');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        });
+
+        // ===== APLICAR Y GUARDAR COMPAÑÍAS =====
+        document.getElementById('btnApplyCompanies').addEventListener('click', async function() {
+            const btn = this;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Guardando...';
+            btn.disabled = true;
+
+            const companyIds = Array.from(document.querySelectorAll('.modal-company-check:checked'))
+                                    .map(cb => parseInt(cb.value));
+
+            try {
+                const response = await fetch('/Admin/Users/AssignCompanies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, companyIds: companyIds })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('✅ Compañías guardadas exitosamente', 'success');
+                    updateCompaniesDisplay(companyIds);
+                    updateHiddenInputs('companiesHiddenInputs', 'SelectedCompanyIds', companyIds);
+                    bootstrap.Modal.getInstance(document.getElementById('companiesModal')).hide();
+                } else {
+                    showToast('❌ ' + (result.message || 'Error al guardar compañías'), 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ Error de conexión', 'error');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        });
+
+        // ===== FUNCIONES AUXILIARES =====
+        function updateRolesDisplay(selectedIds) {
+            const container = document.getElementById('selectedRolesDisplay');
+            if (selectedIds.length === 0) {
+                container.innerHTML = '<span class="text-muted-tech">Sin roles asignados</span>';
+            } else {
+                const badges = selectedIds.map(id => {
+                    const role = availableRoles.find(r => r.value === id.toString());
+                    return `<span class="badge-item role-badge"><i class="bi bi-shield-check me-1"></i>${role ? role.text : id}</span>`;
+                }).join('');
+                container.innerHTML = badges;
+            }
+        }
+
+        function updateCompaniesDisplay(selectedIds) {
+            const container = document.getElementById('selectedCompaniesDisplay');
+            if (selectedIds.length === 0) {
+                container.innerHTML = '<span class="text-muted-tech text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Sin compañías (no podrá iniciar sesión)</span>';
+            } else {
+                const badges = selectedIds.map(id => {
+                    const company = availableCompanies.find(c => c.value === id.toString());
+                    return `<span class="badge-item company-badge"><i class="bi bi-building me-1"></i>${company ? company.text : id}</span>`;
+                }).join('');
+                container.innerHTML = badges;
+            }
+        }
+
+        function updateHiddenInputs(containerId, inputName, values) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = values.map(v => `<input type="hidden" name="${inputName}" value="${v}" />`).join('');
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast-notification toast-${type}`;
+            toast.innerHTML = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+}
+
+<style>
+    .required {
+        color: #ef4444;
+    }
+
+    .btn-back {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(6, 182, 212, 0.1);
+        border: 1px solid var(--border-color);
+        color: var(--accent-cyan);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+        background: rgba(6, 182, 212, 0.2);
+        color: var(--accent-cyan);
+    }
+
+    .bg-gradient-orange {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    }
+
+    .form-check-tech {
+        padding: 12px;
+        background: rgba(6, 182, 212, 0.05);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+    }
+
+    .form-check-input-tech {
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        background: var(--bg-dark);
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .form-check-input-tech:checked {
+        background: var(--accent-cyan);
+        border-color: var(--accent-cyan);
+    }
+
+    .form-check-label-tech {
+        color: var(--text-white);
+        font-weight: 500;
+    }
+
+    .form-text-tech {
+        color: var(--text-gray);
+        font-size: 0.8rem;
+        margin-top: 4px;
+    }
+
+    /* Badges para mostrar selecciones */
+    .selected-items-display {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 40px;
+        align-items: center;
+    }
+
+    .badge-item {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .role-badge {
+        background: rgba(139, 92, 246, 0.2);
+        color: #a78bfa;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .company-badge {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    /* Modal styles */
+    .modal-tech {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+    }
+
+    .modal-tech .modal-header {
+        background: rgba(6, 182, 212, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        border-radius: 16px 16px 0 0;
+        padding: 20px;
+    }
+
+    .modal-tech .modal-title {
+        color: var(--text-white);
+        font-weight: 600;
+    }
+
+    .modal-tech .modal-body {
+        padding: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .modal-tech .modal-footer {
+        background: rgba(15, 23, 42, 0.5);
+        border-top: 1px solid var(--border-color);
+        border-radius: 0 0 16px 16px;
+        padding: 15px 20px;
+    }
+
+    .items-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .item-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .item-checkbox:hover {
+        border-color: rgba(6, 182, 212, 0.3);
+        background: rgba(6, 182, 212, 0.05);
+    }
+
+    .item-checkbox.selected {
+        border-color: rgba(34, 197, 94, 0.5);
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .item-checkbox input:checked + .item-label {
+        color: #22c55e;
+    }
+
+    .item-label {
+        color: var(--text-gray);
+        cursor: pointer;
+        margin: 0;
+        flex: 1;
+    }
+
+    .search-box input {
+        padding-left: 15px;
+        font-size: 0.9rem;
+    }
+
+    .btn-tech-success {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-tech-success:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        color: white;
+    }
+
+    .btn-tech-success:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .alert-warning-tech {
+        background: rgba(234, 179, 8, 0.1);
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        color: #fde047;
+    }
+
+    /* ===== FIX MODAL Z-INDEX - Debe estar sobre el sidebar (z-index: 1000) ===== */
+    .modal {
+        z-index: 1100 !important;
+    }
+
+    .modal-backdrop {
+        z-index: 1090 !important;
+    }
+
+    .modal-dialog {
+        z-index: 1110 !important;
+    }
+
+    /* Toast notifications */
+    .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .toast-notification.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .toast-success {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    }
+
+    .toast-error {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+</style>

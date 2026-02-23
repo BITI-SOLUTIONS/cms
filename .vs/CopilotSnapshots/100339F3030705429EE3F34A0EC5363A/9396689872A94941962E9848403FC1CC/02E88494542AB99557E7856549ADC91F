@@ -1,0 +1,146 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Menus/Edit.cshtml                                          *@
+@* PROPÓSITO: Formulario para editar menú existente                                 *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-16                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Services.MenusAdminApiService.MenuUpdateDto
+
+@{
+    ViewData["Title"] = "Editar Menú";
+    var menuId = ViewBag.MenuId;
+    var parentMenus = ViewBag.ParentMenus as List<SelectListItem> ?? new();
+    var permissions = ViewBag.Permissions as List<SelectListItem> ?? new();
+    var commonIcons = ViewBag.CommonIcons as List<string> ?? new();
+}
+
+<div class="content-container" style="max-width: 800px; margin: 0 auto;">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1><i class="bi bi-pencil me-2"></i>Editar Menú</h1>
+            <p class="text-muted mb-0">
+                ID: <code class="text-info">@menuId</code>
+            </p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== FORMULARIO ===== -->
+    <div class="card bg-dark-card border-0">
+        <div class="card-header bg-dark-header">
+            <h5 class="mb-0"><i class="bi bi-list-nested me-2"></i>Datos del Menú</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+                    <!-- Menú padre -->
+                    <div class="col-md-6">
+                        <label class="form-label">Menú Padre</label>
+                        <select asp-for="IdParent" class="form-select bg-dark text-light">
+                            @foreach (var parent in parentMenus)
+                            {
+                                <option value="@parent.Value" selected="@(parent.Value == Model.IdParent.ToString())">
+                                    @parent.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Orden -->
+                    <div class="col-md-6">
+                        <label class="form-label required">Orden</label>
+                        <input asp-for="Order" type="number" class="form-control bg-dark text-light" 
+                               min="0" required />
+                    </div>
+
+                    <!-- Nombre -->
+                    <div class="col-md-8">
+                        <label class="form-label required">Nombre</label>
+                        <input asp-for="Name" class="form-control bg-dark text-light"
+                               placeholder="Ej: Usuarios" required />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Icono -->
+                    <div class="col-md-4">
+                        <label class="form-label">Icono</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary">
+                                <i id="iconPreview" class="@(Model.Icon ?? "bi bi-circle")"></i>
+                            </span>
+                            <input asp-for="Icon" class="form-control bg-dark text-light" 
+                                   list="iconsList" placeholder="bi-house"
+                                   oninput="updateIconPreview(this.value)" />
+                        </div>
+                        <datalist id="iconsList">
+                            @foreach (var icon in commonIcons)
+                            {
+                                <option value="@icon">@icon</option>
+                            }
+                        </datalist>
+                    </div>
+
+                    <!-- URL -->
+                    <div class="col-12">
+                        <label class="form-label">URL</label>
+                        <input asp-for="Url" class="form-control bg-dark text-light"
+                               placeholder="Ej: /Users o dejar vacío para contenedor" />
+                    </div>
+
+                    <!-- Permiso requerido -->
+                    <div class="col-12">
+                        <label class="form-label">Permiso Requerido</label>
+                        <select asp-for="PermissionKey" class="form-select bg-dark text-light">
+                            @foreach (var perm in permissions)
+                            {
+                                <option value="@perm.Value" selected="@(perm.Value == Model.PermissionKey)">
+                                    @perm.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsActive" class="form-check-label">Menú Activo</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-tech-primary">
+                        <i class="bi bi-check-lg me-2"></i>Guardar Cambios
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg me-2"></i>Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .form-label.required::after { content: " *"; color: var(--accent-cyan); }
+</style>
+
+<script>
+    function updateIconPreview(iconClass) {
+        const preview = document.getElementById('iconPreview');
+        preview.className = iconClass || 'bi bi-circle';
+    }
+</script>

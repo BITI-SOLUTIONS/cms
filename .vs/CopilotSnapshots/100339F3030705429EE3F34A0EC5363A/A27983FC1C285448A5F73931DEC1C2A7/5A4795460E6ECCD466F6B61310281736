@@ -1,0 +1,300 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Admin/System.cshtml                                        *@
+@* PROPÓSITO: Vista para configuración del sistema (compañía Admin, permisos)       *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-19                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Controllers.SystemSettingsViewModel
+
+@{
+    ViewData["Title"] = "Configuración del Sistema";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <div class="page-header-icon">
+                <i class="bi bi-gear-wide-connected"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Configuración del Sistema</h1>
+                <p>Gestionar la compañía administradora y permisos globales del sistema</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- ===== COMPAÑÍA ADMIN ===== -->
+        <div class="col-lg-6">
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-building-gear me-2"></i>Compañía Administradora</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.HasAdminCompany && Model.AdminCompany != null)
+                    {
+                        <div class="admin-company-card mb-4">
+                            <div class="d-flex align-items-center">
+                                <div class="admin-company-icon">
+                                    <i class="bi bi-shield-check"></i>
+                                </div>
+                                <div class="ms-3">
+                                    <h5 class="mb-0 text-success">@Model.AdminCompany.Name</h5>
+                                    <small class="text-light-muted">Código: @Model.AdminCompany.Schema</small>
+                                </div>
+                                <span class="badge bg-success ms-auto">Admin Actual</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>No hay compañía Admin configurada.</strong>
+                            <p class="mb-0 mt-2 small">Selecciona una compañía para establecerla como administradora del sistema.</p>
+                        </div>
+                    }
+
+                    <h6 class="text-light-secondary mb-3">Seleccionar nueva compañía Admin:</h6>
+                    <div class="company-list">
+                        @foreach (var company in Model.Companies)
+                        {
+                            <div class="company-item @(company.IsAdminCompany ? "company-item-admin" : "")">
+                                <div class="d-flex align-items-center">
+                                    <div class="company-item-icon">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div class="company-item-info ms-3">
+                                        <strong class="text-white">@company.Name</strong>
+                                        <br>
+                                        <small class="text-light-muted">Código: @company.Schema</small>
+                                        <span class="badge bg-secondary ms-2">@company.UserCount usuarios</span>
+                                        @if (company.UsesAzureAD)
+                                        {
+                                            <span class="badge bg-info ms-1">Azure AD</span>
+                                        }
+                                    </div>
+                                    <div class="ms-auto">
+                                        @if (company.IsAdminCompany)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle me-1"></i>Admin
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="SetAdminCompany" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="companyId" value="@company.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-warning"
+                                                        onclick="return confirm('¿Establecer @company.Name como compañía Admin?\n\nEsta acción cambiará cuál compañía tiene privilegios de administración del sistema.')">
+                                                    <i class="bi bi-shield-lock me-1"></i>Establecer Admin
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PERMISOS DEL SISTEMA ===== -->
+        <div class="col-lg-6">
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5><i class="bi bi-key me-2"></i>Permisos del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-light-muted small mb-3">
+                        Estos permisos controlan el acceso a funcionalidades de administración global del sistema.
+                    </p>
+
+                    @if (Model.SystemPermissions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-dark table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-light-secondary">Permiso</th>
+                                        <th class="text-light-secondary">Descripción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var permission in Model.SystemPermissions)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <code>@permission.Key</code>
+                                                <br>
+                                                <small class="text-light-muted">@permission.Name</small>
+                                            </td>
+                                            <td class="small text-light-muted">@permission.Description</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-light-muted py-4">
+                            <i class="bi bi-key fs-1 mb-2 d-block"></i>
+                            No hay permisos del sistema configurados.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="card-tech border-info">
+                <div class="card-body">
+                    <h6 class="text-info"><i class="bi bi-info-circle me-2"></i>¿Cómo funciona?</h6>
+                    <ul class="small mb-0 text-light-muted">
+                        <li>La <strong class="text-white">Compañía Admin</strong> es la que tiene privilegios especiales de administración.</li>
+                        <li>Solo usuarios con el permiso <code>System.ViewAllCompanies</code> en la compañía Admin pueden ver todas las compañías.</li>
+                        <li>Los demás usuarios solo ven las compañías que tienen asignadas.</li>
+                        <li>Los permisos <code>System.*</code> controlan funcionalidades globales del CMS.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--accent-cyan);
+        margin-right: 1rem;
+    }
+
+    .page-header-content {
+        display: flex;
+        align-items: center;
+    }
+
+    .admin-company-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+
+    .admin-company-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .company-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .company-item {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 1rem;
+        transition: all 0.2s;
+    }
+
+    .company-item:hover {
+        background: rgba(6, 182, 212, 0.1);
+        border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .company-item-admin {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .company-item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(6, 182, 212, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-cyan);
+    }
+
+    .company-item-admin .company-item-icon {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+
+    /* ===== MEJORAS DE VISIBILIDAD DE TEXTO ===== */
+    .text-light-muted {
+        color: #94a3b8 !important; /* Gris más claro para mejor visibilidad */
+    }
+
+    .text-light-secondary {
+        color: #cbd5e1 !important; /* Texto secundario visible */
+    }
+
+    .company-item strong {
+        color: #f1f5f9;
+    }
+
+    .company-item-info {
+        color: #e2e8f0;
+    }
+
+    /* Tabla de permisos */
+    .table-dark td {
+        color: #e2e8f0 !important;
+    }
+
+    .table-dark td.small,
+    .table-dark .small {
+        color: #94a3b8 !important;
+    }
+
+    .table-dark code {
+        color: #22d3ee !important;
+        background: rgba(6, 182, 212, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+</style>

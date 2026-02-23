@@ -3322,6 +3322,7 @@
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
           "CMS.Entities": "1.0.0",
+          "CMS.Shared": "1.0.0",
           "Microsoft.AspNetCore.Http.Abstractions": "2.3.0",
           "Microsoft.EntityFrameworkCore": "9.0.0",
           "Microsoft.IdentityModel.Tokens": "8.15.0",
@@ -3343,6 +3344,20 @@
         },
         "runtime": {
           "bin/placeholder/CMS.Entities.dll": {}
+        }
+      },
+      "CMS.Shared/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.0"
+        },
+        "compile": {
+          "bin/placeholder/CMS.Shared.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/CMS.Shared.dll": {}
         }
       }
     }
@@ -8541,12 +8556,18 @@
       "type": "project",
       "path": "../CMS.Entities/CMS.Entities.csproj",
       "msbuildProject": "../CMS.Entities/CMS.Entities.csproj"
+    },
+    "CMS.Shared/1.0.0": {
+      "type": "project",
+      "path": "../CMS.Shared/CMS.Shared.csproj",
+      "msbuildProject": "../CMS.Shared/CMS.Shared.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net9.0": [
       "CMS.Application >= 1.0.0",
       "CMS.Data >= 1.0.0",
+      "CMS.Shared >= 1.0.0",
       "Microsoft.AspNetCore.Identity >= 2.3.1",
       "Microsoft.EntityFrameworkCore >= 9.0.0",
       "Microsoft.Identity.Web >= 4.1.1",
@@ -8594,6 +8615,9 @@
             },
             "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Data\\CMS.Data.csproj": {
               "projectPath": "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Data\\CMS.Data.csproj"
+            },
+            "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Shared\\CMS.Shared.csproj": {
+              "projectPath": "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Shared\\CMS.Shared.csproj"
             }
           }
         }

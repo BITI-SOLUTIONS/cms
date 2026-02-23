@@ -1,0 +1,435 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Admin/Health.cshtml                                        *@
+@* PROPÓSITO: Vista de Health Check - Estado del sistema                            *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Admin.HealthCheckViewModel
+
+@{
+    ViewData["Title"] = "Health Check";
+}
+
+<div class="content-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-icon @Model.OverallStatusClass">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>System Health</h1>
+                <p>Estado general del sistema y sus componentes</p>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <form asp-action="RunHealthCheck" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-tech-outline">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status General -->
+    <div class="overall-status @Model.OverallStatusClass mb-4">
+        <div class="status-icon">
+            @if (Model.OverallStatus == "Healthy")
+            {
+                <i class="bi bi-check-circle-fill"></i>
+            }
+            else if (Model.OverallStatus == "Degraded")
+            {
+                <i class="bi bi-exclamation-circle-fill"></i>
+            }
+            else
+            {
+                <i class="bi bi-x-circle-fill"></i>
+            }
+        </div>
+        <div class="status-content">
+            <h2>Sistema @(Model.OverallStatus == "Healthy" ? "Operativo" : Model.OverallStatus == "Degraded" ? "Degradado" : "Con Problemas")</h2>
+            <p>Última verificación: @Model.LastCheck.ToString("dd/MM/yyyy HH:mm:ss") UTC</p>
+        </div>
+        <div class="status-uptime">
+            <span class="uptime-value">@Model.Metrics.UptimeFormatted</span>
+            <span class="uptime-label">Uptime</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Servicios -->
+        <div class="col-lg-8">
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-hdd-stack me-2"></i>Estado de Servicios</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="services-list">
+                        @foreach (var service in Model.Services)
+                        {
+                            <div class="service-item">
+                                <div class="service-status @service.StatusClass">
+                                    <i class="bi @service.StatusIcon"></i>
+                                </div>
+                                <div class="service-info">
+                                    <div class="service-name">@service.Name</div>
+                                    <div class="service-endpoint">@service.Endpoint</div>
+                                </div>
+                                <div class="service-message">
+                                    @service.Message
+                                </div>
+                                <div class="service-response">
+                                    <span class="response-value @(service.ResponseTime > 500 ? "slow" : service.ResponseTime > 200 ? "medium" : "fast")">
+                                        @service.ResponseTime ms
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas -->
+        <div class="col-lg-4">
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Métricas del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <!-- CPU -->
+                    <div class="metric-item">
+                        <div class="metric-header">
+                            <span class="metric-name"><i class="bi bi-cpu me-2"></i>CPU</span>
+                            <span class="metric-value">@Model.Metrics.CpuUsage.ToString("F1")%</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill @GetMetricClass(Model.Metrics.CpuUsage)" style="width: @Model.Metrics.CpuUsage%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Memory -->
+                    <div class="metric-item">
+                        <div class="metric-header">
+                            <span class="metric-name"><i class="bi bi-memory me-2"></i>Memoria</span>
+                            <span class="metric-value">@Model.Metrics.MemoryUsed / @Model.Metrics.MemoryTotal</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill @GetMetricClass(Model.Metrics.MemoryUsage)" style="width: @Model.Metrics.MemoryUsage%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Disk -->
+                    <div class="metric-item">
+                        <div class="metric-header">
+                            <span class="metric-name"><i class="bi bi-hdd me-2"></i>Disco</span>
+                            <span class="metric-value">@Model.Metrics.DiskUsed / @Model.Metrics.DiskTotal</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill @GetMetricClass(Model.Metrics.DiskUsage)" style="width: @Model.Metrics.DiskUsage%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas de Red -->
+            <div class="card-tech">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Actividad</h5>
+                </div>
+                <div class="card-body">
+                    <div class="stat-grid">
+                        <div class="stat-box">
+                            <i class="bi bi-people"></i>
+                            <span class="stat-number">@Model.Metrics.ActiveConnections</span>
+                            <span class="stat-label">Conexiones</span>
+                        </div>
+                        <div class="stat-box">
+                            <i class="bi bi-lightning"></i>
+                            <span class="stat-number">@Model.Metrics.RequestsPerMinute</span>
+                            <span class="stat-label">Req/min</span>
+                        </div>
+                        <div class="stat-box">
+                            <i class="bi bi-stopwatch"></i>
+                            <span class="stat-number">@Model.Metrics.AverageResponseTime.ToString("F0")</span>
+                            <span class="stat-label">Avg ms</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="card-tech mt-4">
+        <div class="card-body">
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-indicator status-healthy"></span>
+                    <span>Healthy - Funcionando correctamente</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-indicator status-degraded"></span>
+                    <span>Degraded - Funcionando con problemas</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-indicator status-unhealthy"></span>
+                    <span>Unhealthy - No disponible</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetMetricClass(double value)
+    {
+        return value switch
+        {
+            >= 90 => "critical",
+            >= 75 => "warning",
+            _ => "normal"
+        };
+    }
+}
+
+<style>
+    .status-healthy { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; }
+    .status-degraded { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; }
+    .status-unhealthy { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; }
+
+    .overall-status {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 25px;
+        border-radius: 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+    }
+
+    .overall-status.status-healthy { border-left: 4px solid #10b981; }
+    .overall-status.status-degraded { border-left: 4px solid #f59e0b; }
+    .overall-status.status-unhealthy { border-left: 4px solid #ef4444; }
+
+    .overall-status .status-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+    }
+
+    .status-healthy .status-icon { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .status-degraded .status-icon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .status-unhealthy .status-icon { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+    .status-content {
+        flex: 1;
+    }
+
+    .status-content h2 {
+        color: var(--text-white);
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .status-content p {
+        color: var(--text-gray);
+        margin: 5px 0 0 0;
+        font-size: 0.85rem;
+    }
+
+    .status-uptime {
+        text-align: center;
+        padding: 15px 25px;
+        background: rgba(6, 182, 212, 0.1);
+        border-radius: 12px;
+    }
+
+    .uptime-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #06b6d4;
+    }
+
+    .uptime-label {
+        font-size: 0.75rem;
+        color: var(--text-gray);
+        text-transform: uppercase;
+    }
+
+    .services-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .service-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .service-item:last-child {
+        border-bottom: none;
+    }
+
+    .service-status {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .service-status.status-healthy { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .service-status.status-degraded { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .service-status.status-unhealthy { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+    .service-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .service-name {
+        color: var(--text-white);
+        font-weight: 600;
+    }
+
+    .service-endpoint {
+        color: var(--text-gray);
+        font-size: 0.75rem;
+        font-family: monospace;
+    }
+
+    .service-message {
+        flex: 1;
+        color: var(--text-gray);
+        font-size: 0.85rem;
+        text-align: right;
+    }
+
+    .service-response {
+        width: 70px;
+        text-align: right;
+    }
+
+    .response-value {
+        font-family: monospace;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .response-value.fast { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .response-value.medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .response-value.slow { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+    .metric-item {
+        margin-bottom: 20px;
+    }
+
+    .metric-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .metric-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .metric-name {
+        color: var(--text-gray);
+        font-size: 0.85rem;
+    }
+
+    .metric-value {
+        color: var(--text-white);
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .metric-bar {
+        height: 8px;
+        background: rgba(6, 182, 212, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .metric-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s;
+    }
+
+    .metric-fill.normal { background: linear-gradient(90deg, #10b981 0%, #06b6d4 100%); }
+    .metric-fill.warning { background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%); }
+    .metric-fill.critical { background: #ef4444; }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+    }
+
+    .stat-box {
+        text-align: center;
+        padding: 15px 10px;
+        background: rgba(6, 182, 212, 0.05);
+        border-radius: 10px;
+    }
+
+    .stat-box i {
+        font-size: 1.25rem;
+        color: #06b6d4;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .stat-number {
+        display: block;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-white);
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+        color: var(--text-gray);
+        text-transform: uppercase;
+    }
+
+    .legend {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-gray);
+        font-size: 0.85rem;
+    }
+
+    .legend-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .legend-indicator.status-healthy { background: #10b981; }
+    .legend-indicator.status-degraded { background: #f59e0b; }
+    .legend-indicator.status-unhealthy { background: #ef4444; }
+</style>

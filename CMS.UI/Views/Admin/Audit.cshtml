@@ -1,0 +1,201 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Admin/Audit.cshtml                                         *@
+@* PROPÓSITO: Vista de Audit Trail - Registro de actividades del sistema           *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Admin.AuditTrailViewModel
+
+@{
+    ViewData["Title"] = "Audit Trail";
+}
+
+<div class="content-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-icon bg-gradient-purple">
+                <i class="bi bi-clipboard-data"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Audit Trail</h1>
+                <p>Registro de todas las actividades y cambios en el sistema</p>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-tech-outline" onclick="exportAudit()">
+                <i class="bi bi-download me-2"></i>Exportar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-tech mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label-tech">Buscar</label>
+                    <div class="input-group-tech">
+                        <span class="input-icon"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" value="@Model.SearchTerm" 
+                               class="form-control-tech" placeholder="Usuario, entidad, detalles..." />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label-tech">Acción</label>
+                    <select name="action" class="form-select-tech">
+                        <option value="">Todas</option>
+                        <option value="CREATE" selected="@(Model.ActionFilter == "CREATE")">Crear</option>
+                        <option value="UPDATE" selected="@(Model.ActionFilter == "UPDATE")">Actualizar</option>
+                        <option value="DELETE" selected="@(Model.ActionFilter == "DELETE")">Eliminar</option>
+                        <option value="LOGIN" selected="@(Model.ActionFilter == "LOGIN")">Login</option>
+                        <option value="LOGOUT" selected="@(Model.ActionFilter == "LOGOUT")">Logout</option>
+                        <option value="EXPORT" selected="@(Model.ActionFilter == "EXPORT")">Exportar</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label-tech">Desde</label>
+                    <input type="date" name="from" value="@Model.FromDate.ToString("yyyy-MM-dd")" class="form-control-tech" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label-tech">Hasta</label>
+                    <input type="date" name="to" value="@Model.ToDate.ToString("yyyy-MM-dd")" class="form-control-tech" />
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-tech-primary me-2">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <a asp-action="Audit" class="btn btn-tech-ghost">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card-tech">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table-tech">
+                    <thead>
+                        <tr>
+                            <th style="width: 160px;">Fecha/Hora</th>
+                            <th style="width: 150px;">Usuario</th>
+                            <th style="width: 100px;">Acción</th>
+                            <th style="width: 120px;">Entidad</th>
+                            <th>Detalles</th>
+                            <th style="width: 130px;">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.Entries)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="text-muted-tech">
+                                        @entry.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="user-mini">
+                                        <span class="user-mini-avatar">@entry.User[0].ToString().ToUpper()</span>
+                                        <span>@entry.User</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="action-badge action-@entry.Action.ToLower()">
+                                        @entry.Action
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="entity-tag">@entry.Entity</span>
+                                    @if (!string.IsNullOrEmpty(entry.EntityId))
+                                    {
+                                        <small class="text-muted-tech ms-1">#@entry.EntityId</small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="text-truncate-2">@entry.Details</span>
+                                </td>
+                                <td>
+                                    <code class="ip-code">@entry.IpAddress</code>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-purple {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+    }
+
+    .user-mini {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .user-mini-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .action-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .action-create { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .action-update { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .action-delete { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .action-login { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
+    .action-logout { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+    .action-export { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+
+    .entity-tag {
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--accent-cyan);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .ip-code {
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--text-gray);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        color: var(--text-gray);
+        font-size: 0.9rem;
+    }
+</style>
+
+<script>
+    function exportAudit() {
+        alert('Exportación iniciada. El archivo se descargará en breve.');
+    }
+</script>

@@ -1,0 +1,148 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Roles/Index.cshtml                                         *@
+@* PROPÓSITO: Lista de roles del sistema                                            *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-17                                                               *@
+@* ================================================================================ *@
+
+@model List<CMS.UI.Controllers.RolesController.RoleDto>
+
+@{
+    ViewData["Title"] = "Gestión de Roles";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1><i class="bi bi-person-badge me-2"></i>Gestión de Roles</h1>
+            <p class="text-muted mb-0">Administra los roles del sistema y sus permisos asociados</p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Create" class="btn btn-tech-primary">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo Rol
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ===== CARDS DE ROLES ===== -->
+    <div class="row g-4">
+        @if (!Model.Any())
+        {
+            <div class="col-12">
+                <div class="card bg-dark-card border-0 text-center py-5">
+                    <div class="card-body">
+                        <i class="bi bi-person-badge display-1 text-muted mb-3"></i>
+                        <h4>No hay roles registrados</h4>
+                        <p class="text-muted">Crea el primer rol para comenzar</p>
+                        <a asp-action="Create" class="btn btn-tech-primary">
+                            <i class="bi bi-plus-lg me-2"></i>Crear Rol
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @foreach (var role in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-dark-card border-0 h-100 role-card">
+                    <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            @if (role.IsSystem)
+                            {
+                                <i class="bi bi-shield-fill-check text-warning me-2" title="Rol del Sistema"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-person-badge me-2 text-info"></i>
+                            }
+                            @role.RoleName
+                        </h5>
+                        @if (role.IsActive)
+                        {
+                            <span class="badge bg-success">Activo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactivo</span>
+                        }
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            @(role.Description ?? "Sin descripción")
+                        </p>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">
+                                <i class="bi bi-people me-1"></i>Usuarios
+                            </span>
+                            <span class="badge bg-primary">@role.UserCount</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">
+                                <i class="bi bi-key me-1"></i>Permisos
+                            </span>
+                            <span class="badge bg-info">@role.PermissionCount</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <div class="d-flex gap-2">
+                            <a asp-action="Details" asp-route-id="@role.Id" class="btn btn-sm btn-outline-info flex-grow-1">
+                                <i class="bi bi-eye me-1"></i>Ver
+                            </a>
+                            @if (!role.IsSystem)
+                            {
+                                <a asp-action="Edit" asp-route-id="@role.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@role.Id" method="post" style="display: inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                            onclick="return confirm('¿Eliminar este rol?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="Rol del sistema">
+                                    <i class="bi bi-lock"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .role-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .role-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 255, 255, 0.15);
+    }
+</style>

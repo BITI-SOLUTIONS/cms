@@ -1,0 +1,112 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.Entities/UserCompany.cs
+// PROPÓSITO: Entidad que relaciona usuarios con compañías (multi-tenant)
+// DESCRIPCIÓN: Un usuario puede tener acceso a múltiples compañías.
+//              Cada relación puede tener diferentes configuraciones.
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-13
+// ACTUALIZADO: 2026-02-13 - PK compuesta (id_user, id_company)
+// ================================================================================
+
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CMS.Entities
+{
+    /// <summary>
+    /// Entidad que representa la relación entre un usuario y una compañía.
+    /// Permite que un usuario tenga acceso a múltiples compañías.
+    /// PK compuesta: (ID_USER, ID_COMPANY)
+    /// NOTA: Los roles se gestionan en user_company_role, NO aquí.
+    /// </summary>
+    [Table("user_company", Schema = "admin")]
+    public class UserCompany : IAuditableEntity
+    {
+        // ⚠️ PK COMPUESTA - Se configura en AppDbContext.OnModelCreating
+        [Column("id_user")]
+        public int ID_USER { get; set; }
+
+        [Column("id_company")]
+        public int ID_COMPANY { get; set; }
+
+        // ⚠️ CAMPO ELIMINADO: id_role ya no existe en esta tabla
+        // Los roles se gestionan en admin.user_company_role
+
+        /// <summary>
+        /// Indica si es la compañía por defecto del usuario
+        /// </summary>
+        [Column("is_default")]
+        public bool IS_DEFAULT { get; set; } = false;
+
+        /// <summary>
+        /// Indica si el usuario tiene acceso activo a esta compañía
+        /// </summary>
+        [Column("is_active")]
+        public bool IS_ACTIVE { get; set; } = true;
+
+        /// <summary>
+        /// Fecha en que se le dio acceso al usuario a esta compañía
+        /// </summary>
+        [Column("access_granted_date")]
+        public DateTime ACCESS_GRANTED_DATE { get; set; }
+
+        /// <summary>
+        /// Fecha de expiración del acceso (null = sin expiración)
+        /// </summary>
+        [Column("access_expiry_date")]
+        public DateTime? ACCESS_EXPIRY_DATE { get; set; }
+
+        /// <summary>
+        /// Último login del usuario en esta compañía específica
+        /// </summary>
+        [Column("last_login_at_company")]
+        public DateTime? LAST_LOGIN_AT_COMPANY { get; set; }
+
+        /// <summary>
+        /// Contador de logins en esta compañía
+        /// </summary>
+        [Column("login_count_at_company")]
+        public int LOGIN_COUNT_AT_COMPANY { get; set; } = 0;
+
+        // ===== AUDITORÍA =====
+        [Column("rowpointer")]
+        public Guid RowPointer { get; set; }
+
+        [Column("record_date")]
+        public DateTime RecordDate { get; set; }
+
+        [Column("createdate")]
+        public DateTime CreateDate { get; set; }
+
+        [Column("created_by")]
+        [Required]
+        [MaxLength(30)]
+        public string CreatedBy { get; set; } = default!;
+
+        [Column("updated_by")]
+        [Required]
+        [MaxLength(30)]
+        public string UpdatedBy { get; set; } = default!;
+
+        // ===== NAVEGACIÓN =====
+        public virtual User User { get; set; } = default!;
+        public virtual Company Company { get; set; } = default!;
+        // ⚠️ ELIMINADO: Role ya no existe aquí, usar user_company_role
+
+        // ===== MÉTODOS HELPER =====
+        
+        /// <summary>
+        /// Verifica si el acceso del usuario a esta compañía está vigente
+        /// </summary>
+        public bool IsAccessValid()
+        {
+            if (!IS_ACTIVE)
+                return false;
+
+            if (ACCESS_EXPIRY_DATE.HasValue && ACCESS_EXPIRY_DATE.Value < DateTime.UtcNow)
+                return false;
+
+            return true;
+        }
+    }
+}

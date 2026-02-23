@@ -1,0 +1,171 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.Entities/Operational/Item.cs
+// PROPÓSITO: Entidad que representa un artículo/producto en el inventario
+// DESCRIPCIÓN: Esta entidad se almacena en la BD de cada compañía, NO en la BD central
+//              Esquema: {company_code}.item
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-19
+// ================================================================================
+
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CMS.Entities.Operational
+{
+    /// <summary>
+    /// Representa un artículo o producto en el inventario.
+    /// Se almacena en la base de datos de cada compañía.
+    /// </summary>
+    public class Item
+    {
+        [Key]
+        [Column("id_item")]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Código único del artículo (SKU)
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        [Column("code")]
+        public string Code { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Nombre del artículo
+        /// </summary>
+        [Required]
+        [MaxLength(200)]
+        [Column("name")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Descripción detallada del artículo
+        /// </summary>
+        [MaxLength(1000)]
+        [Column("description")]
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Código de barras (UPC, EAN, etc.)
+        /// </summary>
+        [MaxLength(50)]
+        [Column("barcode")]
+        public string? Barcode { get; set; }
+
+        /// <summary>
+        /// Categoría del artículo
+        /// </summary>
+        [MaxLength(100)]
+        [Column("category")]
+        public string? Category { get; set; }
+
+        /// <summary>
+        /// Subcategoría del artículo
+        /// </summary>
+        [MaxLength(100)]
+        [Column("subcategory")]
+        public string? Subcategory { get; set; }
+
+        /// <summary>
+        /// Marca del artículo
+        /// </summary>
+        [MaxLength(100)]
+        [Column("brand")]
+        public string? Brand { get; set; }
+
+        /// <summary>
+        /// Unidad de medida (unidad, kg, litro, etc.)
+        /// </summary>
+        [MaxLength(20)]
+        [Column("unit_of_measure")]
+        public string UnitOfMeasure { get; set; } = "unidad";
+
+        /// <summary>
+        /// Precio de costo
+        /// </summary>
+        [Column("cost_price", TypeName = "decimal(18,4)")]
+        public decimal CostPrice { get; set; }
+
+        /// <summary>
+        /// Precio de venta
+        /// </summary>
+        [Column("sale_price", TypeName = "decimal(18,4)")]
+        public decimal SalePrice { get; set; }
+
+        /// <summary>
+        /// Porcentaje de impuesto
+        /// </summary>
+        [Column("tax_rate", TypeName = "decimal(5,2)")]
+        public decimal TaxRate { get; set; }
+
+        /// <summary>
+        /// Stock mínimo para alertas
+        /// </summary>
+        [Column("min_stock", TypeName = "decimal(18,4)")]
+        public decimal MinStock { get; set; }
+
+        /// <summary>
+        /// Stock máximo recomendado
+        /// </summary>
+        [Column("max_stock", TypeName = "decimal(18,4)")]
+        public decimal MaxStock { get; set; }
+
+        /// <summary>
+        /// Stock actual (calculado o manual)
+        /// </summary>
+        [Column("current_stock", TypeName = "decimal(18,4)")]
+        public decimal CurrentStock { get; set; }
+
+        /// <summary>
+        /// URL de la imagen del artículo
+        /// </summary>
+        [MaxLength(500)]
+        [Column("image_url")]
+        public string? ImageUrl { get; set; }
+
+        /// <summary>
+        /// Indica si el artículo está activo
+        /// </summary>
+        [Column("is_active")]
+        public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Indica si se puede vender
+        /// </summary>
+        [Column("is_sellable")]
+        public bool IsSellable { get; set; } = true;
+
+        /// <summary>
+        /// Indica si se puede comprar
+        /// </summary>
+        [Column("is_purchasable")]
+        public bool IsPurchasable { get; set; } = true;
+
+        /// <summary>
+        /// Indica si requiere manejo de lotes
+        /// </summary>
+        [Column("track_lots")]
+        public bool TrackLots { get; set; }
+
+        /// <summary>
+        /// Indica si requiere manejo de números de serie
+        /// </summary>
+        [Column("track_serial_numbers")]
+        public bool TrackSerialNumbers { get; set; }
+
+        // ===== AUDITORÍA =====
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [MaxLength(100)]
+        [Column("created_by")]
+        public string? CreatedBy { get; set; }
+
+        [Column("updated_at")]
+        public DateTime? UpdatedAt { get; set; }
+
+        [MaxLength(100)]
+        [Column("updated_by")]
+        public string? UpdatedBy { get; set; }
+    }
+}

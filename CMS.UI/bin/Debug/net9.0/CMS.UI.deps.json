@@ -10,6 +10,7 @@
         "dependencies": {
           "CMS.Application": "1.0.0",
           "CMS.Data": "1.0.0",
+          "CMS.Shared": "1.0.0",
           "Microsoft.EntityFrameworkCore": "9.0.0",
           "Microsoft.Identity.Web": "4.1.1",
           "Microsoft.Identity.Web.DownstreamApi": "4.1.1",
@@ -1852,6 +1853,7 @@
       "CMS.Data/1.0.0": {
         "dependencies": {
           "CMS.Entities": "1.0.0",
+          "CMS.Shared": "1.0.0",
           "Microsoft.EntityFrameworkCore": "9.0.0",
           "Microsoft.IdentityModel.Tokens": "8.15.0",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.0",
@@ -1867,6 +1869,14 @@
       "CMS.Entities/1.0.0": {
         "runtime": {
           "CMS.Entities.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "CMS.Shared/1.0.0": {
+        "runtime": {
+          "CMS.Shared.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
@@ -2794,6 +2804,11 @@
       "sha512": ""
     },
     "CMS.Entities/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CMS.Shared/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

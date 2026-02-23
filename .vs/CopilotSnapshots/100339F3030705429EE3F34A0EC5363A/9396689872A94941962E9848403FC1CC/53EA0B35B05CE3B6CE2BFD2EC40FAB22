@@ -1,0 +1,627 @@
+﻿using CMS.Application.DTOs;
+using CMS.Data;
+using CMS.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace CMS.API.Controllers
+{
+    /// <summary>
+    /// Controlador REST para la gestión de roles del sistema.
+    /// Proporciona endpoints para crear, leer, actualizar y eliminar roles,
+    /// así como gestionar permisos y usuarios asociados a cada rol.
+    /// 
+    /// Todos los endpoints requieren autorización con el rol "Admin".
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class RolesController : ControllerBase
+    {
+        private readonly AppDbContext _db;
+        private readonly ILogger<RolesController> _logger;
+
+        /// <summary>
+        /// Constructor del controlador de roles.
+        /// </summary>
+        /// <param name="db">Contexto de base de datos para acceso a datos</param>
+        /// <param name="logger">Servicio de logging para registrar eventos y errores</param>
+        public RolesController(AppDbContext db, ILogger<RolesController> logger)
+        {
+            _db = db;
+            _logger = logger;
+        }
+
+        // =====================================================
+        // GESTIÓN BÁSICA DE ROLES (CRUD)
+        // =====================================================
+
+        /// <summary>
+        /// Obtiene la lista completa de todos los roles del sistema.
+        /// 
+        /// Retorna información resumida incluyendo:
+        /// - ID y nombre del rol
+        /// - Descripción
+        /// - Indicador si es rol del sistema
+        /// - Contador de usuarios asignados
+        /// - Contador de permisos permitidos
+        /// 
+        /// Endpoint: GET /api/roles
+        /// Autenticación: Requerida (Admin)
+        /// </summary>
+        /// <returns>
+        /// Código 200: Lista de RoleListDto ordenada por nombre
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpGet]
+        public async Task<ActionResult<List<RoleListDto>>> GetAll()
+        {
+            try
+            {
+                var roles = await _db.Roles
+                    .Select(r => new RoleListDto
+                    {
+                        Id = r.ID_ROLE,
+                        RoleName = r.ROLE_NAME,
+                        Description = r.DESCRIPTION,
+                        IsSystem = r.IS_SYSTEM,
+                        UserCount = _db.UserCompanyRoles.Where(ucr => ucr.ID_ROLE == r.ID_ROLE && ucr.IS_ACTIVE).Select(ucr => ucr.ID_USER).Distinct().Count(),
+                        PermissionCount = _db.RolePermissions.Count(rp => rp.RoleId == r.ID_ROLE && rp.IsAllowed)
+                    })
+                    .OrderBy(r => r.RoleName)
+                    .ToListAsync();
+
+                return Ok(roles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo roles");
+                return StatusCode(500, new { message = "Error obteniendo roles" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el detalle completo de un rol específico incluyendo:
+        /// - Información del rol (nombre, descripción, estado)
+        /// - Lista de permisos asignados con su estado (permitido/denegado)
+        /// - Lista de usuarios que tienen este rol
+        /// 
+        /// Endpoint: GET /api/roles/{id}
+        /// Autenticación: Requerida (Admin)
+        /// </summary>
+        /// <param name="id">ID del rol a obtener (ID_ROLE de tabla [ADMIN].[ROLE])</param>
+        /// <returns>
+        /// Código 200: Objeto RoleDetailDto con información completa del rol
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<RoleDetailDto>> GetById(int id)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                // ⭐ IMPORTANTE: Cambio crítico - usar ID_PERMISSION en lugar de Id
+                var permissions = await (from rp in _db.RolePermissions
+                                         join p in _db.Permissions on rp.PermissionId equals p.ID_PERMISSION
+                                         where rp.RoleId == id
+                                         select new PermissionSimpleDto
+                                         {
+                                             Id = p.ID_PERMISSION,
+                                             PermissionKey = p.PERMISSION_KEY,
+                                             PermissionName = p.PERMISSION_NAME,
+                                             IsAllowed = rp.IsAllowed
+                                         }).ToListAsync();
+
+                var users = await (from ucr in _db.UserCompanyRoles
+                                   join u in _db.Users on ucr.ID_USER equals u.ID_USER
+                                   where ucr.ID_ROLE == id && ucr.IS_ACTIVE
+                                   select new UserSimpleDto
+                                   {
+                                       Id = u.ID_USER,
+                                       Username = u.USER_NAME,
+                                       Email = u.EMAIL
+                                   }).Distinct().ToListAsync();
+
+                var dto = new RoleDetailDto
+                {
+                    Id = role.ID_ROLE,
+                    RoleName = role.ROLE_NAME,
+                    Description = role.DESCRIPTION,
+                    IsSystem = role.IS_SYSTEM,
+                    CreateDate = role.CreateDate,
+                    Permissions = permissions,
+                    Users = users
+                };
+
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo rol {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo rol" });
+            }
+        }
+
+        /// <summary>
+        /// Crea un nuevo rol en el sistema.
+        /// 
+        /// Validaciones:
+        /// - El nombre del rol debe ser único
+        /// - No se pueden crear roles duplicados
+        /// - Por defecto los roles nuevos se crean activos (IS_ACTIVE = 1)
+        /// 
+        /// Endpoint: POST /api/roles
+        /// Autenticación: Requerida (Admin)
+        /// Content-Type: application/json
+        /// </summary>
+        /// <param name="dto">Datos del rol a crear (RoleCreateDto)</param>
+        /// <returns>
+        /// Código 201: Rol creado exitosamente con datos completos retornados
+        /// Código 400: El nombre del rol ya existe
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpPost]
+        public async Task<ActionResult<RoleDetailDto>> Create([FromBody] RoleCreateDto dto)
+        {
+            try
+            {
+                // Validar nombre único
+                if (await _db.Roles.AnyAsync(r => r.ROLE_NAME == dto.RoleName))
+                    return BadRequest(new { message = "El nombre del rol ya existe" });
+
+                var role = new Role
+                {
+                    ROLE_NAME = dto.RoleName,
+                    DESCRIPTION = dto.Description ?? string.Empty,
+                    IS_SYSTEM = dto.IsSystem,
+                    IS_ACTIVE = true,
+                    RecordDate = DateTime.UtcNow,
+                    CreateDate = DateTime.UtcNow,
+                    RowPointer = Guid.NewGuid(),
+                    CreatedBy = User.Identity?.Name ?? "system",
+                    UpdatedBy = User.Identity?.Name ?? "system"
+                };
+
+                _db.Roles.Add(role);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Rol creado: {RoleName} (ID: {RoleId})", role.ROLE_NAME, role.ID_ROLE);
+
+                return CreatedAtAction(nameof(GetById), new { id = role.ID_ROLE },
+                    await GetById(role.ID_ROLE));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando rol");
+                return StatusCode(500, new { message = "Error creando rol" });
+            }
+        }
+
+        /// <summary>
+        /// Actualiza los datos de un rol existente.
+        /// 
+        /// Restricciones:
+        /// - No se pueden modificar roles del sistema (IS_SYSTEM = 1)
+        /// - El nuevo nombre debe ser único (no puede coincidir con otros roles)
+        /// - No se puede cambiar el estado del rol mediante este endpoint
+        /// 
+        /// Endpoint: PUT /api/roles/{id}
+        /// Autenticación: Requerida (Admin)
+        /// Content-Type: application/json
+        /// </summary>
+        /// <param name="id">ID del rol a actualizar (ID_ROLE)</param>
+        /// <param name="dto">Nuevos datos del rol (RoleUpdateDto)</param>
+        /// <returns>
+        /// Código 204: Rol actualizado exitosamente (sin contenido)
+        /// Código 400: Validación fallida (rol del sistema, nombre duplicado)
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] RoleUpdateDto dto)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                if (role.IS_SYSTEM)
+                    return BadRequest(new { message = "No se puede modificar un rol del sistema" });
+
+                // Validar nombre único si cambió
+                if (dto.RoleName != role.ROLE_NAME &&
+                    await _db.Roles.AnyAsync(r => r.ROLE_NAME == dto.RoleName && r.ID_ROLE != id))
+                    return BadRequest(new { message = "El nombre del rol ya existe" });
+
+                role.ROLE_NAME = dto.RoleName;
+                role.DESCRIPTION = dto.Description ?? role.DESCRIPTION;
+                role.UpdatedBy = User.Identity?.Name ?? "system";
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Rol actualizado: {RoleName} (ID: {RoleId})", role.ROLE_NAME, role.ID_ROLE);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando rol {Id}", id);
+                return StatusCode(500, new { message = "Error actualizando rol" });
+            }
+        }
+
+        /// <summary>
+        /// Elimina un rol del sistema.
+        /// 
+        /// Restricciones críticas:
+        /// - No se pueden eliminar roles del sistema (IS_SYSTEM = 1)
+        /// - No se pueden eliminar roles que tienen usuarios asignados
+        /// - Se eliminarán automáticamente todos los permisos asociados al rol
+        /// 
+        /// Proceso de eliminación:
+        /// 1. Verificar que el rol existe
+        /// 2. Verificar que no es un rol del sistema
+        /// 3. Verificar que no tiene usuarios asignados
+        /// 4. Eliminar todos los permisos del rol
+        /// 5. Eliminar el rol
+        /// 
+        /// Endpoint: DELETE /api/roles/{id}
+        /// Autenticación: Requerida (Admin)
+        /// </summary>
+        /// <param name="id">ID del rol a eliminar (ID_ROLE)</param>
+        /// <returns>
+        /// Código 204: Rol eliminado exitosamente (sin contenido)
+        /// Código 400: No se puede eliminar (es rol del sistema o tiene usuarios)
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                if (role.IS_SYSTEM)
+                    return BadRequest(new { message = "No se puede eliminar un rol del sistema" });
+
+                // Verificar si tiene usuarios asignados en alguna compañía
+                if (await _db.UserCompanyRoles.AnyAsync(ucr => ucr.ID_ROLE == id))
+                    return BadRequest(new { message = "No se puede eliminar un rol con usuarios asignados" });
+
+                // Eliminar permisos asociados
+                var permissions = await _db.RolePermissions.Where(rp => rp.RoleId == id).ToListAsync();
+                _db.RolePermissions.RemoveRange(permissions);
+
+                _db.Roles.Remove(role);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Rol eliminado: {RoleName} (ID: {RoleId})", role.ROLE_NAME, role.ID_ROLE);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando rol {Id}", id);
+                return StatusCode(500, new { message = "Error eliminando rol" });
+            }
+        }
+
+        // =====================================================
+        // GESTIÓN DE PERMISOS DEL ROL
+        // =====================================================
+
+        /// <summary>
+        /// Obtiene todos los permisos asignados a un rol específico.
+        /// 
+        /// Retorna una lista de permisos con su estado (permitido/denegado).
+        /// Los permisos permitidos tienen IsAllowed = true.
+        /// Los permisos denegados tienen IsAllowed = false.
+        /// 
+        /// Endpoint: GET /api/roles/{id}/permissions
+        /// Autenticación: Requerida (Admin)
+        /// </summary>
+        /// <param name="id">ID del rol (ID_ROLE)</param>
+        /// <returns>
+        /// Código 200: Lista de PermissionSimpleDto con los permisos del rol
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpGet("{id}/permissions")]
+        public async Task<ActionResult<List<PermissionSimpleDto>>> GetRolePermissions(int id)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                // ⭐ IMPORTANTE: Cambio crítico - usar ID_PERMISSION en lugar de Id
+                var permissions = await (from rp in _db.RolePermissions
+                                         join p in _db.Permissions on rp.PermissionId equals p.ID_PERMISSION
+                                         where rp.RoleId == id
+                                         select new PermissionSimpleDto
+                                         {
+                                             Id = p.ID_PERMISSION,
+                                             PermissionKey = p.PERMISSION_KEY,
+                                             PermissionName = p.PERMISSION_NAME,
+                                             IsAllowed = rp.IsAllowed
+                                         }).ToListAsync();
+
+                return Ok(permissions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permisos del rol {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo permisos" });
+            }
+        }
+
+        /// <summary>
+        /// Asigna permisos a un rol (reemplaza todos los permisos existentes).
+        /// 
+        /// Comportamiento:
+        /// 1. Elimina TODOS los permisos actuales del rol
+        /// 2. Asigna los nuevos permisos proporcionados
+        /// 
+        /// Cada permiso en la lista debe indicar:
+        /// - PermissionId: ID del permiso a asignar
+        /// - IsAllowed: true para permitir, false para denegar
+        /// 
+        /// Endpoint: POST /api/roles/{id}/permissions
+        /// Autenticación: Requerida (Admin)
+        /// Content-Type: application/json
+        /// 
+        /// Ejemplo de payload:
+        /// [
+        ///   { "permissionId": 1, "isAllowed": true },
+        ///   { "permissionId": 2, "isAllowed": false }
+        /// ]
+        /// </summary>
+        /// <param name="id">ID del rol (ID_ROLE)</param>
+        /// <param name="permissions">Lista de PermissionAssignment con permisos a asignar</param>
+        /// <returns>
+        /// Código 204: Permisos asignados exitosamente (sin contenido)
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpPost("{id}/permissions")]
+        public async Task<IActionResult> AssignPermissions(int id, [FromBody] List<PermissionAssignment> permissions)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                // Eliminar permisos existentes
+                var existing = await _db.RolePermissions.Where(rp => rp.RoleId == id).ToListAsync();
+                _db.RolePermissions.RemoveRange(existing);
+
+                // Agregar nuevos permisos
+                var userName = User.Identity?.Name ?? "system";
+                foreach (var perm in permissions)
+                {
+                    _db.RolePermissions.Add(new RolePermission
+                    {
+                        RoleId = id,
+                        PermissionId = perm.PermissionId,
+                        IsAllowed = perm.IsAllowed,
+                        RecordDate = DateTime.UtcNow,
+                        CreateDate = DateTime.UtcNow,
+                        RowPointer = Guid.NewGuid(),
+                        CreatedBy = userName,
+                        UpdatedBy = userName
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Permisos asignados al rol {RoleId}: {Count} permisos", id, permissions.Count);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando permisos al rol {Id}", id);
+                return StatusCode(500, new { message = "Error asignando permisos" });
+            }
+        }
+
+        // =====================================================
+        // GESTIÓN DE USUARIOS DEL ROL
+        // =====================================================
+
+        /// <summary>
+        /// Obtiene la lista de todos los usuarios que tienen asignado un rol específico.
+        /// 
+        /// Retorna información resumida de cada usuario incluyendo:
+        /// - ID del usuario (ID_USER)
+        /// - Nombre de usuario (USER_NAME)
+        /// - Correo electrónico (EMAIL)
+        /// 
+        /// Endpoint: GET /api/roles/{id}/users
+        /// Autenticación: Requerida (Admin)
+        /// </summary>
+        /// <param name="id">ID del rol (ID_ROLE)</param>
+        /// <returns>
+        /// Código 200: Lista de UserSimpleDto con los usuarios del rol
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpGet("{id}/users")]
+        public async Task<ActionResult<List<UserSimpleDto>>> GetRoleUsers(int id)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                var users = await (from ucr in _db.UserCompanyRoles
+                                   join u in _db.Users on ucr.ID_USER equals u.ID_USER
+                                   where ucr.ID_ROLE == id && ucr.IS_ACTIVE
+                                   select new UserSimpleDto
+                                   {
+                                       Id = u.ID_USER,
+                                       Username = u.USER_NAME,
+                                       Email = u.EMAIL
+                                   }).Distinct().ToListAsync();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo usuarios del rol {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo usuarios" });
+            }
+        }
+
+        /// <summary>
+        /// Asigna usuarios a un rol (reemplaza todos los usuarios actualmente asignados).
+        /// 
+        /// Comportamiento:
+        /// 1. Valida que todos los usuarios existan
+        /// 2. Elimina TODOS los usuarios actualmente asignados al rol
+        /// 3. Asigna los nuevos usuarios proporcionados
+        /// 
+        /// Validaciones:
+        /// - Todos los IDs de usuario en la lista deben existir
+        /// - Se puede asignar una lista vacía para remover todos los usuarios
+        /// 
+        /// Endpoint: POST /api/roles/{id}/users
+        /// Autenticación: Requerida (Admin)
+        /// Content-Type: application/json
+        /// 
+        /// Ejemplo de payload:
+        /// [1, 2, 3, 5]  // IDs de usuarios a asignar
+        /// </summary>
+        /// <param name="id">ID del rol (ID_ROLE)</param>
+        /// <param name="userIds">Lista de IDs de usuarios a asignar al rol (ID_USER)</param>
+        /// <returns>
+        /// Código 204: Usuarios asignados exitosamente (sin contenido)
+        /// Código 400: Uno o más usuarios no existen
+        /// Código 404: Rol no encontrado
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpPost("{id}/users")]
+        public async Task<IActionResult> AssignUsers(int id, [FromBody] List<int> userIds)
+        {
+            try
+            {
+                var role = await _db.Roles.FindAsync(id);
+                if (role == null)
+                    return NotFound(new { message = "Rol no encontrado" });
+
+                // Validar que todos los usuarios existen
+                var existingUserIds = await _db.Users
+                    .Where(u => userIds.Contains(u.ID_USER))
+                    .Select(u => u.ID_USER)
+                    .ToListAsync();
+
+                if (existingUserIds.Count != userIds.Count)
+                    return BadRequest(new { message = "Uno o más usuarios no existen" });
+
+                // Para cada usuario, asignar el rol en todas sus compañías
+                var userName = User.Identity?.Name ?? "system";
+                var addedCount = 0;
+
+                foreach (var userId in userIds)
+                {
+                    // Obtener compañías del usuario
+                    var userCompanyIds = await _db.UserCompanies
+                        .Where(uc => uc.ID_USER == userId && uc.IS_ACTIVE)
+                        .Select(uc => uc.ID_COMPANY)
+                        .ToListAsync();
+
+                    foreach (var companyId in userCompanyIds)
+                    {
+                        // Verificar si ya existe la asignación
+                        var exists = await _db.UserCompanyRoles.AnyAsync(ucr => 
+                            ucr.ID_USER == userId && ucr.ID_COMPANY == companyId && ucr.ID_ROLE == id);
+
+                        if (!exists)
+                        {
+                            _db.UserCompanyRoles.Add(new UserCompanyRole
+                            {
+                                ID_USER = userId,
+                                ID_COMPANY = companyId,
+                                ID_ROLE = id,
+                                IS_ACTIVE = true,
+                                RecordDate = DateTime.UtcNow,
+                                CreateDate = DateTime.UtcNow,
+                                RowPointer = Guid.NewGuid(),
+                                CreatedBy = userName,
+                                UpdatedBy = userName
+                            });
+                            addedCount++;
+                        }
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Rol {RoleId} asignado: {Count} nuevas asignaciones", id, addedCount);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando usuarios al rol {Id}", id);
+                return StatusCode(500, new { message = "Error asignando usuarios" });
+            }
+        }
+
+        /// <summary>
+        /// Remueve un usuario específico de un rol.
+        /// 
+        /// Solo elimina la relación entre el usuario y el rol específico.
+        /// No elimina el usuario ni el rol, solo la asignación.
+        /// 
+        /// Endpoint: DELETE /api/roles/{id}/users/{userId}
+        /// Autenticación: Requerida (Admin)
+        /// </summary>
+        /// <param name="id">ID del rol (ID_ROLE)</param>
+        /// <param name="userId">ID del usuario a remover (ID_USER)</param>
+        /// <returns>
+        /// Código 204: Usuario removido exitosamente (sin contenido)
+        /// Código 404: Asignación no encontrada
+        /// Código 500: Error interno del servidor
+        /// </returns>
+        [HttpDelete("{id}/users/{userId}")]
+        public async Task<IActionResult> RemoveUser(int id, int userId)
+        {
+            try
+            {
+                // Remover el rol del usuario en TODAS las compañías
+                var userCompanyRoles = await _db.UserCompanyRoles
+                    .Where(ucr => ucr.ID_ROLE == id && ucr.ID_USER == userId)
+                    .ToListAsync();
+
+                if (!userCompanyRoles.Any())
+                    return NotFound(new { message = "Asignación no encontrada" });
+
+                _db.UserCompanyRoles.RemoveRange(userCompanyRoles);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Usuario {UserId} removido del rol {RoleId} en {Count} compañías", 
+                    userId, id, userCompanyRoles.Count);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removiendo usuario {UserId} del rol {RoleId}", userId, id);
+                return StatusCode(500, new { message = "Error removiendo usuario" });
+            }
+        }
+    }
+}

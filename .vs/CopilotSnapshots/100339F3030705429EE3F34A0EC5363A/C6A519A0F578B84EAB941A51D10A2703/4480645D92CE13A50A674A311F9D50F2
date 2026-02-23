@@ -1,0 +1,165 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.Entities/SystemConfig.cs
+// PROPÓSITO: Entidad para configuraciones globales del sistema
+// DESCRIPCIÓN: Almacena configuraciones como SMTP, seguridad, etc.
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-13
+// ================================================================================
+
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CMS.Entities
+{
+    /// <summary>
+    /// Configuraciones globales del sistema CMS.
+    /// Estructura clave-valor con categorías para organización.
+    /// </summary>
+    [Table("system_config", Schema = "admin")]
+    public class SystemConfig : IAuditableEntity
+    {
+        [Key]
+        [Column("id_config")]
+        public int ID { get; set; }
+
+        /// <summary>
+        /// Categoría para agrupar configuraciones (SMTP, SECURITY, GENERAL, etc.)
+        /// </summary>
+        [Column("config_category")]
+        [Required]
+        [MaxLength(50)]
+        public string CONFIG_CATEGORY { get; set; } = default!;
+
+        /// <summary>
+        /// Clave única de la configuración dentro de la categoría
+        /// </summary>
+        [Column("config_key")]
+        [Required]
+        [MaxLength(100)]
+        public string CONFIG_KEY { get; set; } = default!;
+
+        /// <summary>
+        /// Valor de la configuración
+        /// </summary>
+        [Column("config_value")]
+        public string? CONFIG_VALUE { get; set; }
+
+        /// <summary>
+        /// Valor por defecto si CONFIG_VALUE es null
+        /// </summary>
+        [Column("default_value")]
+        public string? DEFAULT_VALUE { get; set; }
+
+        /// <summary>
+        /// Tipo de dato: string, int, bool, json, encrypted
+        /// </summary>
+        [Column("data_type")]
+        [Required]
+        [MaxLength(20)]
+        public string DATA_TYPE { get; set; } = "string";
+
+        /// <summary>
+        /// Indica si el valor está encriptado
+        /// </summary>
+        [Column("is_encrypted")]
+        public bool IS_ENCRYPTED { get; set; } = false;
+
+        /// <summary>
+        /// Descripción de la configuración
+        /// </summary>
+        [Column("description")]
+        [MaxLength(500)]
+        public string? DESCRIPTION { get; set; }
+
+        /// <summary>
+        /// Indica si es requerido
+        /// </summary>
+        [Column("is_required")]
+        public bool IS_REQUIRED { get; set; } = false;
+
+        /// <summary>
+        /// Orden de visualización
+        /// </summary>
+        [Column("sort_order")]
+        public int SORT_ORDER { get; set; } = 0;
+
+        /// <summary>
+        /// Estado activo/inactivo
+        /// </summary>
+        [Column("is_active")]
+        public bool IS_ACTIVE { get; set; } = true;
+
+        // ===== AUDITORÍA =====
+        [Column("rowpointer")]
+        public Guid RowPointer { get; set; }
+
+        [Column("record_date")]
+        public DateTime RecordDate { get; set; }
+
+        [Column("createdate")]
+        public DateTime CreateDate { get; set; }
+
+        [Column("created_by")]
+        [Required]
+        [MaxLength(30)]
+        public string CreatedBy { get; set; } = default!;
+
+        [Column("updated_by")]
+        [Required]
+        [MaxLength(30)]
+        public string UpdatedBy { get; set; } = default!;
+
+        // ===== MÉTODOS HELPER =====
+
+        /// <summary>
+        /// Obtiene el valor efectivo (CONFIG_VALUE o DEFAULT_VALUE)
+        /// </summary>
+        public string? GetEffectiveValue()
+        {
+            return string.IsNullOrEmpty(CONFIG_VALUE) ? DEFAULT_VALUE : CONFIG_VALUE;
+        }
+
+        /// <summary>
+        /// Obtiene el valor como entero
+        /// </summary>
+        public int GetIntValue(int defaultValue = 0)
+        {
+            var value = GetEffectiveValue();
+            return int.TryParse(value, out var result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// Obtiene el valor como booleano
+        /// </summary>
+        public bool GetBoolValue(bool defaultValue = false)
+        {
+            var value = GetEffectiveValue();
+            return bool.TryParse(value, out var result) ? result : defaultValue;
+        }
+    }
+
+    /// <summary>
+    /// Categorías conocidas de configuración
+    /// </summary>
+    public static class SystemConfigCategories
+    {
+        public const string SMTP = "SMTP";
+        public const string SECURITY = "SECURITY";
+        public const string GENERAL = "GENERAL";
+    }
+
+    /// <summary>
+    /// Claves conocidas de configuración SMTP
+    /// </summary>
+    public static class SmtpConfigKeys
+    {
+        public const string HOST = "HOST";
+        public const string PORT = "PORT";
+        public const string USERNAME = "USERNAME";
+        public const string PASSWORD = "PASSWORD";
+        public const string FROM_EMAIL = "FROM_EMAIL";
+        public const string FROM_NAME = "FROM_NAME";
+        public const string USE_SSL = "USE_SSL";
+        public const string TIMEOUT_SECONDS = "TIMEOUT_SECONDS";
+    }
+}

@@ -1,0 +1,288 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Admin/Logs.cshtml                                          *@
+@* PROPÓSITO: Vista de System Logs - Visor de logs del sistema                      *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Admin.SystemLogsViewModel
+
+@{
+    ViewData["Title"] = "System Logs";
+}
+
+<div class="content-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-icon bg-gradient-blue">
+                <i class="bi bi-journal-text"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>System Logs</h1>
+                <p>Logs de la aplicación y servicios del sistema</p>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-tech-outline me-2" onclick="refreshLogs()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
+            </button>
+            <button class="btn btn-tech-outline" onclick="downloadLogs()">
+                <i class="bi bi-download me-2"></i>Descargar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-tech mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label-tech">Nivel</label>
+                    <select name="level" class="form-select-tech">
+                        <option value="">Todos</option>
+                        <option value="ERROR" selected="@(Model.LevelFilter == "ERROR")">Error</option>
+                        <option value="WARN" selected="@(Model.LevelFilter == "WARN")">Warning</option>
+                        <option value="INFO" selected="@(Model.LevelFilter == "INFO")">Info</option>
+                        <option value="DEBUG" selected="@(Model.LevelFilter == "DEBUG")">Debug</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label-tech">Fuente</label>
+                    <select name="source" class="form-select-tech">
+                        <option value="">Todas</option>
+                        <option value="CMS.API" selected="@(Model.SourceFilter == "CMS.API")">CMS.API</option>
+                        <option value="CMS.UI" selected="@(Model.SourceFilter == "CMS.UI")">CMS.UI</option>
+                        <option value="CMS.Data" selected="@(Model.SourceFilter == "CMS.Data")">CMS.Data</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label-tech">Desde</label>
+                    <input type="datetime-local" name="from" value="@Model.FromDate.ToString("yyyy-MM-ddTHH:mm")" class="form-control-tech" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label-tech">Hasta</label>
+                    <input type="datetime-local" name="to" value="@Model.ToDate.ToString("yyyy-MM-ddTHH:mm")" class="form-control-tech" />
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-tech-primary me-2">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <a asp-action="Logs" class="btn btn-tech-ghost">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumen de niveles -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="log-stat-card log-stat-error">
+                <i class="bi bi-x-circle-fill"></i>
+                <div class="log-stat-content">
+                    <span class="log-stat-value">@Model.Entries.Count(e => e.Level == "ERROR")</span>
+                    <span class="log-stat-label">Errores</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="log-stat-card log-stat-warn">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <div class="log-stat-content">
+                    <span class="log-stat-value">@Model.Entries.Count(e => e.Level == "WARN")</span>
+                    <span class="log-stat-label">Warnings</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="log-stat-card log-stat-info">
+                <i class="bi bi-info-circle-fill"></i>
+                <div class="log-stat-content">
+                    <span class="log-stat-value">@Model.Entries.Count(e => e.Level == "INFO")</span>
+                    <span class="log-stat-label">Info</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="log-stat-card log-stat-debug">
+                <i class="bi bi-bug-fill"></i>
+                <div class="log-stat-content">
+                    <span class="log-stat-value">@Model.Entries.Count(e => e.Level == "DEBUG")</span>
+                    <span class="log-stat-label">Debug</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Viewer -->
+    <div class="card-tech">
+        <div class="card-header-tech d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Log Viewer</h5>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="autoScroll" checked>
+                <label class="form-check-label text-muted-tech" for="autoScroll">Auto-scroll</label>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="log-viewer" id="logViewer">
+                @foreach (var entry in Model.Entries)
+                {
+                    <div class="log-entry @entry.LevelBadgeClass">
+                        <div class="log-entry-header">
+                            <span class="log-timestamp">@entry.Timestamp.ToString("HH:mm:ss.fff")</span>
+                            <span class="log-level @entry.LevelBadgeClass">
+                                <i class="bi @entry.LevelIcon"></i> @entry.Level
+                            </span>
+                            <span class="log-source">@entry.Source</span>
+                            @if (!string.IsNullOrEmpty(entry.CorrelationId))
+                            {
+                                <span class="log-correlation" title="Correlation ID">
+                                    @entry.CorrelationId.Substring(0, 8)...
+                                </span>
+                            }
+                        </div>
+                        <div class="log-entry-message">@entry.Message</div>
+                        @if (!string.IsNullOrEmpty(entry.StackTrace))
+                        {
+                            <details class="log-stacktrace">
+                                <summary>Stack Trace</summary>
+                                <pre>@entry.StackTrace</pre>
+                            </details>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-blue {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    }
+
+    .log-stat-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        border-radius: 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+    }
+
+    .log-stat-card i {
+        font-size: 1.5rem;
+    }
+
+    .log-stat-error { border-left: 3px solid #ef4444; }
+    .log-stat-error i { color: #ef4444; }
+    .log-stat-warn { border-left: 3px solid #f59e0b; }
+    .log-stat-warn i { color: #f59e0b; }
+    .log-stat-info { border-left: 3px solid #06b6d4; }
+    .log-stat-info i { color: #06b6d4; }
+    .log-stat-debug { border-left: 3px solid #8b5cf6; }
+    .log-stat-debug i { color: #8b5cf6; }
+
+    .log-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-white);
+        display: block;
+        line-height: 1;
+    }
+
+    .log-stat-label {
+        font-size: 0.8rem;
+        color: var(--text-gray);
+    }
+
+    .log-viewer {
+        max-height: 500px;
+        overflow-y: auto;
+        background: #0d1117;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 0.8rem;
+    }
+
+    .log-entry {
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .log-entry:hover {
+        background: rgba(6, 182, 212, 0.05);
+    }
+
+    .log-entry-header {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 4px;
+        align-items: center;
+    }
+
+    .log-timestamp {
+        color: #6b7280;
+        font-size: 0.75rem;
+    }
+
+    .log-level {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .level-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .level-warn { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .level-info { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
+    .level-debug { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+    .level-trace { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+    .log-source {
+        color: #22d3ee;
+        font-size: 0.75rem;
+    }
+
+    .log-correlation {
+        color: #6b7280;
+        font-size: 0.7rem;
+        padding: 1px 6px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 3px;
+    }
+
+    .log-entry-message {
+        color: #e5e7eb;
+        word-break: break-word;
+    }
+
+    .log-stacktrace {
+        margin-top: 8px;
+    }
+
+    .log-stacktrace summary {
+        color: #ef4444;
+        cursor: pointer;
+        font-size: 0.75rem;
+    }
+
+    .log-stacktrace pre {
+        background: rgba(0,0,0,0.4);
+        padding: 10px;
+        border-radius: 6px;
+        color: #f87171;
+        font-size: 0.7rem;
+        overflow-x: auto;
+        margin: 8px 0 0 0;
+    }
+</style>
+
+<script>
+    function refreshLogs() {
+        location.reload();
+    }
+
+    function downloadLogs() {
+        alert('Descargando logs...');
+    }
+</script>

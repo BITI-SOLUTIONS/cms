@@ -1,0 +1,365 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Roles/Details.cshtml                                       *@
+@* PROPÓSITO: Detalle de un rol con sus permisos y usuarios                         *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-17                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Controllers.RolesController.RoleDetailDto
+
+@{
+    ViewData["Title"] = $"Rol: {Model.RoleName}";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1>
+                @if (Model.IsSystem)
+                {
+                    <i class="bi bi-shield-fill-check text-warning me-2"></i>
+                }
+                else
+                {
+                    <i class="bi bi-person-badge me-2"></i>
+                }
+                @Model.RoleName
+            </h1>
+            <p class="text-muted mb-0">@(Model.Description ?? "Sin descripción")</p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+            @if (!Model.IsSystem)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-tech-primary">
+                    <i class="bi bi-pencil me-2"></i>Editar
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ===== PERMISOS ===== -->
+        <div class="col-lg-8">
+            <div class="card bg-dark-card border-0">
+                <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-key me-2"></i>Permisos (@Model.Permissions.Count)</h5>
+                    @if (!Model.IsSystem)
+                    {
+                        <a asp-action="ManagePermissions" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-gear me-1"></i>Gestionar Permisos
+                        </a>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Permissions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Permiso</th>
+                                        <th>Clave</th>
+                                        <th class="text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var perm in Model.Permissions.OrderBy(p => p.PermissionKey))
+                                    {
+                                        <tr>
+                                            <td>@perm.PermissionName</td>
+                                            <td><code class="text-info">@perm.PermissionKey</code></td>
+                                            <td class="text-center">
+                                                @if (perm.IsAllowed)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle"></i> Permitido
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">
+                                                        <i class="bi bi-x-circle"></i> Denegado
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-key display-4 d-block mb-3 text-secondary"></i>
+                            <p class="text-light mb-2">Este rol no tiene permisos asignados</p>
+                            @if (!Model.IsSystem)
+                            {
+                                <a asp-action="ManagePermissions" asp-route-id="@Model.Id" class="btn btn-tech-primary mt-2">
+                                    <i class="bi bi-plus-circle me-2"></i>Asignar Permisos
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== USUARIOS ===== -->
+        <div class="col-lg-4">
+            <div class="card bg-dark-card border-0">
+                <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Usuarios (@Model.Users.Count)</h5>
+                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignUserModal">
+                        <i class="bi bi-person-plus me-1"></i>Asignar
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Users.Any())
+                    {
+                        <ul class="list-group list-group-flush bg-transparent" style="max-height: 400px; overflow-y: auto;">
+                            @foreach (var user in Model.Users)
+                            {
+                                <li class="list-group-item bg-transparent d-flex align-items-center">
+                                    <div class="avatar-circle me-3">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <strong class="text-light">@user.Username</strong>
+                                        <br>
+                                        <small class="text-light-muted">@user.Email</small>
+                                    </div>
+                                    <a asp-controller="Users" asp-action="Details" asp-route-id="@user.Id" 
+                                       class="btn btn-sm btn-outline-info" title="Ver usuario">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-people display-4 d-block mb-3 text-secondary"></i>
+                            <p class="text-light mb-0">No hay usuarios con este rol</p>
+                            <small class="text-light-muted">Haz clic en "Asignar" para agregar usuarios</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: ASIGNAR USUARIO AL ROL ===== -->
+<div class="modal fade" id="assignUserModal" tabindex="-1" aria-labelledby="assignUserModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark-card">
+            <div class="modal-header bg-dark-header">
+                <h5 class="modal-title text-light" id="assignUserModalLabel">
+                    <i class="bi bi-person-plus me-2"></i>Asignar Usuario al Rol "@Model.RoleName"
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="AssignUserToRole" method="post" id="assignUserForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="roleId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="companyId" class="form-label text-light">
+                            <i class="bi bi-building me-1"></i>Compañía
+                        </label>
+                        <select class="form-select bg-dark text-light" id="companyId" name="companyId" required>
+                            <option value="">-- Cargando compañías... --</option>
+                        </select>
+                        <div class="form-text text-light-muted">El usuario será asignado a este rol en la compañía seleccionada</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userId" class="form-label text-light">
+                            <i class="bi bi-person me-1"></i>Usuario
+                        </label>
+                        <select class="form-select bg-dark text-light" id="userId" name="userId" required disabled>
+                            <option value="">-- Primero selecciona una compañía --</option>
+                        </select>
+                        <div class="form-text text-light-muted">Solo se muestran usuarios activos de la compañía</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-dark-header">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-tech-primary" id="btnAssign" disabled>
+                        <i class="bi bi-person-plus-fill me-2"></i>Asignar al Rol
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .form-label { color: #e0e0e0 !important; }
+    .form-text { color: #9ca3af !important; }
+    .form-check-label { color: #e0e0e0 !important; }
+    .table-dark { --bs-table-bg: transparent; }
+    .list-group-item { border-color: rgba(255, 255, 255, 0.1) !important; }
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(0, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-cyan);
+    }
+    .text-light-muted { color: #94a3b8 !important; }
+
+    /* Modal styles */
+    #assignUserModal .modal-content { 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%) !important;
+    }
+    #assignUserModal .modal-backdrop {
+        z-index: 1040;
+    }
+    #assignUserModal {
+        z-index: 1050;
+    }
+    .form-select.bg-dark { 
+        background-color: #1e293b !important; 
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #e0e0e0 !important;
+    }
+    .form-select.bg-dark option {
+        background-color: #1e293b;
+        color: #e0e0e0;
+    }
+    .form-select.bg-dark:focus { 
+        border-color: var(--accent-cyan); 
+        box-shadow: 0 0 0 0.25rem rgba(6, 182, 212, 0.25); 
+    }
+    .form-select.bg-dark:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+
+@section Scripts {
+<script>
+    // Variable para controlar si ya se cargaron las compañías
+    let companiesLoaded = false;
+
+    // Función para cargar compañías
+    async function loadCompanies() {
+        if (companiesLoaded) return;
+
+        const companySelect = document.getElementById('companyId');
+
+        try {
+            companySelect.innerHTML = '<option value="">Cargando compañías...</option>';
+
+            const response = await fetch('/api/Roles/GetCompanies');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const companies = await response.json();
+            console.log('Compañías recibidas:', companies);
+
+            companySelect.innerHTML = '<option value="">-- Seleccionar compañía --</option>';
+
+            if (companies && companies.length > 0) {
+                companies.forEach(company => {
+                    const id = company.id || company.Id;
+                    const name = company.name || company.Name;
+                    const code = company.code || company.Code;
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = `${name} (${code})`;
+                    companySelect.appendChild(option);
+                });
+                companiesLoaded = true;
+                console.log('Compañías cargadas exitosamente:', companies.length);
+            } else {
+                companySelect.innerHTML = '<option value="">No hay compañías disponibles</option>';
+            }
+        } catch (error) {
+            console.error('Error cargando compañías:', error);
+            companySelect.innerHTML = '<option value="">Error al cargar compañías</option>';
+        }
+    }
+
+    // Cargar compañías al abrir el modal
+    const assignUserModal = document.getElementById('assignUserModal');
+    if (assignUserModal) {
+        assignUserModal.addEventListener('show.bs.modal', function() {
+            console.log('Modal abierto, cargando compañías...');
+            loadCompanies();
+        });
+
+        // También intentar con shown.bs.modal como backup
+        assignUserModal.addEventListener('shown.bs.modal', function() {
+            if (!companiesLoaded) {
+                console.log('Modal mostrado, cargando compañías (backup)...');
+                loadCompanies();
+            }
+        });
+    }
+
+    // Event listener para cuando cambia la compañía
+    document.getElementById('companyId').addEventListener('change', async function() {
+        const companyId = this.value;
+        const userSelect = document.getElementById('userId');
+        const btnAssign = document.getElementById('btnAssign');
+
+        userSelect.innerHTML = '<option value="">Cargando usuarios...</option>';
+        userSelect.disabled = true;
+        btnAssign.disabled = true;
+
+        if (!companyId) {
+            userSelect.innerHTML = '<option value="">-- Primero selecciona una compañía --</option>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/Roles/GetUsersForCompany?companyId=${companyId}&roleId=@Model.Id`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const users = await response.json();
+            console.log('Usuarios recibidos:', users);
+
+            if (users && users.length > 0) {
+                userSelect.innerHTML = '<option value="">-- Seleccionar usuario --</option>';
+                users.forEach(user => {
+                    const id = user.id || user.Id;
+                    const displayName = user.displayName || user.DisplayName;
+                    const username = user.username || user.Username;
+                    const email = user.email || user.Email;
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = `${displayName || username} (${email})`;
+                    userSelect.appendChild(option);
+                });
+                userSelect.disabled = false;
+            } else {
+                userSelect.innerHTML = '<option value="">No hay usuarios disponibles para asignar</option>';
+            }
+        } catch (error) {
+            console.error('Error cargando usuarios:', error);
+            userSelect.innerHTML = '<option value="">Error al cargar usuarios</option>';
+        }
+    });
+
+    // Event listener para habilitar/deshabilitar botón de asignar
+    document.getElementById('userId').addEventListener('change', function() {
+        document.getElementById('btnAssign').disabled = !this.value;
+    });
+</script>
+}

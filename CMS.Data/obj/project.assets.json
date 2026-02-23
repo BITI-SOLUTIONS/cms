@@ -1056,6 +1056,20 @@
         "runtime": {
           "bin/placeholder/CMS.Entities.dll": {}
         }
+      },
+      "CMS.Shared/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.0"
+        },
+        "compile": {
+          "bin/placeholder/CMS.Shared.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/CMS.Shared.dll": {}
+        }
       }
     }
   },
@@ -3114,11 +3128,17 @@
       "type": "project",
       "path": "../CMS.Entities/CMS.Entities.csproj",
       "msbuildProject": "../CMS.Entities/CMS.Entities.csproj"
+    },
+    "CMS.Shared/1.0.0": {
+      "type": "project",
+      "path": "../CMS.Shared/CMS.Shared.csproj",
+      "msbuildProject": "../CMS.Shared/CMS.Shared.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net9.0": [
       "CMS.Entities >= 1.0.0",
+      "CMS.Shared >= 1.0.0",
       "Microsoft.AspNetCore.Http.Abstractions >= 2.3.0",
       "Microsoft.EntityFrameworkCore >= 9.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 9.0.0",
@@ -3162,6 +3182,9 @@
           "projectReferences": {
             "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Entities\\CMS.Entities.csproj": {
               "projectPath": "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Entities\\CMS.Entities.csproj"
+            },
+            "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Shared\\CMS.Shared.csproj": {
+              "projectPath": "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Shared\\CMS.Shared.csproj"
             }
           }
         }

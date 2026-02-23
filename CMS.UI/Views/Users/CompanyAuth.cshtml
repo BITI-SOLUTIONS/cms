@@ -1,0 +1,295 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Users/CompanyAuth.cshtml                                   *@
+@* PROPÓSITO: Vista para gestionar roles y permisos de un usuario en una compañía  *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-16                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Users.UserCompanyAuthViewModel
+
+@{
+    ViewData["Title"] = $"Autorización: {Model.UserName} en {Model.CompanyName}";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <a asp-action="Details" asp-route-id="@Model.UserId" class="btn-back me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1><i class="bi bi-shield-lock me-2"></i>Autorización por Compañía</h1>
+                <p class="mb-0">
+                    <span class="badge bg-primary">@Model.UserName</span>
+                    <i class="bi bi-arrow-right mx-2"></i>
+                    <span class="badge bg-secondary">@Model.CompanyName</span>
+                </p>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <span class="badge bg-info fs-6">
+                <i class="bi bi-key me-1"></i>
+                @Model.TotalEffectivePermissions permisos efectivos
+            </span>
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- ===== COLUMNA IZQUIERDA: ROLES ===== -->
+        <div class="col-md-4">
+            <div class="card bg-dark-card border-0 mb-4">
+                <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Roles en esta Compañía</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Los roles otorgan un conjunto de permisos predefinidos.
+                    </p>
+                    
+                    @foreach (var role in Model.Roles)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded @(role.IsAssigned ? "bg-success bg-opacity-10 border border-success" : "bg-dark")">
+                            <div>
+                                <i class="bi @(role.IsAssigned ? "bi-check-circle-fill text-success" : "bi-circle text-muted") me-2"></i>
+                                <span class="@(role.IsAssigned ? "text-success fw-bold" : "text-muted")">@role.RoleName</span>
+                            </div>
+                            <div>
+                                @if (role.IsAssigned)
+                                {
+                                    <form asp-action="RemoveRole" method="post" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@Model.UserId" />
+                                        <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                                        <input type="hidden" name="roleId" value="@role.RoleId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover rol">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="AssignRole" method="post" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@Model.UserId" />
+                                        <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                                        <input type="hidden" name="roleId" value="@role.RoleId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Asignar rol">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Leyenda -->
+            <div class="card bg-dark-card border-0">
+                <div class="card-header bg-dark-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Leyenda de Permisos</h6>
+                </div>
+                <div class="card-body small">
+                    <div class="mb-2">
+                        <span class="badge bg-primary me-2">ROL</span>
+                        Permiso heredado de un rol
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-success me-2">OTORGADO</span>
+                        Permiso otorgado directamente
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-danger me-2">DENEGADO</span>
+                        Permiso denegado (anula roles)
+                    </div>
+                    <div>
+                        <span class="badge bg-secondary me-2">NINGUNO</span>
+                        Sin permiso
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== COLUMNA DERECHA: PERMISOS ===== -->
+        <div class="col-md-8">
+            <div class="card bg-dark-card border-0">
+                <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-key me-2"></i>Permisos Detallados</h5>
+                    <div>
+                        <input type="text" id="searchPermissions" class="form-control form-control-sm" 
+                               placeholder="Buscar permisos..." style="width: 200px;">
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-dark table-hover table-sm mb-0" id="permissionsTable">
+                            <thead class="sticky-top bg-dark">
+                                <tr>
+                                    <th style="width: 100px;">Estado</th>
+                                    <th>Módulo</th>
+                                    <th>Permiso</th>
+                                    <th style="width: 80px;">Origen</th>
+                                    <th style="width: 150px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var currentModule = "";
+                                }
+                                @foreach (var perm in Model.Permissions.OrderBy(p => p.Module).ThenBy(p => p.PermissionKey))
+                                {
+                                    if (perm.Module != currentModule)
+                                    {
+                                        currentModule = perm.Module;
+                                        <tr class="table-secondary">
+                                            <td colspan="5" class="fw-bold text-primary">
+                                                <i class="bi bi-folder me-2"></i>@currentModule
+                                            </td>
+                                        </tr>
+                                    }
+                                    
+                                    var statusClass = perm.IsDenied ? "text-danger" : (perm.IsAllowed ? "text-success" : "text-muted");
+                                    var statusIcon = perm.IsDenied ? "bi-x-circle-fill" : (perm.IsAllowed ? "bi-check-circle-fill" : "bi-circle");
+                                    
+                                    var sourceClass = perm.Source switch
+                                    {
+                                        "role" => "bg-primary",
+                                        "direct" => "bg-success",
+                                        "denied" => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                    
+                                    var sourceText = perm.Source switch
+                                    {
+                                        "role" => "ROL",
+                                        "direct" => "OTORGADO",
+                                        "denied" => "DENEGADO",
+                                        _ => "NINGUNO"
+                                    };
+
+                                    <tr class="permission-row" data-search="@perm.PermissionKey.ToLower() @perm.PermissionName.ToLower() @perm.Module.ToLower()">
+                                        <td class="@statusClass">
+                                            <i class="bi @statusIcon me-1"></i>
+                                            @(perm.IsAllowed ? "Sí" : "No")
+                                        </td>
+                                        <td class="text-muted small">@perm.Module</td>
+                                        <td>
+                                            <span class="fw-semibold">@perm.PermissionName</span>
+                                            <br>
+                                            <code class="small text-muted">@perm.PermissionKey</code>
+                                        </td>
+                                        <td>
+                                            <span class="badge @sourceClass">@sourceText</span>
+                                        </td>
+                                        <td>
+                                            @if (perm.Source == "denied" || perm.Source == "direct")
+                                            {
+                                                <!-- Ya tiene override, mostrar opción de remover -->
+                                                <form asp-action="RemoveDirectPermission" method="post" style="display: inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="userId" value="@Model.UserId" />
+                                                    <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                                                    <input type="hidden" name="permissionId" value="@perm.PermissionId" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Quitar override (usar solo roles)">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            
+                                            @if (!perm.IsAllowed || perm.Source == "denied")
+                                            {
+                                                <!-- Permitir otorgar -->
+                                                <form asp-action="GrantPermission" method="post" style="display: inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="userId" value="@Model.UserId" />
+                                                    <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                                                    <input type="hidden" name="permissionId" value="@perm.PermissionId" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Otorgar permiso">
+                                                        <i class="bi bi-plus-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            
+                                            @if (perm.IsAllowed && perm.Source != "denied")
+                                            {
+                                                <!-- Permitir denegar -->
+                                                <form asp-action="DenyPermission" method="post" style="display: inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="userId" value="@Model.UserId" />
+                                                    <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                                                    <input type="hidden" name="permissionId" value="@perm.PermissionId" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Denegar permiso">
+                                                        <i class="bi bi-dash-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Búsqueda de permisos
+        document.getElementById('searchPermissions').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('.permission-row');
+            
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search');
+                if (searchData.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
+}
+
+<style>
+    .bg-dark-card {
+        background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);
+    }
+    .bg-dark-header {
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .table-dark {
+        --bs-table-bg: transparent;
+    }
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .permission-row:hover {
+        background: rgba(79, 70, 229, 0.1) !important;
+    }
+</style>

@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Nuevo perfil",
+    "Projects": [
+      {
+        "Path": "CMS.UI\\CMS.UI.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "CMS.API\\CMS.API.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

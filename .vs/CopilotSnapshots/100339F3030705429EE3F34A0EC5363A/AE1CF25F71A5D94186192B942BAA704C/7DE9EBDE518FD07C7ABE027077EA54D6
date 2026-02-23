@@ -1,0 +1,229 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.Entities/Operational/Item.cs
+// PROPÓSITO: Entidad que representa un artículo/producto en el inventario
+// DESCRIPCIÓN: Esta entidad se almacena en la BD de cada compañía, NO en la BD central
+//              Esquema: {company_code}.item (ej: sinai.item, admin.item)
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-19
+// ================================================================================
+
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CMS.Entities.Operational
+{
+    /// <summary>
+    /// Representa un artículo o producto en el inventario.
+    /// Se almacena en la base de datos de cada compañía.
+    /// </summary>
+    public class Item
+    {
+        [Key]
+        [Column("id_item")]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Código único del artículo (SKU)
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        [Column("code")]
+        public string Code { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Nombre del artículo
+        /// </summary>
+        [Required]
+        [MaxLength(200)]
+        [Column("name")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Descripción detallada del artículo
+        /// </summary>
+        [MaxLength(1000)]
+        [Column("description")]
+        public string? Description { get; set; }
+
+        // ===== LABEL ITEM (Etiquetas) =====
+
+        /// <summary>
+        /// Nombre de la etiqueta del artículo
+        /// </summary>
+        [MaxLength(200)]
+        [Column("label_item")]
+        public string? LabelItem { get; set; }
+
+        /// <summary>
+        /// Precio para la etiqueta
+        /// </summary>
+        [Column("label_price", TypeName = "decimal(28,8)")]
+        public decimal LabelPrice { get; set; }
+
+        /// <summary>
+        /// Código de barras para la etiqueta
+        /// </summary>
+        [MaxLength(200)]
+        [Column("label_item_barcode")]
+        public string? LabelItemBarcode { get; set; }
+
+        /// <summary>
+        /// Indica si es un artículo de etiqueta
+        /// </summary>
+        [Column("is_label_item")]
+        public bool IsLabelItem { get; set; }
+
+        // ===== INFORMACIÓN BÁSICA =====
+
+        /// <summary>
+        /// Código de barras (UPC, EAN, etc.)
+        /// </summary>
+        [MaxLength(50)]
+        [Column("barcode")]
+        public string? Barcode { get; set; }
+
+        /// <summary>
+        /// Categoría del artículo
+        /// </summary>
+        [MaxLength(100)]
+        [Column("category")]
+        public string? Category { get; set; }
+
+        /// <summary>
+        /// Subcategoría del artículo
+        /// </summary>
+        [MaxLength(100)]
+        [Column("subcategory")]
+        public string? Subcategory { get; set; }
+
+        /// <summary>
+        /// Marca del artículo
+        /// </summary>
+        [MaxLength(100)]
+        [Column("brand")]
+        public string? Brand { get; set; }
+
+        /// <summary>
+        /// Unidad de medida (unidad, kg, litro, etc.)
+        /// </summary>
+        [MaxLength(20)]
+        [Column("unit_of_measure")]
+        public string UnitOfMeasure { get; set; } = "unidad";
+
+        // ===== PRECIOS =====
+
+        /// <summary>
+        /// Precio de costo
+        /// </summary>
+        [Column("cost_price", TypeName = "decimal(28,8)")]
+        public decimal CostPrice { get; set; }
+
+        /// <summary>
+        /// Precio de venta
+        /// </summary>
+        [Column("sale_price", TypeName = "decimal(28,8)")]
+        public decimal SalePrice { get; set; }
+
+        /// <summary>
+        /// Porcentaje de impuesto
+        /// </summary>
+        [Column("tax_rate", TypeName = "decimal(28,8)")]
+        public decimal TaxRate { get; set; }
+
+        // ===== STOCK =====
+
+        /// <summary>
+        /// Stock mínimo para alertas
+        /// </summary>
+        [Column("min_stock", TypeName = "decimal(28,8)")]
+        public decimal MinStock { get; set; }
+
+        /// <summary>
+        /// Stock máximo recomendado
+        /// </summary>
+        [Column("max_stock", TypeName = "decimal(28,8)")]
+        public decimal MaxStock { get; set; }
+
+        /// <summary>
+        /// Stock actual (calculado o manual)
+        /// </summary>
+        [Column("current_stock", TypeName = "decimal(28,8)")]
+        public decimal CurrentStock { get; set; }
+
+        // ===== CONFIGURACIÓN =====
+
+        /// <summary>
+        /// URL de la imagen del artículo
+        /// </summary>
+        [MaxLength(500)]
+        [Column("image_url")]
+        public string? ImageUrl { get; set; }
+
+        /// <summary>
+        /// Indica si se puede vender
+        /// </summary>
+        [Column("is_sellable")]
+        public bool IsSellable { get; set; } = true;
+
+        /// <summary>
+        /// Indica si se puede comprar
+        /// </summary>
+        [Column("is_purchasable")]
+        public bool IsPurchasable { get; set; } = true;
+
+        /// <summary>
+        /// Indica si requiere manejo de lotes
+        /// </summary>
+        [Column("track_lots")]
+        public bool TrackLots { get; set; }
+
+        /// <summary>
+        /// Indica si requiere manejo de números de serie
+        /// </summary>
+        [Column("track_serial_numbers")]
+        public bool TrackSerialNumbers { get; set; }
+
+        /// <summary>
+        /// Indica si el artículo está activo
+        /// </summary>
+        [Column("is_active")]
+        public bool IsActive { get; set; } = true;
+
+        // ===== AUDITORÍA =====
+
+        /// <summary>
+        /// Fecha de creación del registro
+        /// </summary>
+        [Column("createdate")]
+        public DateTime CreateDate { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Fecha de última modificación
+        /// </summary>
+        [Column("record_date")]
+        public DateTime RecordDate { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Usuario que creó el registro
+        /// </summary>
+        [Required]
+        [MaxLength(30)]
+        [Column("created_by")]
+        public string CreatedBy { get; set; } = "SYSTEM";
+
+        /// <summary>
+        /// Usuario que modificó el registro
+        /// </summary>
+        [Required]
+        [MaxLength(30)]
+        [Column("updated_by")]
+        public string UpdatedBy { get; set; } = "SYSTEM";
+
+        /// <summary>
+        /// Identificador único del registro (UUID)
+        /// </summary>
+        [Column("rowpointer")]
+        public Guid RowPointer { get; set; } = Guid.NewGuid();
+    }
+}
+}

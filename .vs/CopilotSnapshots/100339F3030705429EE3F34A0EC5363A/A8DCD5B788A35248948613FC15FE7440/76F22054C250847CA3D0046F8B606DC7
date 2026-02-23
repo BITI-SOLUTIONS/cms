@@ -1,0 +1,1190 @@
+﻿using CMS.Application.DTOs;
+using CMS.Data;
+using CMS.Data.Services;
+using CMS.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using System.Security.Claims;
+using System.Security.Cryptography;
+
+namespace CMS.API.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class UserController : ControllerBase
+    {
+        private readonly IUserRepository _repo;
+        private readonly ILogger<UserController> _logger;
+        private readonly AppDbContext _db;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
+
+        // Expiración del token de verificación: 30 minutos
+        private const int VERIFICATION_TOKEN_EXPIRY_MINUTES = 30;
+
+        public UserController(
+            IUserRepository repo, 
+            ILogger<UserController> logger, 
+            AppDbContext db,
+            IEmailService emailService,
+            IConfiguration configuration)
+        {
+            _repo = repo;
+            _logger = logger;
+            _db = db;
+            _emailService = emailService;
+            _configuration = configuration;
+        }
+
+        // GET: api/user (solo admins) - Lista completa con roles
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<ActionResult<List<UserListDto>>> Get()
+        {
+            try
+            {
+                var users = await _db.Users
+                    .Select(u => new UserListDto
+                    {
+                        Id = u.ID_USER,
+                        Username = u.USER_NAME,
+                        Email = u.EMAIL,
+                        DisplayName = u.DISPLAY_NAME,
+                        IsActive = u.IS_ACTIVE,
+                        IsEmailVerified = u.IS_EMAIL_VERIFIED,
+                        CreateDate = u.CreateDate,
+                        Roles = (from ur in _db.UserRoles
+                                 join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                                 where ur.UserId == u.ID_USER
+                                 select r.ROLE_NAME).ToList()
+                    })
+                    .OrderBy(u => u.Username)
+                    .ToListAsync();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo usuarios");
+                return StatusCode(500, new { message = "Error obteniendo usuarios" });
+            }
+        }
+
+        // GET: api/user/me (usuario actual)
+        [HttpGet("me")]
+        public IActionResult GetCurrentUser()
+        {
+            var userInfo = new
+            {
+                Id = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                Name = User.Identity?.Name,
+                Email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("preferred_username"),
+                Roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList(),
+                Groups = User.FindAll("groups").Select(c => c.Value).ToList(),
+                Claims = User.Claims.Select(c => new { c.Type, c.Value })
+            };
+
+            return Ok(userInfo);
+        }
+
+        // GET: api/user/5 - Detalle completo con roles y permisos
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDetailDto>> Get(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var roles = await (from ur in _db.UserRoles
+                                   join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                                   where ur.UserId == id
+                                   select new RoleSimpleDto
+                                   {
+                                       Id = r.ID_ROLE,
+                                       RoleName = r.ROLE_NAME
+                                   }).ToListAsync();
+
+                var permissions = await (from up in _db.UserPermissions
+                                         join p in _db.Permissions on up.PermissionId equals p.ID_PERMISSION
+                                         where up.UserId == id
+                                         select new PermissionSimpleDto
+                                         {
+                                             Id = p.ID_PERMISSION,
+                                             PermissionKey = p.PERMISSION_KEY,
+                                             PermissionName = p.PERMISSION_NAME,
+                                             IsAllowed = up.IsAllowed
+                                         }).ToListAsync();
+
+                var dto = new UserDetailDto
+                {
+                    Id = user.ID_USER,
+                    Username = user.USER_NAME,
+                    Email = user.EMAIL,
+                    DisplayName = user.DISPLAY_NAME,
+                    FirstName = user.FIRST_NAME,
+                    LastName = user.LAST_NAME,
+                    PhoneNumber = user.PHONE_NUMBER,
+                    DateOfBirth = user.DATE_OF_BIRTH,
+                    IdCountry = user.ID_COUNTRY,
+                    IdGender = user.ID_GENDER,
+                    TimeZone = user.TIME_ZONE,
+                    AzureOid = user.AZURE_OID,
+                    AzureUpn = user.AZURE_UPN,
+                    IsActive = user.IS_ACTIVE,
+                    IsEmailVerified = user.IS_EMAIL_VERIFIED,
+                    CreateDate = user.CreateDate,
+                    CreatedBy = user.CreatedBy,
+                    Roles = roles,
+                    DirectPermissions = permissions
+                };
+
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo usuario" });
+            }
+        }
+
+        // POST: api/user - Crear usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<ActionResult<UserDetailDto>> Post([FromBody] UserCreateDto dto)
+        {
+            try
+            {
+                // Validar username único
+                if (await _db.Users.AnyAsync(u => u.USER_NAME == dto.Username))
+                    return BadRequest(new { message = "El username ya existe" });
+
+                // Validar email único
+                if (await _db.Users.AnyAsync(u => u.EMAIL == dto.Email))
+                    return BadRequest(new { message = "El email ya existe" });
+
+                // ⭐ Obtener valores por defecto de catálogos si no vienen
+                var idCountry = dto.IdCountry > 0 ? dto.IdCountry : 
+                    await _db.Countries.Where(c => c.IS_ACTIVE).Select(c => c.ID_COUNTRY).FirstOrDefaultAsync();
+
+                var idGender = dto.IdGender > 0 ? dto.IdGender : 
+                    await _db.Genders.Where(g => g.IS_ACTIVE).Select(g => g.ID_GENDER).FirstOrDefaultAsync();
+
+                // ⭐ Obtener rol por defecto (el campo id_role en user tiene FK constraint)
+                // Usar el primer rol de los seleccionados, o "User" por defecto
+                var idRoleDefault = dto.RoleIds?.FirstOrDefault() ?? 0;
+                if (idRoleDefault == 0)
+                {
+                    idRoleDefault = await _db.Roles
+                        .Where(r => r.IS_ACTIVE && r.ROLE_NAME == "User")
+                        .Select(r => r.ID_ROLE)
+                        .FirstOrDefaultAsync();
+                }
+                if (idRoleDefault == 0)
+                {
+                    idRoleDefault = await _db.Roles
+                        .Where(r => r.IS_ACTIVE)
+                        .Select(r => r.ID_ROLE)
+                        .FirstOrDefaultAsync();
+                }
+
+                // Validar que los IDs existen
+                if (idCountry == 0)
+                    return BadRequest(new { 
+                        message = "País inválido. No hay países activos en el sistema.",
+                        field = "idCountry",
+                        code = "INVALID_COUNTRY"
+                    });
+
+                if (idGender == 0)
+                    return BadRequest(new { 
+                        message = "Género inválido. No hay géneros activos en el sistema.",
+                        field = "idGender",
+                        code = "INVALID_GENDER"
+                    });
+
+                if (idRoleDefault == 0)
+                    return BadRequest(new { 
+                        message = "No hay roles activos en el sistema. Debe crear al menos un rol antes de crear usuarios.",
+                        field = "roleIds",
+                        code = "NO_ROLES_AVAILABLE"
+                    });
+
+                // ⭐ Generar contraseña temporal y token de verificación
+                var temporaryPassword = _emailService.GenerateTemporaryPassword();
+                var verificationToken = _emailService.GenerateSecureToken();
+
+                // Hashear la contraseña temporal
+                string passwordHash;
+                using (var sha256 = SHA256.Create())
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(temporaryPassword);
+                    var hash = sha256.ComputeHash(bytes);
+                    passwordHash = Convert.ToBase64String(hash);
+                }
+
+                // ⭐ Convertir DateOfBirth a UTC (Npgsql requiere DateTimeKind.Utc)
+                DateTime dateOfBirth;
+                if (dto.DateOfBirth.HasValue)
+                {
+                    var dob = dto.DateOfBirth.Value;
+                    dateOfBirth = dob.Kind == DateTimeKind.Unspecified 
+                        ? DateTime.SpecifyKind(dob, DateTimeKind.Utc) 
+                        : dob.ToUniversalTime();
+                }
+                else
+                {
+                    dateOfBirth = DateTime.UtcNow.AddYears(-25);
+                }
+
+                _logger.LogInformation("📝 Creando usuario: {Username}, País: {Country}, Género: {Gender}, Rol: {Role}",
+                    dto.Username, idCountry, idGender, idRoleDefault);
+
+                var user = new User
+                {
+                    USER_NAME = dto.Username,
+                    EMAIL = dto.Email,
+                    DISPLAY_NAME = dto.DisplayName ?? $"{dto.FirstName} {dto.LastName}",
+                    PASSWORD_HASH = passwordHash,
+                    IS_ACTIVE = dto.IsActive,
+                    FIRST_NAME = dto.FirstName ?? "User",
+                    LAST_NAME = dto.LastName ?? "System",
+                    PHONE_NUMBER = dto.PhoneNumber ?? string.Empty,
+                    TIME_ZONE = dto.TimeZone ?? "America/Costa_Rica",
+                    DATE_OF_BIRTH = dateOfBirth,
+                    ID_COUNTRY = idCountry,
+                    ID_GENDER = idGender,
+                    ID_ROLE = idRoleDefault, // Rol por defecto (campo legacy con FK constraint)
+                    ID_LANGUAGE = 1832, // Español
+                    IS_EMAIL_VERIFIED = false, // Siempre falso hasta que verifique
+                    EMAIL_VERIFICATION_TOKEN = verificationToken,
+                    EMAIL_VERIFICATION_TOKEN_EXPIRY = DateTime.UtcNow.AddMinutes(VERIFICATION_TOKEN_EXPIRY_MINUTES),
+                    RecordDate = DateTime.UtcNow,
+                    CreateDate = DateTime.UtcNow,
+                    RowPointer = Guid.NewGuid(),
+                    CreatedBy = User.Identity?.Name ?? "SYSTEM",
+                    UpdatedBy = User.Identity?.Name ?? "SYSTEM"
+                };
+
+                _db.Users.Add(user);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Usuario creado: {UserId} - {Username}", user.ID_USER, user.USER_NAME);
+
+                // ⭐ Asignar roles si se especificaron
+                if (dto.RoleIds != null && dto.RoleIds.Any())
+                {
+                    foreach (var roleId in dto.RoleIds)
+                    {
+                        // Verificar que el rol existe
+                        var roleExists = await _db.Roles.AnyAsync(r => r.ID_ROLE == roleId && r.IS_ACTIVE);
+                        if (roleExists)
+                        {
+                            _db.UserRoles.Add(new UserRole
+                            {
+                                UserId = user.ID_USER,
+                                RoleId = roleId,
+                                RecordDate = DateTime.UtcNow,
+                                CreateDate = DateTime.UtcNow,
+                                RowPointer = Guid.NewGuid(),
+                                CreatedBy = User.Identity?.Name ?? "SYSTEM",
+                                UpdatedBy = User.Identity?.Name ?? "SYSTEM"
+                            });
+                        }
+                    }
+                    await _db.SaveChangesAsync();
+                    _logger.LogInformation("✅ Roles asignados: {Roles}", string.Join(", ", dto.RoleIds));
+                }
+
+                // ⭐ Enviar email de verificación
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var baseUrl = environment == "Development" 
+                    ? "https://localhost:5001" 
+                    : "https://cms.biti-solutions.com";
+
+                var emailResult = await _emailService.SendVerificationEmailAsync(
+                    user.EMAIL,
+                    user.DISPLAY_NAME,
+                    verificationToken,
+                    temporaryPassword,
+                    baseUrl
+                );
+
+                if (emailResult.IsSuccess)
+                {
+                    _logger.LogInformation("📧 Email de verificación enviado a {Email}", user.EMAIL);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Error enviando email de verificación: {Error}", emailResult.ErrorMessage);
+                }
+
+                // Obtener el usuario creado con sus datos completos
+                var createdUser = await _db.Users
+                    .Where(u => u.ID_USER == user.ID_USER)
+                    .Select(u => new UserDetailDto
+                    {
+                        Id = u.ID_USER,
+                        Username = u.USER_NAME,
+                        Email = u.EMAIL,
+                        DisplayName = u.DISPLAY_NAME,
+                        IsActive = u.IS_ACTIVE,
+                        CreateDate = u.CreateDate,
+                        CreatedBy = u.CreatedBy,
+                        IsEmailVerified = u.IS_EMAIL_VERIFIED
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (createdUser != null)
+                {
+                    // Agregar roles
+                    createdUser.Roles = await (from ur in _db.UserRoles
+                                               join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                                               where ur.UserId == user.ID_USER
+                                               select new RoleSimpleDto
+                                               {
+                                                   Id = r.ID_ROLE,
+                                                   RoleName = r.ROLE_NAME
+                                               }).ToListAsync();
+                }
+
+                return CreatedAtAction(nameof(Get), new { id = user.ID_USER }, createdUser);
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Extraer información detallada del error de base de datos
+                var innerException = dbEx.InnerException;
+                var errorMessage = "Error de base de datos al crear usuario.";
+                var errorCode = "DB_ERROR";
+                var errorDetails = dbEx.Message;
+
+                if (innerException is Npgsql.PostgresException pgEx)
+                {
+                    errorCode = pgEx.SqlState;
+                    errorDetails = $"Tabla: {pgEx.TableName}, Constraint: {pgEx.ConstraintName}, Detalle: {pgEx.Detail}";
+
+                    // Traducir códigos de error comunes de PostgreSQL
+                    errorMessage = pgEx.SqlState switch
+                    {
+                        "23503" => $"Error de FK: {pgEx.Detail}. Verifique que los valores de país, género y rol existan.",
+                        "23505" => $"Valor duplicado: {pgEx.Detail}",
+                        "23502" => $"Campo requerido vacío: {pgEx.ColumnName}",
+                        _ => $"Error PostgreSQL [{pgEx.SqlState}]: {pgEx.MessageText}"
+                    };
+                }
+
+                _logger.LogError(dbEx, "❌ Error DB creando usuario: {ErrorCode} - {Details}", errorCode, errorDetails);
+
+                return StatusCode(500, new { 
+                    message = errorMessage,
+                    code = errorCode,
+                    details = errorDetails,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error inesperado creando usuario");
+                return StatusCode(500, new { 
+                    message = $"Error inesperado: {ex.Message}",
+                    code = "UNEXPECTED_ERROR",
+                    details = ex.InnerException?.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        // PUT: api/user/5 - Actualizar usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, [FromBody] UserUpdateDto dto)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Validar email único si cambió
+                if (dto.Email != null && dto.Email != user.EMAIL)
+                {
+                    if (await _db.Users.AnyAsync(u => u.EMAIL == dto.Email && u.ID_USER != id))
+                        return BadRequest(new { message = "El email ya existe" });
+                    user.EMAIL = dto.Email;
+                }
+
+                // Actualizar todos los campos editables
+                if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+                    user.DISPLAY_NAME = dto.DisplayName;
+
+                if (!string.IsNullOrWhiteSpace(dto.FirstName))
+                    user.FIRST_NAME = dto.FirstName;
+
+                if (!string.IsNullOrWhiteSpace(dto.LastName))
+                    user.LAST_NAME = dto.LastName;
+
+                if (dto.PhoneNumber != null)
+                    user.PHONE_NUMBER = dto.PhoneNumber;
+
+                if (!string.IsNullOrWhiteSpace(dto.TimeZone))
+                    user.TIME_ZONE = dto.TimeZone;
+
+                if (dto.IdCountry > 0)
+                    user.ID_COUNTRY = dto.IdCountry;
+
+                if (dto.IdGender > 0)
+                    user.ID_GENDER = dto.IdGender;
+
+                if (dto.DateOfBirth.HasValue)
+                {
+                    var dob = dto.DateOfBirth.Value;
+                    user.DATE_OF_BIRTH = dob.Kind == DateTimeKind.Unspecified 
+                        ? DateTime.SpecifyKind(dob, DateTimeKind.Utc) 
+                        : dob.ToUniversalTime();
+                }
+
+                user.IS_ACTIVE = dto.IsActive;
+                user.IS_EMAIL_VERIFIED = dto.IsEmailVerified;
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+
+                await _db.SaveChangesAsync();
+
+                // Actualizar roles si se especificaron
+                if (dto.RoleIds != null)
+                {
+                    // Eliminar roles actuales
+                    var currentRoles = await _db.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
+                    _db.UserRoles.RemoveRange(currentRoles);
+
+                    // Agregar nuevos roles
+                    foreach (var roleId in dto.RoleIds)
+                    {
+                        var roleExists = await _db.Roles.AnyAsync(r => r.ID_ROLE == roleId && r.IS_ACTIVE);
+                        if (roleExists)
+                        {
+                            _db.UserRoles.Add(new UserRole
+                            {
+                                UserId = id,
+                                RoleId = roleId,
+                                RecordDate = DateTime.UtcNow,
+                                CreateDate = DateTime.UtcNow,
+                                RowPointer = Guid.NewGuid(),
+                                CreatedBy = User.Identity?.Name ?? "SYSTEM",
+                                UpdatedBy = User.Identity?.Name ?? "SYSTEM"
+                            });
+                        }
+                    }
+                    await _db.SaveChangesAsync();
+                    _logger.LogInformation("✅ Roles actualizados para usuario {UserId}: {Roles}", id, string.Join(", ", dto.RoleIds));
+                }
+
+                _logger.LogInformation("✅ Usuario {UserId} actualizado", id);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando usuario {Id}", id);
+                return StatusCode(500, new { message = "Error actualizando usuario" });
+            }
+        }
+
+        // DELETE: api/user/5 - Soft delete
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Soft delete
+                user.IS_ACTIVE = false;
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+                await _db.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando usuario {Id}", id);
+                return StatusCode(500, new { message = "Error eliminando usuario" });
+            }
+        }
+
+        // =====================================================
+        // GESTIÓN DE ROLES
+        // =====================================================
+
+        // GET: api/user/{id}/roles - Obtener roles del usuario
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}/roles")]
+        public async Task<ActionResult<List<RoleSimpleDto>>> GetUserRoles(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var roles = await (from ur in _db.UserRoles
+                   join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                   where ur.UserId == id
+                   select new RoleSimpleDto
+                   {
+                       Id = r.ID_ROLE,
+                       RoleName = r.ROLE_NAME
+                   }).ToListAsync();
+
+                return Ok(roles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo roles del usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo roles" });
+            }
+        }
+
+        // POST: api/user/{id}/roles - Asignar roles al usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/roles")]
+        public async Task<IActionResult> AssignRoles(int id, [FromBody] List<int> roleIds)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Validar que todos los roles existen
+                var existingRoleIds = await _db.Roles
+                    .Where(r => roleIds.Contains(r.ID_ROLE))
+                    .Select(r => r.ID_ROLE)
+                    .ToListAsync();
+
+                if (existingRoleIds.Count != roleIds.Count)
+                    return BadRequest(new { message = "Uno o más roles no existen" });
+
+                // Eliminar roles existentes
+                var currentRoles = await _db.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
+                _db.UserRoles.RemoveRange(currentRoles);
+
+                // Agregar nuevos roles
+                var userName = User.Identity?.Name ?? "system";
+                foreach (var roleId in roleIds)
+                {
+                    _db.UserRoles.Add(new UserRole
+                    {
+                        UserId = id,
+                        RoleId = roleId,
+                        RecordDate = DateTime.UtcNow,
+                        CreateDate = DateTime.UtcNow,
+                        RowPointer = Guid.NewGuid(),
+                        CreatedBy = userName,
+                        UpdatedBy = userName
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Roles asignados al usuario {UserId}: {Roles}", id, string.Join(", ", roleIds));
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando roles al usuario {Id}", id);
+                return StatusCode(500, new { message = "Error asignando roles" });
+            }
+        }
+
+        // DELETE: api/user/{id}/roles/{roleId} - Remover un rol específico
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}/roles/{roleId}")]
+        public async Task<IActionResult> RemoveRole(int id, int roleId)
+        {
+            try
+            {
+                var userRole = await _db.UserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == id && ur.RoleId == roleId);
+
+                if (userRole == null)
+                    return NotFound(new { message = "Asignación de rol no encontrada" });
+
+                _db.UserRoles.Remove(userRole);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Rol {RoleId} removido del usuario {UserId}", roleId, id);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removiendo rol {RoleId} del usuario {UserId}", roleId, id);
+                return StatusCode(500, new { message = "Error removiendo rol" });
+            }
+        }
+
+        // =====================================================
+        // GESTIÓN DE PERMISOS DIRECTOS
+        // =====================================================
+
+        // GET: api/user/{id}/permissions - Obtener permisos directos
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}/permissions")]
+        public async Task<ActionResult<List<PermissionSimpleDto>>> GetUserPermissions(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var permissions = await (from up in _db.UserPermissions
+                         join p in _db.Permissions on up.PermissionId equals p.ID_PERMISSION
+                         where up.UserId == id
+                         select new PermissionSimpleDto
+                         {
+                             Id = p.ID_PERMISSION,
+                             PermissionKey = p.PERMISSION_KEY,
+                             PermissionName = p.PERMISSION_NAME,
+                             IsAllowed = up.IsAllowed
+                         }).ToListAsync();
+
+                return Ok(permissions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permisos del usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo permisos" });
+            }
+        }
+
+        // POST: api/user/{id}/permissions - Asignar permisos directos
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/permissions")]
+        public async Task<IActionResult> AssignPermissions(int id, [FromBody] List<PermissionAssignment> permissions)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Eliminar permisos existentes
+                var currentPermissions = await _db.UserPermissions.Where(up => up.UserId == id).ToListAsync();
+                _db.UserPermissions.RemoveRange(currentPermissions);
+
+                // Agregar nuevos permisos
+                var userName = User.Identity?.Name ?? "system";
+                foreach (var perm in permissions)
+                {
+                    _db.UserPermissions.Add(new UserPermission
+                    {
+                        UserId = id,
+                        PermissionId = perm.PermissionId,
+                        IsAllowed = perm.IsAllowed,
+                        RecordDate = DateTime.UtcNow,
+                        CreateDate = DateTime.UtcNow,
+                        RowPointer = Guid.NewGuid(),
+                        CreatedBy = userName,
+                        UpdatedBy = userName
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Permisos asignados al usuario {UserId}: {Count} permisos", id, permissions.Count);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando permisos al usuario {Id}", id);
+                return StatusCode(500, new { message = "Error asignando permisos" });
+            }
+        }
+
+        // =====================================================
+        // ACCIONES ADICIONALES
+        // =====================================================
+
+        // POST: api/user/{id}/activate - Activar usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/activate")]
+        public async Task<IActionResult> ActivateUser(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                user.IS_ACTIVE = true;
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Usuario activado: {UserId}", id);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error activando usuario {Id}", id);
+                return StatusCode(500, new { message = "Error activando usuario" });
+            }
+        }
+
+        // POST: api/user/{id}/reset-password - Enviar reset de contraseña con email
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/reset-password")]
+        public async Task<IActionResult> ResetPassword(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Generar contraseña temporal y token
+                var temporaryPassword = _emailService.GenerateTemporaryPassword();
+                var resetToken = _emailService.GenerateSecureToken();
+
+                // Hashear la contraseña temporal
+                using var sha256 = SHA256.Create();
+                var passwordBytes = System.Text.Encoding.UTF8.GetBytes(temporaryPassword);
+                var hash = sha256.ComputeHash(passwordBytes);
+                var passwordHash = Convert.ToBase64String(hash);
+
+                // ⭐ Hashear el token para guardarlo en BD (el token plano se envía por email)
+                var tokenBytes = System.Text.Encoding.UTF8.GetBytes(resetToken);
+                var tokenHash = sha256.ComputeHash(tokenBytes);
+                var tokenHashBase64 = Convert.ToBase64String(tokenHash);
+
+                // Actualizar usuario
+                user.PASSWORD_HASH = passwordHash;
+                user.PASSWORD_RESET_TOKEN = tokenHashBase64; // ⭐ Guardar HASH del token
+                user.PASSWORD_RESET_TOKEN_EXPIRY = DateTime.UtcNow.AddMinutes(VERIFICATION_TOKEN_EXPIRY_MINUTES);
+                user.LAST_PASSWORD_CHANGE = null; // Forzar cambio de contraseña
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+                await _db.SaveChangesAsync();
+
+                // Enviar email
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var baseUrl = environment == "Development" 
+                    ? "https://localhost:5001" 
+                    : "https://cms.biti-solutions.com";
+
+                var emailResult = await _emailService.SendPasswordResetEmailAsync(
+                    user.EMAIL,
+                    user.DISPLAY_NAME,
+                    resetToken, // ⭐ Enviar token PLANO por email
+                    temporaryPassword,
+                    baseUrl
+                );
+
+                if (!emailResult.IsSuccess)
+                {
+                    _logger.LogWarning("⚠️ Error enviando email de reset: {Error}", emailResult.ErrorMessage);
+                    return Ok(new { 
+                        success = true, 
+                        message = "Token generado pero hubo un error enviando el correo",
+                        warning = emailResult.ErrorMessage
+                    });
+                }
+
+                _logger.LogInformation("✅ Password reset enviado para usuario {UserId} ({Email})", id, user.EMAIL);
+
+                return Ok(new { 
+                    success = true, 
+                    message = $"Se ha enviado un correo a {user.EMAIL} con las instrucciones para cambiar la contraseña" 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generando reset de contraseña para usuario {Id}", id);
+                return StatusCode(500, new { message = "Error generando reset de contraseña" });
+            }
+        }
+
+        // POST: api/user/{id}/send-verification - Enviar/Reenviar email de verificación
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/send-verification")]
+        public async Task<IActionResult> SendVerificationEmail(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                if (user.IS_EMAIL_VERIFIED)
+                    return BadRequest(new { message = "El correo ya está verificado" });
+
+                // Generar contraseña temporal y token
+                var temporaryPassword = _emailService.GenerateTemporaryPassword();
+                var verificationToken = _emailService.GenerateSecureToken();
+
+                // Hashear la contraseña temporal
+                using var sha256 = SHA256.Create();
+                var passwordBytes = System.Text.Encoding.UTF8.GetBytes(temporaryPassword);
+                var hash = sha256.ComputeHash(passwordBytes);
+                var passwordHash = Convert.ToBase64String(hash);
+
+                // Actualizar usuario
+                user.PASSWORD_HASH = passwordHash;
+                user.EMAIL_VERIFICATION_TOKEN = verificationToken;
+                user.EMAIL_VERIFICATION_TOKEN_EXPIRY = DateTime.UtcNow.AddMinutes(VERIFICATION_TOKEN_EXPIRY_MINUTES);
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+                await _db.SaveChangesAsync();
+
+                // Enviar email
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var baseUrl = environment == "Development" 
+                    ? "https://localhost:5001" 
+                    : "https://cms.biti-solutions.com";
+
+                var emailResult = await _emailService.SendVerificationEmailAsync(
+                    user.EMAIL,
+                    user.DISPLAY_NAME,
+                    verificationToken,
+                    temporaryPassword,
+                    baseUrl
+                );
+
+                if (!emailResult.IsSuccess)
+                {
+                    _logger.LogWarning("⚠️ Error enviando email de verificación: {Error}", emailResult.ErrorMessage);
+                    return Ok(new { 
+                        success = true, 
+                        message = "Token generado pero hubo un error enviando el correo",
+                        warning = emailResult.ErrorMessage
+                    });
+                }
+
+                _logger.LogInformation("✅ Email de verificación enviado para usuario {UserId} ({Email})", id, user.EMAIL);
+
+                return Ok(new { 
+                    success = true, 
+                    message = $"Se ha enviado un correo de verificación a {user.EMAIL}" 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enviando email de verificación para usuario {Id}", id);
+                return StatusCode(500, new { message = "Error enviando email de verificación" });
+            }
+        }
+
+        // DELETE: api/user/{id}/permanent - Eliminación permanente (solo si no hay referencias)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}/permanent")]
+        public async Task<IActionResult> DeletePermanent(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Verificar referencias en otras tablas
+                var references = new List<string>();
+
+                // Verificar user_company
+                if (await _db.UserCompanies.AnyAsync(uc => uc.ID_USER == id))
+                    references.Add("user_company (asignaciones de compañía)");
+
+                // Verificar user_role
+                if (await _db.UserRoles.AnyAsync(ur => ur.UserId == id))
+                    references.Add("user_role (roles asignados)");
+
+                // Verificar user_permission
+                if (await _db.UserPermissions.AnyAsync(up => up.UserId == id))
+                    references.Add("user_permission (permisos directos)");
+
+                // Verificar otras tablas que podrían referenciar usuarios
+                // (Se pueden agregar más verificaciones según las tablas del sistema)
+
+                // Por ahora, si tiene roles/permisos/compañías, ofrecemos limpiarlos
+                if (references.Any())
+                {
+                    return BadRequest(new { 
+                        message = "El usuario tiene referencias que deben eliminarse primero",
+                        canDelete = true, // Se puede eliminar si se limpian las referencias
+                        references = references,
+                        suggestion = "Use el parámetro 'force=true' para eliminar las referencias automáticamente"
+                    });
+                }
+
+                // Eliminar permanentemente
+                _db.Users.Remove(user);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("🗑️ Usuario {UserId} ({Username}) eliminado permanentemente por {DeletedBy}", 
+                    id, user.USER_NAME, User.Identity?.Name);
+
+                return Ok(new { 
+                    success = true, 
+                    message = $"Usuario '{user.USER_NAME}' eliminado permanentemente" 
+                });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Error de FK - hay referencias que no verificamos
+                _logger.LogError(dbEx, "Error eliminando usuario {Id} - tiene referencias pendientes", id);
+                return BadRequest(new { 
+                    message = "No se puede eliminar: el usuario tiene referencias en otras tablas del sistema",
+                    details = dbEx.InnerException?.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando permanentemente usuario {Id}", id);
+                return StatusCode(500, new { message = "Error eliminando usuario" });
+            }
+        }
+
+        // DELETE: api/user/{id}/force - Eliminación forzada (elimina referencias)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}/force")]
+        public async Task<IActionResult> DeleteForce(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Eliminar referencias primero
+                var deletedRoles = await _db.UserRoles.Where(ur => ur.UserId == id).ExecuteDeleteAsync();
+                var deletedPermissions = await _db.UserPermissions.Where(up => up.UserId == id).ExecuteDeleteAsync();
+                var deletedCompanies = await _db.UserCompanies.Where(uc => uc.ID_USER == id).ExecuteDeleteAsync();
+
+                _logger.LogInformation("🧹 Limpieza de referencias para usuario {UserId}: {Roles} roles, {Permissions} permisos, {Companies} compañías", 
+                    id, deletedRoles, deletedPermissions, deletedCompanies);
+
+                // Eliminar usuario
+                _db.Users.Remove(user);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("🗑️ Usuario {UserId} ({Username}) eliminado permanentemente (forzado) por {DeletedBy}", 
+                    id, user.USER_NAME, User.Identity?.Name);
+
+                return Ok(new { 
+                    success = true, 
+                    message = $"Usuario '{user.USER_NAME}' eliminado permanentemente",
+                    deletedReferences = new {
+                        roles = deletedRoles,
+                        permissions = deletedPermissions,
+                        companies = deletedCompanies
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando (forzado) usuario {Id}", id);
+                return StatusCode(500, new { message = "Error eliminando usuario: " + ex.Message });
+            }
+        }
+
+        // GET: api/user/check-username - Verificar disponibilidad de username
+        [Authorize(Roles = "Admin")]
+        [HttpGet("check-username")]
+        public async Task<IActionResult> CheckUsername([FromQuery] string username, [FromQuery] int? excludeId = null)
+        {
+            try
+            {
+                var query = _db.Users.Where(u => u.USER_NAME == username);
+                if (excludeId.HasValue)
+                    query = query.Where(u => u.ID_USER != excludeId.Value);
+
+                var exists = await query.AnyAsync();
+
+                return Ok(new { available = !exists });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando username");
+                return StatusCode(500, new { available = false });
+            }
+        }
+
+        // GET: api/user/check-email - Verificar disponibilidad de email
+        [Authorize(Roles = "Admin")]
+        [HttpGet("check-email")]
+        public async Task<IActionResult> CheckEmail([FromQuery] string email, [FromQuery] int? excludeId = null)
+        {
+            try
+            {
+                var query = _db.Users.Where(u => u.EMAIL == email);
+                if (excludeId.HasValue)
+                    query = query.Where(u => u.ID_USER != excludeId.Value);
+
+                var exists = await query.AnyAsync();
+
+                return Ok(new { available = !exists });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando email");
+                return StatusCode(500, new { available = false });
+            }
+        }
+
+        #region User Companies Management
+
+        // GET: api/user/{id}/companies - Obtener compañías asignadas a un usuario
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}/companies")]
+        public async Task<IActionResult> GetUserCompanies(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var companies = await (from uc in _db.UserCompanies
+                                       join c in _db.Companies on uc.ID_COMPANY equals c.ID
+                                       where uc.ID_USER == id
+                                       select new UserCompanyDto
+                                       {
+                                           CompanyId = c.ID,
+                                           CompanyName = c.COMPANY_NAME,
+                                           CompanySchema = c.COMPANY_SCHEMA,
+                                           IsDefault = uc.IS_DEFAULT,
+                                           IsActive = uc.IS_ACTIVE,
+                                           AccessGrantedDate = uc.ACCESS_GRANTED_DATE,
+                                           AccessExpiryDate = uc.ACCESS_EXPIRY_DATE
+                                       }).ToListAsync();
+
+                return Ok(companies);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo compañías del usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo compañías" });
+            }
+        }
+
+        // POST: api/user/{id}/companies - Asignar compañías a un usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/companies")]
+        public async Task<IActionResult> AssignCompanies(int id, [FromBody] AssignCompaniesDto dto)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Validar que las compañías existen
+                var validCompanyIds = await _db.Companies
+                    .Where(c => dto.CompanyIds.Contains(c.ID) && c.IS_ACTIVE)
+                    .Select(c => c.ID)
+                    .ToListAsync();
+
+                if (validCompanyIds.Count != dto.CompanyIds.Count)
+                {
+                    _logger.LogWarning("⚠️ Algunas compañías no existen o están inactivas");
+                }
+
+                // Eliminar asignaciones actuales
+                var currentAssignments = await _db.UserCompanies
+                    .Where(uc => uc.ID_USER == id)
+                    .ToListAsync();
+                _db.UserCompanies.RemoveRange(currentAssignments);
+
+                // Crear nuevas asignaciones
+                var isFirst = true;
+                foreach (var companyId in validCompanyIds)
+                {
+                    var userCompany = new CMS.Entities.UserCompany
+                    {
+                        ID_USER = id,
+                        ID_COMPANY = companyId,
+                        IS_DEFAULT = isFirst, // Primera compañía es la default
+                        IS_ACTIVE = true,
+                        ACCESS_GRANTED_DATE = DateTime.UtcNow,
+                        CreateDate = DateTime.UtcNow,
+                        RowPointer = Guid.NewGuid()
+                    };
+                    _db.UserCompanies.Add(userCompany);
+                    isFirst = false;
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Compañías asignadas a usuario {UserId}: {Companies}", 
+                    id, string.Join(", ", validCompanyIds));
+
+                return Ok(new { 
+                    success = true, 
+                    message = $"Se asignaron {validCompanyIds.Count} compañía(s) al usuario",
+                    assignedCompanies = validCompanyIds
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando compañías al usuario {Id}", id);
+                return StatusCode(500, new { message = "Error asignando compañías: " + ex.Message });
+            }
+        }
+
+        // DELETE: api/user/{id}/companies/{companyId} - Remover una compañía de un usuario
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}/companies/{companyId}")]
+        public async Task<IActionResult> RemoveCompany(int id, int companyId)
+        {
+            try
+            {
+                var userCompany = await _db.UserCompanies
+                    .FirstOrDefaultAsync(uc => uc.ID_USER == id && uc.ID_COMPANY == companyId);
+
+                if (userCompany == null)
+                    return NotFound(new { message = "Asignación no encontrada" });
+
+                _db.UserCompanies.Remove(userCompany);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Compañía {CompanyId} removida del usuario {UserId}", companyId, id);
+
+                return Ok(new { success = true, message = "Compañía removida del usuario" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removiendo compañía {CompanyId} del usuario {Id}", companyId, id);
+                return StatusCode(500, new { message = "Error removiendo compañía" });
+            }
+        }
+
+        #endregion
+
+        #region DTOs for User Companies
+
+        public class UserCompanyDto
+        {
+            public int CompanyId { get; set; }
+            public string CompanyName { get; set; } = string.Empty;
+            public string? CompanySchema { get; set; }
+            public bool IsDefault { get; set; }
+            public bool IsActive { get; set; }
+            public DateTime? AccessGrantedDate { get; set; }
+            public DateTime? AccessExpiryDate { get; set; }
+        }
+
+        public class AssignCompaniesDto
+        {
+            public List<int> CompanyIds { get; set; } = new();
+        }
+
+        #endregion
+    }
+}

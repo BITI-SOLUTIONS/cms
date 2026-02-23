@@ -1,0 +1,15 @@
+﻿# Copilot Instructions
+
+## Project Guidelines
+- Proyecto CMS de BITI Solutions S.A - Arquitectura Clean Architecture con capas: CMS.API (Web API REST), CMS.Application (CQRS/MediatR), CMS.Data (Repository/EF Core), CMS.Entities (Domain), CMS.UI (Razor Pages/MVC), CMS.Shared (Infraestructura compartida)
+- Puertos CMS: API interno 8080 (externo 5000 dev), UI interno 8081 (externo 3000 dev), PostgreSQL 5432 (NodePort 30432). 
+- Servidor: BITISERVER1 @ 147.182.204.86 (DigitalOcean). 
+- Dominio: cms.biti-solutions.com. 
+- Registry: registry.biti-solutions.com.
+- Base de datos CMS: PostgreSQL 15, esquema principal "admin" (ej: admin.menu). Usuario: cmssystem. Credenciales en Kubernetes Secret cms-db-secret.
+- **Configuración**: El proyecto CMS NO usa `appsettings.json`. Usa `connectionstrings.json` para TODA la configuración (connection strings, Azure AD, etc). Ubicación: `CMS.API/connectionstrings.json` y `CMS.UI/connectionstrings.json` (mismo contenido). Está en `.gitignore`. En Kubernetes se monta desde ConfigMap `cms-connectionstrings`.
+
+## Timezone and Working Hours
+- Timezone BITI Solutions: UTC-6 (Costa Rica - CST).
+- Horario: 8:00 AM - 12:00 AM.
+- Owner: @BITI-SOLUTIONS (desarrollador único, full stack + DevOps).

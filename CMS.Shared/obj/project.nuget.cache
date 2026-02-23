@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "n+8/CNrbvoE=",
+  "success": true,
+  "projectFilePath": "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Shared\\CMS.Shared.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\9.0.0\\microsoft.extensions.configuration.abstractions.9.0.0.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.0\\microsoft.extensions.dependencyinjection.abstractions.9.0.0.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\9.0.0\\microsoft.extensions.logging.abstractions.9.0.0.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.extensions.primitives\\9.0.0\\microsoft.extensions.primitives.9.0.0.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.13\\microsoft.windowsdesktop.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.13\\microsoft.netcore.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.13\\microsoft.aspnetcore.app.ref.9.0.13.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,0 +1,386 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Admin/Jobs.cshtml                                          *@
+@* PROPÓSITO: Vista de Job Scheduler - Tareas programadas                           *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Admin.JobSchedulerViewModel
+
+@{
+    ViewData["Title"] = "Job Scheduler";
+}
+
+<div class="content-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-icon bg-gradient-cyan">
+                <i class="bi bi-clock-fill"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Job Scheduler</h1>
+                <p>Gestionar tareas programadas y trabajos en segundo plano</p>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Jobs Programados -->
+        <div class="col-lg-8">
+            <div class="card-tech mb-4">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Tareas Programadas</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="jobs-list">
+                        @foreach (var job in Model.Jobs)
+                        {
+                            <div class="job-item @(!job.IsEnabled ? "disabled" : "")">
+                                <div class="job-status-indicator @job.StatusBadgeClass"></div>
+                                <div class="job-content">
+                                    <div class="job-header">
+                                        <h6 class="job-name">@job.Name</h6>
+                                        @if (!job.IsEnabled)
+                                        {
+                                            <span class="badge-paused">
+                                                <i class="bi bi-pause-circle"></i> Pausado
+                                            </span>
+                                        }
+                                    </div>
+                                    <p class="job-description">@job.Description</p>
+                                    <div class="job-meta">
+                                        <div class="meta-group">
+                                            <span class="meta-label">Programación</span>
+                                            <code class="cron-expression">@job.CronExpression</code>
+                                        </div>
+                                        <div class="meta-group">
+                                            <span class="meta-label">Próxima ejecución</span>
+                                            <span class="meta-value">
+                                                @(job.NextRun?.ToString("dd/MM HH:mm") ?? "N/A")
+                                            </span>
+                                        </div>
+                                        <div class="meta-group">
+                                            <span class="meta-label">Última ejecución</span>
+                                            <span class="meta-value @(job.LastStatus == "Failed" ? "text-danger" : "")">
+                                                @(job.LastRun?.ToString("dd/MM HH:mm") ?? "Nunca")
+                                                @if (job.LastStatus == "Failed")
+                                                {
+                                                    <i class="bi bi-exclamation-circle ms-1"></i>
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="job-actions">
+                                    @if (job.IsEnabled)
+                                    {
+                                        <form asp-action="RunJob" asp-route-id="@job.Id" method="post" style="display: inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn-job-action btn-run" title="Ejecutar ahora">
+                                                <i class="bi bi-play-fill"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    <form asp-action="ToggleJob" asp-route-id="@job.Id" method="post" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-job-action @(job.IsEnabled ? "btn-pause" : "btn-resume")" 
+                                                title="@(job.IsEnabled ? "Pausar" : "Reanudar")">
+                                            <i class="bi bi-@(job.IsEnabled ? "pause-fill" : "play-fill")"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ejecuciones Recientes -->
+        <div class="col-lg-4">
+            <div class="card-tech">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Ejecuciones Recientes</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="executions-list">
+                        @foreach (var exec in Model.RecentExecutions)
+                        {
+                            <div class="execution-item">
+                                <div class="execution-status @(exec.Status == "Success" ? "status-success" : "status-error")">
+                                    <i class="bi bi-@(exec.Status == "Success" ? "check-circle-fill" : "x-circle-fill")"></i>
+                                </div>
+                                <div class="execution-content">
+                                    <span class="execution-name">@exec.JobName</span>
+                                    <span class="execution-time">
+                                        @exec.StartTime.ToString("dd/MM HH:mm") - @exec.Duration.TotalSeconds.ToString("F1")s
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(exec.Message))
+                                    {
+                                        <span class="execution-message">@exec.Message</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leyenda de Cron -->
+            <div class="card-tech mt-4">
+                <div class="card-header-tech">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Expresiones Cron</h5>
+                </div>
+                <div class="card-body">
+                    <div class="cron-help">
+                        <code>* * * * *</code>
+                        <div class="cron-parts">
+                            <span>│ │ │ │ └─ Día semana (0-6)</span>
+                            <span>│ │ │ └─── Mes (1-12)</span>
+                            <span>│ │ └───── Día mes (1-31)</span>
+                            <span>│ └─────── Hora (0-23)</span>
+                            <span>└───────── Minuto (0-59)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-cyan {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+    }
+
+    .jobs-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .job-item {
+        display: flex;
+        align-items: stretch;
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        gap: 1rem;
+    }
+
+    .job-item:last-child {
+        border-bottom: none;
+    }
+
+    .job-item.disabled {
+        opacity: 0.6;
+    }
+
+    .job-status-indicator {
+        width: 4px;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+
+    .status-success { background: #10b981; }
+    .status-error { background: #ef4444; }
+    .status-running { background: #f59e0b; animation: pulse 1s infinite; }
+    .status-unknown { background: #64748b; }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .job-content {
+        flex: 1;
+    }
+
+    .job-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
+
+    .job-name {
+        color: var(--text-white);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .badge-paused {
+        background: rgba(100, 116, 139, 0.2);
+        color: #94a3b8;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+    }
+
+    .job-description {
+        color: var(--text-gray);
+        font-size: 0.85rem;
+        margin: 0 0 10px 0;
+    }
+
+    .job-meta {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .meta-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .meta-label {
+        font-size: 0.7rem;
+        color: var(--text-gray);
+        text-transform: uppercase;
+    }
+
+    .meta-value {
+        color: var(--text-white);
+        font-size: 0.85rem;
+    }
+
+    .cron-expression {
+        background: rgba(6, 182, 212, 0.1);
+        color: #22d3ee;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .job-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .btn-job-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-run {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    .btn-run:hover {
+        background: rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-pause {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    .btn-pause:hover {
+        background: rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-resume {
+        background: rgba(6, 182, 212, 0.15);
+        color: #06b6d4;
+    }
+    .btn-resume:hover {
+        background: rgba(6, 182, 212, 0.3);
+    }
+
+    .executions-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .execution-item {
+        display: flex;
+        gap: 12px;
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .execution-item:last-child {
+        border-bottom: none;
+    }
+
+    .execution-status {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .execution-status.status-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+
+    .execution-status.status-error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .execution-content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .execution-name {
+        color: var(--text-white);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .execution-time {
+        color: var(--text-gray);
+        font-size: 0.75rem;
+    }
+
+    .execution-message {
+        color: var(--text-gray);
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cron-help code {
+        display: block;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 10px;
+        border-radius: 6px;
+        color: #22d3ee;
+        font-size: 1rem;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .cron-parts {
+        display: flex;
+        flex-direction: column;
+        font-family: monospace;
+        font-size: 0.7rem;
+        color: var(--text-gray);
+        line-height: 1.6;
+    }
+</style>

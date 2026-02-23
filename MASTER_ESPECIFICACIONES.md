@@ -132,10 +132,6 @@ BITI-SOLUTIONS/cms/
 └── .gitattributes
 ```
 
-### ⚠️ IMPORTANTE: Configuración SIN appsettings.json
-
-**CRÍTICO:** Este proyecto **NO** usa `appsettings.json` ni `appsettings.Development.json`.
-
 En su lugar, usa **`connectionstrings.json`** para TODA la configuración:
 - Ubicación: `CMS.API/connectionstrings.json` y `CMS.UI/connectionstrings.json`
 - Son el **mismo archivo** (idéntico contenido)
@@ -576,7 +572,6 @@ kubectl rollout status deployment/cms-ui-deployment -n cms
 - **Endpoint:** signin-oidc
 - **Flujo:** OAuth 2.0
 - **Azure App Registration:** ✅ Configurado (credenciales en base de datos)
-- **Configuración almacenada en:** `connectionstrings.json` (NO en appsettings.json)
 
 **Posibles causas:**
 1. API no está configurado para validar tokens JWT de Azure AD
@@ -719,16 +714,6 @@ kubectl rollout undo deployment/cms-api-deployment -n cms
 
 ## 💡 12. CONTEXTO PARA COPILOT
 
-### CRÍTICO: connectionstrings.json
-
-**NUNCA OLVIDES ESTO:**
-- Este proyecto **NO USA appsettings.json**
-- **SOLO USA connectionstrings.json**
-- Ubicaciones: `CMS.API/connectionstrings.json` y `CMS.UI/connectionstrings.json`
-- Son el **mismo archivo** (idéntico contenido)
-- Está en `.gitignore` (NO se versiona)
-- En Kubernetes: Se monta desde ConfigMap `cms-connectionstrings`
-
 ### Stack Clave
 - .NET 9.0 + PostgreSQL 15 + Kubernetes k3s + Azure AD
 - Puertos: API 8080, UI 8081, PostgreSQL 5432/30432
@@ -745,6 +730,17 @@ kubectl rollout undo deployment/cms-api-deployment -n cms
 | Fecha | Versión | Cambios |
 |-------|---------|---------|
 | 2026-02-09 | 1.0 | Documento inicial completo |
+
+## 🚀 14. Checklist para Deploy en DigitalOcean Droplet/Servidor
+Dado lo que describes (Kubernetes, Docker, acceso SSH, registry privado), te dejo los comandos completos para:
+
+Actualizar el código
+Reconstruir imágenes Docker
+Push de imágenes al registry
+Actualizar el deployment en Kubernetes
+Verificar y hacer rollback si es necesario
+
+Necesito agregarle una pantalla de login al puro inicio que el usuario digite la company este dato se tiene que validar contrata la tabla SELECT * FROM admin.company espeficicamente con el campo company_schema, aqui se tiene que validar el tipo de validacion de usuario que de momento solo lo tengo implementado para que valide por azure ad, pero tambien puede ser que se validad por un usuario del propio sistema es decir correo electronico mas contraseña, para eso hay que crear un campo nuevo boolean en SELECT * FROM admin.company para saber si la compañlia utiliza o no azure ad, es decir todos los usuarios de la compañia se van a logear igual segun lo que tenga definido, tambien hay que crear una tabla nueva que relacione si el usuario puede acceder a esa compañia ya que un usurios va poder acceder a varias compañias ademas puede que en una de las compañias se valide con azure ad y en otra solo por correo mas contraseña si esta esta ultima los usuarios pueden solicitar reestablecer la contraseña si fue que se les olvido esto mandara un correo al correo registrado y con esto comprar que es el usuario, 3 intentos de poner una contraseña incorrecto se bloquea automaticamnet el usuario y debera reestablecer la contraseña
 
 ---
 

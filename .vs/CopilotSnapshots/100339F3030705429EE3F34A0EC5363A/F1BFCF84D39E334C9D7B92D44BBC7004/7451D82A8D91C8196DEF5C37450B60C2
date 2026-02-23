@@ -1,0 +1,74 @@
+﻿# Copilot Instructions
+
+## Project Guidelines
+- Proyecto CMS de BITI Solutions S.A - Arquitectura Clean Architecture con capas: CMS.API (Web API REST), CMS.Application (CQRS/MediatR), CMS.Data (Repository/EF Core), CMS.Entities (Domain), CMS.UI (Razor Pages/MVC), CMS.Shared (Infraestructura compartida)
+- Stack tecnológico CMS: .NET 9.0 (C# 13), PostgreSQL 15 (Alpine), Kubernetes k3s, Azure AD (Entra ID) para autenticación, Entity Framework Core 9.0 con Npgsql, Docker + Harbor registry privado.
+- Puertos CMS: API interno 8080 (externo 5000 dev), UI interno 8081 (externo 3000 dev), PostgreSQL 5432 (NodePort 30432). 
+- Servidor: BITISERVER1 @ 147.182.204.86 (DigitalOcean). 
+- Dominio: cms.biti-solutions.com. 
+- Registry: registry.biti-solutions.com.
+- Base de datos CMS: PostgreSQL 15, esquema principal "admin" (ej: admin.menu). Usuario: cmssystem. Credenciales en Kubernetes Secret cms-db-secret.
+
+## ⚠️ Configuración del Proyecto ⚠️
+- **Archivos de configuración**: El proyecto usa archivos `appsettings.json` estándar de .NET (NO `connectionstrings.json`).
+  - `CMS.API/appsettings.json` y `CMS.API/appsettings.Development.json`
+  - `CMS.UI/appsettings.json` y `CMS.UI/appsettings.Development.json`
+- **Configuración dinámica desde BD**: Las configuraciones generales del sistema (SMTP, notificaciones, etc.) se almacenan en la tabla `admin.system_config`.
+- **Email/SMTP**: La configuración del correo de envío (recuperación de contraseña, notificaciones, verificación de email) se lee desde `admin.system_config` con las claves:
+  - `smtp_host`, `smtp_port`, `smtp_username`, `smtp_password`, `smtp_from_email`, `smtp_from_name`, `smtp_enable_ssl`
+- **En Kubernetes**: Los appsettings se montan desde ConfigMaps.
+
+## ⚠️ REGLAS CRÍTICAS - NO ROMPER ⚠️
+
+### Arquitectura de Seguridad (Roles y Permisos por Compañía)
+**IMPORTANTE**: Los roles y permisos son POR COMPAÑÍA, no globales.
+
+1. **Tablas de seguridad**:
+   - `admin.user_company_role` - Roles de un usuario EN UNA compañía específica
+   - `admin.user_company_permission` - Permisos directos/denegaciones por usuario-compañía
+   - `admin.role_permission` - Permisos que otorga cada rol (global)
+
+2. **Jerarquía de evaluación de permisos**:
+   ```
+   1. Obtener roles del usuario en ESA compañía (user_company_role)
+   2. Obtener permisos de esos roles (role_permission)
+   3. Aplicar permisos directos otorgados (user_company_permission.is_allowed = true)
+   4. Aplicar denegaciones (user_company_permission.is_allowed = false)
+   5. DENEGACIONES SIEMPRE GANAN sobre permisos otorgados
+   ```
+
+3. **Campo OBSOLETO**: `admin.user.id_role` está obsoleto. NO USAR.
+   - Los roles se asignan en `user_company_role`
+
+4. **Servicios de autorización**:
+   - `PermissionService.GetUserPermissionsForCompanyAsync(userId, companyId)` - Obtiene permisos efectivos
+   - `AuthorizationService` - Gestión completa de roles y permisos por compañía
+
+5. **JWT**: El token incluye permisos y roles para la compañía activa del usuario.
+
+### Sesión y Antiforgery Token (CMS.UI)
+1. **NUNCA usar `HttpContext.Session.Clear()` en métodos POST con `[ValidateAntiForgeryToken]`** - Esto invalida el token y causa error 500.
+2. **SelectCompany POST NO usa [ValidateAntiForgeryToken]** - Es la primera página que ve el usuario sin cookies, el token no puede validarse. Es público y seguro.
+3. **En SelectCompany GET**: Solo limpiar sesión si `forceLogout=true`. Siempre inicializar la sesión con un valor dummy para asegurar que la cookie exista.
+4. **Configuración de cookies de sesión**: Usar `SameSiteMode.Lax` y `SecurePolicy.SameAsRequest` en desarrollo.
+
+### Rutas (CMS.UI)
+1. **Links de navegación**: Siempre usar tag helpers (`asp-controller`, `asp-action`) en lugar de URLs hardcodeadas.
+2. **Ruta para /Home**: Debe existir una ruta específica que mapee `/Home` a `Home/Index`.
+
+### Flujo de Creación de Usuarios
+1. Al crear un usuario, se genera una **contraseña temporal** (no la del formulario) válida por 30 minutos.
+2. Se envía un **email de verificación** con la contraseña temporal y un link.
+3. El usuario debe verificar su email y cambiar la contraseña temporal.
+4. Al completar la verificación, se envía un **email de bienvenida**.
+5. Campo `is_email_verified` indica si el email está verificado.
+6. **Usuario no puede iniciar sesión si email no está verificado.**
+
+## Branching and Commit Conventions
+- Convenciones de branches CMS: main (producción), develop (desarrollo), feature/[nombre], fix/[nombre], hotfix/[nombre]. 
+- Commits: Conventional Commits (feat:, fix:, docs:, test:, refactor:, chore:, ci:, perf:)
+
+## Timezone and Working Hours
+- Timezone BITI Solutions: UTC-6 (Costa Rica - CST).
+- Horario: 8:00 AM - 12:00 AM.
+- Owner: @BITI-SOLUTIONS (desarrollador único, full stack + DevOps).

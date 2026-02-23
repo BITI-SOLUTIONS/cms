@@ -16,3 +16,5 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.Data\obj\Debug\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.Data\obj\Debug\net9.0\CMS.Data.pdb
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.Data\obj\Debug\net9.0\CMS.Data.genruntimeconfig.cache
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.Data\obj\Debug\net9.0\ref\CMS.Data.dll
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.Data\bin\Debug\net9.0\CMS.Shared.dll
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.Data\bin\Debug\net9.0\CMS.Shared.pdb

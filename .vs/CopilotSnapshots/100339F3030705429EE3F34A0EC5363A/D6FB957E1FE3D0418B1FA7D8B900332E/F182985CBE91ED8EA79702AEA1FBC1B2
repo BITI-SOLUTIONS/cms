@@ -1,0 +1,165 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Roles/ManagePermissions.cshtml                             *@
+@* PROPÓSITO: Gestionar permisos de un rol                                          *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-18                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Controllers.RolesController.ManagePermissionsViewModel
+
+@{
+    ViewData["Title"] = $"Gestionar Permisos: {Model.RoleName}";
+    
+    // Agrupar permisos por módulo (primera parte del key)
+    var permissionGroups = Model.AllPermissions
+        .GroupBy(p => p.PermissionKey.Contains('.') ? p.PermissionKey.Split('.')[0] : "General")
+        .OrderBy(g => g.Key)
+        .ToList();
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1>
+                <i class="bi bi-key me-2"></i>
+                Gestionar Permisos
+            </h1>
+            <p class="text-muted mb-0">Rol: <strong class="text-info">@Model.RoleName</strong></p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Details" asp-route-id="@Model.RoleId" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <form asp-action="ManagePermissions" asp-route-id="@Model.RoleId" method="post">
+        @Html.AntiForgeryToken()
+        
+        <!-- ===== BARRA DE ACCIONES ===== -->
+        <div class="card bg-dark-card border-0 mb-4">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <span class="text-light">
+                        <i class="bi bi-check2-square me-2"></i>
+                        <span id="selectedCount">@Model.AssignedPermissionIds.Count</span> permisos seleccionados de @Model.AllPermissions.Count
+                    </span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="selectAll()">
+                        <i class="bi bi-check-all me-1"></i>Seleccionar Todos
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="deselectAll()">
+                        <i class="bi bi-x-circle me-1"></i>Deseleccionar Todos
+                    </button>
+                    <button type="submit" class="btn btn-tech-primary">
+                        <i class="bi bi-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PERMISOS POR MÓDULO ===== -->
+        <div class="row g-4">
+            @foreach (var group in permissionGroups)
+            {
+                <div class="col-lg-6 col-xl-4">
+                    <div class="card bg-dark-card border-0 h-100">
+                        <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-info">
+                                <i class="bi bi-folder me-2"></i>@group.Key
+                            </h6>
+                            <span class="badge bg-secondary">@group.Count()</span>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            @foreach (var permission in group.OrderBy(p => p.PermissionKey))
+                            {
+                                var isChecked = Model.AssignedPermissionIds.Contains(permission.Id);
+                                <div class="form-check mb-2 permission-item">
+                                    <input class="form-check-input permission-checkbox" 
+                                           type="checkbox" 
+                                           name="SelectedPermissionIds" 
+                                           value="@permission.Id" 
+                                           id="perm_@permission.Id"
+                                           @(isChecked ? "checked" : "")
+                                           onchange="updateCount()">
+                                    <label class="form-check-label" for="perm_@permission.Id">
+                                        <span class="d-block text-light">@permission.PermissionName</span>
+                                        <code class="text-secondary small">@permission.PermissionKey</code>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- ===== BOTÓN GUARDAR MÓVIL ===== -->
+        <div class="d-lg-none mt-4">
+            <button type="submit" class="btn btn-tech-primary btn-lg w-100">
+                <i class="bi bi-save me-2"></i>Guardar Cambios
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    
+    .permission-item {
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: background 0.2s ease;
+    }
+    
+    .permission-item:hover {
+        background: rgba(0, 255, 255, 0.05);
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--accent-cyan);
+        border-color: var(--accent-cyan);
+    }
+    
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0.25em;
+    }
+    
+    .card-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .card-body::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+    }
+    
+    .card-body::-webkit-scrollbar-thumb {
+        background: rgba(0, 255, 255, 0.3);
+        border-radius: 3px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        function updateCount() {
+            const count = document.querySelectorAll('.permission-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+        
+        function selectAll() {
+            document.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = true);
+            updateCount();
+        }
+        
+        function deselectAll() {
+            document.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = false);
+            updateCount();
+        }
+    </script>
+}

@@ -1,0 +1,89 @@
+﻿-- ================================================================================
+-- SCRIPT: Agregar submenú "Label Items" bajo Inventory
+-- PROPÓSITO: Crear el menú para gestión de artículos
+-- AUTOR: EAMR, BITI SOLUTIONS S.A
+-- FECHA: 2026-02-19
+-- ================================================================================
+
+-- Inventory tiene id_menu = 7 según copilot-instructions.md
+-- Verificar el máximo ID actual para evitar colisiones
+-- SELECT MAX(id_menu) FROM admin.menu; -- Probablemente 170
+
+-- Insertar el submenú "Label Items" bajo Inventory (id_parent = 7)
+INSERT INTO admin.menu (
+    id_menu,
+    id_parent,
+    menu_name,
+    menu_url,
+    menu_icon,
+    menu_order,
+    is_active,
+    required_permission,
+    created_at,
+    created_by
+) VALUES (
+    171,                        -- id_menu (siguiente disponible después de 170)
+    7,                          -- id_parent (Inventory = 7)
+    'Label Items',              -- menu_name
+    '/Inventory/Items',         -- menu_url
+    'bi-tags',                  -- menu_icon (etiquetas)
+    1,                          -- menu_order
+    true,                       -- is_active
+    'Inventory.Items.View',     -- required_permission
+    NOW(),                      -- created_at
+    'SYSTEM'                    -- created_by
+)
+ON CONFLICT (id_menu) DO UPDATE SET
+    menu_name = EXCLUDED.menu_name,
+    menu_url = EXCLUDED.menu_url,
+    menu_icon = EXCLUDED.menu_icon;
+
+-- Crear el permiso correspondiente si no existe
+INSERT INTO admin.permission (
+    id_permission,
+    permission_key,
+    permission_name,
+    permission_module,
+    is_active,
+    created_at,
+    created_by
+) 
+SELECT 
+    COALESCE(MAX(id_permission), 0) + 1,
+    'Inventory.Items.View',
+    'Ver Artículos',
+    'Inventory',
+    true,
+    NOW(),
+    'SYSTEM'
+FROM admin.permission
+WHERE NOT EXISTS (
+    SELECT 1 FROM admin.permission WHERE permission_key = 'Inventory.Items.View'
+);
+
+-- Permiso para editar artículos
+INSERT INTO admin.permission (
+    id_permission,
+    permission_key,
+    permission_name,
+    permission_module,
+    is_active,
+    created_at,
+    created_by
+) 
+SELECT 
+    COALESCE(MAX(id_permission), 0) + 1,
+    'Inventory.Items.Edit',
+    'Editar Artículos',
+    'Inventory',
+    true,
+    NOW(),
+    'SYSTEM'
+FROM admin.permission
+WHERE NOT EXISTS (
+    SELECT 1 FROM admin.permission WHERE permission_key = 'Inventory.Items.Edit'
+);
+
+-- Verificar
+SELECT * FROM admin.menu WHERE id_parent = 7;
+SELECT * FROM admin.permission WHERE permission_module = 'Inventory';

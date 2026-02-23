@@ -1,0 +1,169 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Permissions/Index.cshtml                                   *@
+@* PROPÓSITO: Lista de permisos del sistema                                         *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-16                                                               *@
+@* ================================================================================ *@
+
+@model List<CMS.UI.Services.PermissionsApiService.PermissionDto>
+
+@{
+    ViewData["Title"] = "Gestión de Permisos";
+    var modules = ViewBag.Modules as SelectList;
+    var currentModule = ViewBag.CurrentModule as string;
+    var searchTerm = ViewBag.SearchTerm as string;
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1><i class="bi bi-key me-2"></i>Gestión de Permisos</h1>
+            <p class="text-muted mb-0">Administra los permisos del sistema que controlan el acceso a funcionalidades</p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Create" class="btn btn-tech-primary">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo Permiso
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success-tech d-flex align-items-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger-tech d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ===== FILTROS ===== -->
+    <div class="card bg-dark-card border-0 mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Módulo</label>
+                    <select name="module" class="form-select bg-dark text-light" onchange="this.form.submit()">
+                        <option value="">Todos los módulos</option>
+                        @if (modules != null)
+                        {
+                            @foreach (var item in modules)
+                            {
+                                <option value="@item.Value" selected="@(item.Value == currentModule)">@item.Value</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="search" class="form-control bg-dark text-light" 
+                           placeholder="Buscar por clave o nombre..." value="@searchTerm">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-tech-secondary w-100">
+                        <i class="bi bi-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== TABLA ===== -->
+    <div class="card bg-dark-card border-0">
+        <div class="card-header bg-dark-header">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>@Model.Count permisos</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Módulo</th>
+                            <th>Clave</th>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th style="width: 120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                    No hay permisos registrados
+                                </td>
+                            </tr>
+                        }
+                        @{
+                            var currentModuleGroup = "";
+                        }
+                        @foreach (var perm in Model.OrderBy(p => p.Module).ThenBy(p => p.PermissionKey))
+                        {
+                            if (perm.Module != currentModuleGroup)
+                            {
+                                currentModuleGroup = perm.Module;
+                                <tr class="table-secondary">
+                                    <td colspan="5" class="fw-bold text-primary">
+                                        <i class="bi bi-folder-fill me-2"></i>@currentModuleGroup
+                                    </td>
+                                </tr>
+                            }
+                            <tr>
+                                <td class="text-muted small">@perm.Module</td>
+                                <td>
+                                    <code class="text-info">@perm.PermissionKey</code>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">@perm.PermissionName</span>
+                                    @if (!string.IsNullOrEmpty(perm.Description))
+                                    {
+                                        <br><small class="text-muted">@perm.Description</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (perm.IsActive)
+                                    {
+                                        <span class="badge bg-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@perm.Id" 
+                                       class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@perm.Id" method="post" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                onclick="return confirm('¿Eliminar este permiso?')" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .table-dark { --bs-table-bg: transparent; }
+</style>

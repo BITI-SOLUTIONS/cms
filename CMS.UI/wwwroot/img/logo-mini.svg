@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <!-- Gradientes con colores originales -->
+    <linearGradient id="yellowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="50%" style="stop-color:#FFA500"/>
+      <stop offset="100%" style="stop-color:#FF8C00"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00BFFF"/>
+      <stop offset="50%" style="stop-color:#1E90FF"/>
+      <stop offset="100%" style="stop-color:#0066CC"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7CFC00"/>
+      <stop offset="50%" style="stop-color:#32CD32"/>
+      <stop offset="100%" style="stop-color:#228B22"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6347"/>
+      <stop offset="50%" style="stop-color:#FF4500"/>
+      <stop offset="100%" style="stop-color:#DC143C"/>
+    </linearGradient>
+
+    <!-- Glow effect -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Sombra -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Fondo oscuro con borde -->
+  <rect x="3" y="3" width="114" height="114" rx="18" fill="#0f172a" stroke="rgba(6,182,212,0.3)" stroke-width="1.5"/>
+
+  <!-- Grid pattern sutil -->
+  <defs>
+    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(6,182,212,0.05)" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect x="3" y="3" width="114" height="114" rx="18" fill="url(#grid)"/>
+
+  <!-- Pieza Superior Izquierda - AMARILLA -->
+  <g transform="translate(18, 22)" filter="url(#shadow)">
+    <path d="M0 0 
+             L28 0 
+             L28 10 
+             C28 10 32 10 32 16 
+             C32 22 28 22 28 22 
+             L28 32 
+             L18 32 
+             C18 32 18 36 12 36 
+             C6 36 6 32 6 32 
+             L0 32 
+             Z" 
+          fill="url(#yellowGrad)" 
+          filter="url(#glow)"/>
+  </g>
+
+  <!-- Pieza Superior Derecha - AZUL (separada y rotada) -->
+  <g transform="translate(72, 8) rotate(15, 20, 25)" filter="url(#shadow)">
+    <path d="M6 0 
+             L6 10 
+             C6 10 2 10 2 16 
+             C2 22 6 22 6 22 
+             L6 32 
+             L16 32 
+             C16 32 16 28 22 28 
+             C28 28 28 32 28 32 
+             L34 32 
+             L34 0 
+             Z" 
+          fill="url(#blueGrad)" 
+          filter="url(#glow)"/>
+  </g>
+
+  <!-- Pieza Inferior Izquierda - VERDE -->
+  <g transform="translate(18, 60)" filter="url(#shadow)">
+    <path d="M0 4 
+             L10 4 
+             C10 4 10 0 16 0 
+             C22 0 22 4 22 4 
+             L28 4 
+             L28 14 
+             C28 14 24 14 24 20 
+             C24 26 28 26 28 26 
+             L28 36 
+             L0 36 
+             Z" 
+          fill="url(#greenGrad)" 
+          filter="url(#glow)"/>
+  </g>
+
+  <!-- Pieza Inferior Derecha - ROJA/NARANJA -->
+  <g transform="translate(52, 62)" filter="url(#shadow)">
+    <path d="M6 2 
+             L6 12 
+             C6 12 10 12 10 18 
+             C10 24 6 24 6 24 
+             L6 34 
+             L40 34 
+             L40 2 
+             L30 2 
+             C30 2 30 6 24 6 
+             C18 6 18 2 18 2 
+             Z" 
+          fill="url(#redGrad)" 
+          filter="url(#glow)"/>
+  </g>
+
+  <!-- Puntos de conexión tech en las esquinas -->
+  <circle cx="12" cy="12" r="2" fill="#06b6d4" opacity="0.5"/>
+  <circle cx="108" cy="12" r="2" fill="#06b6d4" opacity="0.5"/>
+  <circle cx="12" cy="108" r="2" fill="#06b6d4" opacity="0.5"/>
+  <circle cx="108" cy="108" r="2" fill="#06b6d4" opacity="0.5"/>
+</svg>

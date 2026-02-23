@@ -235,7 +235,6 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\ne
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.AssemblyInfoInputs.cache
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.AssemblyInfo.cs
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.csproj.CoreCompileInputs.cache
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.MvcApplicationPartsAssemblyInfo.cs
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.MvcApplicationPartsAssemblyInfo.cache
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.RazorAssemblyInfo.cache
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.RazorAssemblyInfo.cs
@@ -252,9 +251,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\ne
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\scopedcss\Views\Shared\_TopNavbar.cshtml.rz.scp.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\scopedcss\bundle\CMS.UI.styles.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\scopedcss\projectbundle\CMS.UI.bundle.scp.css
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\uic8rouomn-{0}-mlul9qkh2e-mlul9qkh2e.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\ezbu57e5rg-{0}-61n19gt1b8-61n19gt1b8.gz
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\2y3m9oz8mp-{0}-zhui72dtw2-zhui72dtw2.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\no72l61sy7-{0}-agp80tu62r-agp80tu62r.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\n8i3hntpjy-{0}-st1cbwfwo5-st1cbwfwo5.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\93mimg0s72-{0}-unj9p35syc-unj9p35syc.gz
@@ -327,3 +324,15 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\ne
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\ref\CMS.UI.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\appsettings.json
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\appsettings.production.json
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\CMS.Shared.dll
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\CMS.Shared.pdb
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\b5uafrw1iq-{0}-77olo384fw-77olo384fw.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\l63yo063q3-{0}-a4v6zuw7cg-a4v6zuw7cg.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\scc62agfsr-{0}-mxutgilwfb-mxutgilwfb.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\CMS.UI.MvcApplicationPartsAssemblyInfo.cs
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\d55afqbwfk-{0}-5ipweew5fc-5ipweew5fc.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\1905x4jv5q-{0}-5ipweew5fc-5ipweew5fc.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\uic8rouomn-{0}-42x1lmnqea-42x1lmnqea.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\2y3m9oz8mp-{0}-u0mfygx3qs-u0mfygx3qs.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\ykh50qbgdf-{0}-1wb3r2dxjd-1wb3r2dxjd.gz

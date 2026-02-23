@@ -32,6 +32,7 @@
 		<!-- Referencias necesarias para la UI -->
 		<ProjectReference Include="..\CMS.Data\CMS.Data.csproj" />
 		<ProjectReference Include="..\CMS.Application\CMS.Application.csproj" />
+		<ProjectReference Include="..\CMS.Shared\CMS.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

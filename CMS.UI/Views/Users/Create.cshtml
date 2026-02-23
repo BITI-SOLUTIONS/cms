@@ -1,0 +1,426 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Users/Create.cshtml                                        *@
+@* PROPÓSITO: Formulario para crear un nuevo usuario                                *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-14                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Models.Users.UserCreateViewModel
+
+@{
+    ViewData["Title"] = "Crear Usuario";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <a asp-action="Index" class="btn-back me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div class="page-header-icon">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Crear Nuevo Usuario</h1>
+                <p>Complete el formulario para agregar un nuevo usuario al sistema</p>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post" id="createUserForm">
+        <div class="row">
+            <!-- ===== FORMULARIO PRINCIPAL ===== -->
+            <div class="col-lg-8">
+                <!-- Información de Cuenta -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-key me-2"></i>Información de Cuenta</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Username" class="form-label-tech">
+                                    Nombre de Usuario <span class="required">*</span>
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-at"></i></span>
+                                    <input asp-for="Username" class="form-control-tech" 
+                                           placeholder="usuario123" autocomplete="off" />
+                                </div>
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                                <small class="form-text-tech">Solo letras, números, puntos y guiones</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label-tech">
+                                    Correo Electrónico <span class="required">*</span>
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-envelope"></i></span>
+                                    <input asp-for="Email" type="email" class="form-control-tech" 
+                                           placeholder="usuario@ejemplo.com" autocomplete="off" />
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label-tech">
+                                    Contraseña <span class="required">*</span>
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-lock"></i></span>
+                                    <input asp-for="Password" type="password" class="form-control-tech" 
+                                           placeholder="Mínimo 8 caracteres" id="password" />
+                                    <button type="button" class="btn-toggle-password" onclick="togglePassword('password')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                                <div class="password-strength mt-2" id="passwordStrength"></div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label-tech">
+                                    Confirmar Contraseña <span class="required">*</span>
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-lock-fill"></i></span>
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control-tech" 
+                                           placeholder="Repita la contraseña" id="confirmPassword" />
+                                    <button type="button" class="btn-toggle-password" onclick="togglePassword('confirmPassword')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Personal -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-person-vcard me-2"></i>Información Personal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label-tech">
+                                    Nombre <span class="required">*</span>
+                                </label>
+                                <input asp-for="FirstName" class="form-control-tech" placeholder="Juan" />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label-tech">
+                                    Apellido <span class="required">*</span>
+                                </label>
+                                <input asp-for="LastName" class="form-control-tech" placeholder="Pérez" />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DisplayName" class="form-label-tech">
+                                    Nombre para Mostrar
+                                </label>
+                                <input asp-for="DisplayName" class="form-control-tech" 
+                                       placeholder="Juan Pérez (opcional)" />
+                                <span asp-validation-for="DisplayName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label-tech">
+                                    Teléfono
+                                </label>
+                                <div class="input-group-tech">
+                                    <span class="input-icon"><i class="bi bi-telephone"></i></span>
+                                    <input asp-for="PhoneNumber" class="form-control-tech" 
+                                           placeholder="+506 8888-8888" />
+                                </div>
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="DateOfBirth" class="form-label-tech">
+                                    Fecha de Nacimiento
+                                </label>
+                                <input asp-for="DateOfBirth" type="date" class="form-control-tech" />
+                                <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="IdCountry" class="form-label-tech">
+                                    País <span class="required">*</span>
+                                </label>
+                                <select asp-for="IdCountry" asp-items="Model.AvailableCountries" class="form-select-tech">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                                <span asp-validation-for="IdCountry" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="IdGender" class="form-label-tech">
+                                    Género <span class="required">*</span>
+                                </label>
+                                <select asp-for="IdGender" asp-items="Model.AvailableGenders" class="form-select-tech">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                                <span asp-validation-for="IdGender" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TimeZone" class="form-label-tech">
+                                    Zona Horaria
+                                </label>
+                                <select asp-for="TimeZone" class="form-select-tech">
+                                    <option value="America/Costa_Rica">Costa Rica (UTC-6)</option>
+                                    <option value="America/Mexico_City">México (UTC-6)</option>
+                                    <option value="America/New_York">Nueva York (UTC-5)</option>
+                                    <option value="America/Los_Angeles">Los Ángeles (UTC-8)</option>
+                                    <option value="Europe/Madrid">Madrid (UTC+1)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PANEL LATERAL ===== -->
+            <div class="col-lg-4">
+                <!-- Estado y Opciones -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-gear me-2"></i>Opciones</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check-tech mb-3">
+                            <input asp-for="IsActive" type="checkbox" class="form-check-input-tech" id="isActive" />
+                            <label for="isActive" class="form-check-label-tech">
+                                <i class="bi bi-check-circle me-2"></i>Usuario Activo
+                            </label>
+                            <small class="form-text-tech d-block">El usuario podrá acceder al sistema</small>
+                        </div>
+                        <div class="form-check-tech mb-3">
+                            <input asp-for="IsEmailVerified" type="checkbox" class="form-check-input-tech" id="isEmailVerified" />
+                            <label for="isEmailVerified" class="form-check-label-tech">
+                                <i class="bi bi-envelope-check me-2"></i>Email Verificado
+                            </label>
+                            <small class="form-text-tech d-block">Marcar email como verificado</small>
+                        </div>
+                        <div class="form-check-tech">
+                            <input asp-for="SendWelcomeEmail" type="checkbox" class="form-check-input-tech" id="sendWelcome" />
+                            <label for="sendWelcome" class="form-check-label-tech">
+                                <i class="bi bi-send me-2"></i>Enviar Email de Bienvenida
+                            </label>
+                            <small class="form-text-tech d-block">Enviar credenciales por correo</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roles -->
+                <div class="card-tech mb-4">
+                    <div class="card-header-tech">
+                        <h5><i class="bi bi-shield me-2"></i>Asignar Roles</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.AvailableRoles.Any())
+                        {
+                            <div class="roles-selector">
+                                @foreach (var role in Model.AvailableRoles)
+                                {
+                                    <div class="role-checkbox">
+                                        <input type="checkbox" name="SelectedRoleIds" value="@role.Value" 
+                                               id="role_@role.Value" class="form-check-input-tech" />
+                                        <label for="role_@role.Value" class="role-label">
+                                            <i class="bi bi-shield-check me-2"></i>@role.Text
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted-tech">No hay roles disponibles</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="card-tech">
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-tech-primary w-100 mb-2">
+                            <i class="bi bi-person-plus me-2"></i>Crear Usuario
+                        </button>
+                        <a asp-action="Index" class="btn btn-tech-outline w-100">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePassword(inputId) {
+            var input = document.getElementById(inputId);
+            var icon = input.nextElementSibling.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+
+        // Password strength indicator
+        document.getElementById('password').addEventListener('input', function(e) {
+            var password = e.target.value;
+            var strength = 0;
+            var feedback = [];
+
+            if (password.length >= 8) strength++;
+            else feedback.push('8+ caracteres');
+
+            if (/[a-z]/.test(password)) strength++;
+            else feedback.push('minúscula');
+
+            if (/[A-Z]/.test(password)) strength++;
+            else feedback.push('mayúscula');
+
+            if (/[0-9]/.test(password)) strength++;
+            else feedback.push('número');
+
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            else feedback.push('símbolo');
+
+            var strengthDiv = document.getElementById('passwordStrength');
+            var colors = ['#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981'];
+            var labels = ['Muy débil', 'Débil', 'Regular', 'Fuerte', 'Muy fuerte'];
+
+            if (password.length > 0) {
+                strengthDiv.innerHTML = `
+                    <div class="strength-bar">
+                        <div class="strength-fill" style="width: ${strength * 20}%; background: ${colors[strength-1] || '#ef4444'}"></div>
+                    </div>
+                    <small style="color: ${colors[strength-1] || '#ef4444'}">${labels[strength-1] || 'Muy débil'}</small>
+                `;
+            } else {
+                strengthDiv.innerHTML = '';
+            }
+        });
+    </script>
+}
+
+<style>
+    .required {
+        color: #ef4444;
+    }
+
+    .btn-back {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(6, 182, 212, 0.1);
+        border: 1px solid var(--border-color);
+        color: var(--accent-cyan);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+        background: rgba(6, 182, 212, 0.2);
+        color: var(--accent-cyan);
+    }
+
+    .btn-toggle-password {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-gray);
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .btn-toggle-password:hover {
+        color: var(--accent-cyan);
+    }
+
+    .form-check-tech {
+        padding: 12px;
+        background: rgba(6, 182, 212, 0.05);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+    }
+
+    .form-check-input-tech {
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        background: var(--bg-dark);
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+    }
+
+    .form-check-input-tech:checked {
+        background: var(--accent-cyan);
+        border-color: var(--accent-cyan);
+    }
+
+    .form-check-label-tech {
+        color: var(--text-white);
+        font-weight: 500;
+    }
+
+    .roles-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .role-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background: rgba(139, 92, 246, 0.05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .role-checkbox:hover {
+        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .role-checkbox input:checked + .role-label {
+        color: #a78bfa;
+    }
+
+    .role-label {
+        color: var(--text-gray);
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .strength-bar {
+        height: 4px;
+        background: var(--bg-dark);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+
+    .strength-fill {
+        height: 100%;
+        transition: width 0.3s, background 0.3s;
+    }
+
+    .form-text-tech {
+        color: var(--text-gray);
+        font-size: 0.8rem;
+        margin-top: 4px;
+    }
+</style>

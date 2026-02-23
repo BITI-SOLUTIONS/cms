@@ -1,0 +1,365 @@
+// ================================================================================
+// ARCHIVO: CMS.UI/Models/Users/UserViewModels.cs
+// PROPÓSITO: ViewModels para el módulo de gestión de usuarios
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-14
+// ================================================================================
+
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+namespace CMS.UI.Models.Users
+{
+    /// <summary>
+    /// ViewModel para la lista de usuarios con paginación y filtros
+    /// </summary>
+    public class UserListViewModel
+    {
+        public List<UserItemViewModel> Users { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public string? SearchTerm { get; set; }
+        public string? StatusFilter { get; set; }
+
+        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
+    }
+
+    /// <summary>
+    /// ViewModel para un item de usuario en la lista
+    /// </summary>
+    public class UserItemViewModel
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? DisplayName { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsEmailVerified { get; set; }
+        public DateTime? LastLogin { get; set; }
+        public DateTime CreateDate { get; set; }
+        public List<string> Roles { get; set; } = new();
+        public string? AvatarUrl { get; set; }
+
+        public string FullName => !string.IsNullOrEmpty(DisplayName) 
+            ? DisplayName 
+            : $"{FirstName} {LastName}".Trim();
+
+        public string Initials
+        {
+            get
+            {
+                var name = FullName;
+                if (string.IsNullOrEmpty(name)) return "?";
+                var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2)
+                    return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+                return parts[0][0].ToString().ToUpper();
+            }
+        }
+    }
+
+    /// <summary>
+    /// ViewModel para el detalle completo de un usuario
+    /// </summary>
+    public class UserDetailViewModel
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? DisplayName { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? TimeZone { get; set; }
+        public int IdCountry { get; set; }
+        public string? CountryName { get; set; }
+        public int IdGender { get; set; }
+        public string? GenderName { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsEmailVerified { get; set; }
+        public bool IsPhoneVerified { get; set; }
+        public DateTime? LastLogin { get; set; }
+        public string? LastLoginIp { get; set; }
+        public int LoginCount { get; set; }
+        public int FailedLoginAttempts { get; set; }
+        public DateTime? LockoutEnd { get; set; }
+        public DateTime? LastPasswordChange { get; set; }
+        public Guid? AzureOid { get; set; }
+        public string? AzureUpn { get; set; }
+        public DateTime CreateDate { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
+        
+        public List<RoleItemViewModel> Roles { get; set; } = new();
+        public List<PermissionItemViewModel> DirectPermissions { get; set; } = new();
+        public List<UserCompanyViewModel> Companies { get; set; } = new();
+
+        public string FullName => !string.IsNullOrEmpty(DisplayName)
+            ? DisplayName 
+            : $"{FirstName} {LastName}".Trim();
+
+        public bool IsAzureUser => AzureOid.HasValue;
+        public bool IsLocked => LockoutEnd.HasValue && LockoutEnd > DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// ViewModel para crear un nuevo usuario
+    /// </summary>
+    public class UserCreateViewModel
+    {
+        [Required(ErrorMessage = "El nombre de usuario es requerido")]
+        [StringLength(100, MinimumLength = 3, ErrorMessage = "El nombre de usuario debe tener entre 3 y 100 caracteres")]
+        [RegularExpression(@"^[a-zA-Z0-9._-]+$", ErrorMessage = "Solo letras, números, puntos, guiones y guiones bajos")]
+        [Display(Name = "Nombre de Usuario")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es requerido")]
+        [EmailAddress(ErrorMessage = "Ingrese un email válido")]
+        [StringLength(255)]
+        [Display(Name = "Correo Electrónico")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre es requerido")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 50 caracteres")]
+        [Display(Name = "Nombre")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es requerido")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "El apellido debe tener entre 2 y 50 caracteres")]
+        [Display(Name = "Apellido")]
+        public string LastName { get; set; } = string.Empty;
+
+        [StringLength(255)]
+        [Display(Name = "Nombre para Mostrar")]
+        public string? DisplayName { get; set; }
+
+        [Phone(ErrorMessage = "Ingrese un número de teléfono válido")]
+        [StringLength(15)]
+        [Display(Name = "Teléfono")]
+        public string? PhoneNumber { get; set; }
+
+        [DataType(DataType.Date)]
+        [Display(Name = "Fecha de Nacimiento")]
+        public DateTime? DateOfBirth { get; set; }
+
+        [Required(ErrorMessage = "El país es requerido")]
+        [Display(Name = "País")]
+        public int IdCountry { get; set; }
+
+        [Required(ErrorMessage = "El género es requerido")]
+        [Display(Name = "Género")]
+        public int IdGender { get; set; }
+
+        [StringLength(50)]
+        [Display(Name = "Zona Horaria")]
+        public string TimeZone { get; set; } = "America/Costa_Rica";
+
+        [Required(ErrorMessage = "La contraseña es requerida")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
+        [DataType(DataType.Password)]
+        [Display(Name = "Contraseña")]
+        public string Password { get; set; } = string.Empty;
+
+        [Compare("Password", ErrorMessage = "Las contraseñas no coinciden")]
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirmar Contraseña")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Display(Name = "Activo")]
+        public bool IsActive { get; set; } = true;
+
+        [Display(Name = "Email Verificado")]
+        public bool IsEmailVerified { get; set; }
+
+        [Display(Name = "Roles")]
+        public List<int> SelectedRoleIds { get; set; } = new();
+
+        [Display(Name = "Enviar email de bienvenida")]
+        public bool SendWelcomeEmail { get; set; } = true;
+
+        // Listas para dropdowns
+        public List<SelectListItem> AvailableRoles { get; set; } = new();
+        public List<SelectListItem> AvailableCountries { get; set; } = new();
+        public List<SelectListItem> AvailableGenders { get; set; } = new();
+    }
+
+    /// <summary>
+    /// ViewModel para editar un usuario existente
+    /// </summary>
+    public class UserEditViewModel
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "El nombre de usuario es requerido")]
+        [StringLength(100, MinimumLength = 3)]
+        [Display(Name = "Nombre de Usuario")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es requerido")]
+        [EmailAddress(ErrorMessage = "Ingrese un email válido")]
+        [StringLength(255)]
+        [Display(Name = "Correo Electrónico")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre es requerido")]
+        [StringLength(50, MinimumLength = 2)]
+        [Display(Name = "Nombre")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es requerido")]
+        [StringLength(50, MinimumLength = 2)]
+        [Display(Name = "Apellido")]
+        public string LastName { get; set; } = string.Empty;
+
+        [StringLength(255)]
+        [Display(Name = "Nombre para Mostrar")]
+        public string? DisplayName { get; set; }
+
+        [Phone]
+        [StringLength(15)]
+        [Display(Name = "Teléfono")]
+        public string? PhoneNumber { get; set; }
+
+        [DataType(DataType.Date)]
+        [Display(Name = "Fecha de Nacimiento")]
+        public DateTime? DateOfBirth { get; set; }
+
+        [Required]
+        [Display(Name = "País")]
+        public int IdCountry { get; set; }
+
+        [Required]
+        [Display(Name = "Género")]
+        public int IdGender { get; set; }
+
+        [StringLength(50)]
+        [Display(Name = "Zona Horaria")]
+        public string TimeZone { get; set; } = "America/Costa_Rica";
+
+        [Display(Name = "Activo")]
+        public bool IsActive { get; set; }
+
+        [Display(Name = "Email Verificado")]
+        public bool IsEmailVerified { get; set; }
+
+        [Display(Name = "Roles")]
+        public List<int> SelectedRoleIds { get; set; } = new();
+
+        [Display(Name = "Compañías")]
+        public List<int> SelectedCompanyIds { get; set; } = new();
+
+        // Listas para dropdowns
+        public List<SelectListItem> AvailableRoles { get; set; } = new();
+        public List<SelectListItem> AvailableCountries { get; set; } = new();
+        public List<SelectListItem> AvailableGenders { get; set; } = new();
+        public List<SelectListItem> AvailableCompanies { get; set; } = new();
+    }
+
+    /// <summary>
+    /// ViewModel para compañía asignada a usuario
+    /// </summary>
+    public class UserCompanyViewModel
+    {
+        public int CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public bool IsDefault { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    /// <summary>
+    /// ViewModel simplificado de rol
+    /// </summary>
+    public class RoleItemViewModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Color { get; set; }
+    }
+
+    /// <summary>
+    /// ViewModel simplificado de permiso
+    /// </summary>
+    public class PermissionItemViewModel
+    {
+        public int Id { get; set; }
+        public string Key { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public bool IsAllowed { get; set; }
+    }
+
+    /// <summary>
+    /// Resultado de operaciones de usuario
+    /// </summary>
+    public class UserOperationResult
+    {
+        public bool Success { get; set; }
+        public int? UserId { get; set; }
+        public string? ErrorMessage { get; set; }
+
+        public static UserOperationResult Ok(int? userId = null) => new() { Success = true, UserId = userId };
+        public static UserOperationResult Error(string message) => new() { Success = false, ErrorMessage = message };
+    }
+
+    /// <summary>
+    /// Resultado de lista de usuarios con paginación
+    /// </summary>
+    public class UserListResult
+    {
+        public List<UserItemViewModel> Users { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    // =========================================================================
+    // VIEWMODELS PARA AUTORIZACIÓN POR COMPAÑÍA
+    // =========================================================================
+
+    /// <summary>
+    /// ViewModel para gestionar roles y permisos de un usuario en una compañía
+    /// </summary>
+    public class UserCompanyAuthViewModel
+    {
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public int TotalEffectivePermissions { get; set; }
+
+        public List<UserCompanyRoleItem> Roles { get; set; } = new();
+        public List<UserCompanyPermissionItem> Permissions { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Item de rol para la vista de autorización por compañía
+    /// </summary>
+    public class UserCompanyRoleItem
+    {
+        public int RoleId { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public bool IsAssigned { get; set; }
+    }
+
+    /// <summary>
+    /// Item de permiso para la vista de autorización por compañía
+    /// </summary>
+    public class UserCompanyPermissionItem
+    {
+        public int PermissionId { get; set; }
+        public string PermissionKey { get; set; } = string.Empty;
+        public string PermissionName { get; set; } = string.Empty;
+        public string Module { get; set; } = string.Empty;
+        /// <summary>
+        /// Origen del permiso: "role", "direct", "denied", "none"
+        /// </summary>
+        public string Source { get; set; } = string.Empty;
+        public bool IsAllowed { get; set; }
+        public bool IsDenied { get; set; }
+    }
+}

@@ -1,0 +1,236 @@
+// ================================================================================
+// ARCHIVO: CMS.UI/Services/PermissionsApiService.cs
+// PROPÓSITO: Servicio para consumir la API de Permisos
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-16
+// ================================================================================
+
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace CMS.UI.Services
+{
+    public class PermissionsApiService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<PermissionsApiService> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public PermissionsApiService(
+            HttpClient httpClient,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<PermissionsApiService> logger,
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
+        {
+            _httpClient = httpClient;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+            _configuration = configuration;
+            _environment = environment;
+        }
+
+        #region DTOs
+
+        public class PermissionDto
+        {
+            public int Id { get; set; }
+            public string PermissionKey { get; set; } = string.Empty;
+            public string PermissionName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public string Module { get; set; } = string.Empty;
+            public bool IsActive { get; set; }
+            public DateTime CreateDate { get; set; }
+        }
+
+        public class PermissionCreateDto
+        {
+            public string PermissionKey { get; set; } = string.Empty;
+            public string PermissionName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public string Module { get; set; } = string.Empty;
+            public bool IsActive { get; set; } = true;
+        }
+
+        public class PermissionUpdateDto
+        {
+            public string PermissionName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public string Module { get; set; } = string.Empty;
+            public bool IsActive { get; set; }
+        }
+
+        #endregion
+
+        private void ConfigureAuthHeader()
+        {
+            var token = _httpContextAccessor.HttpContext?.Session.GetString("ApiToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                _logger.LogDebug("🔑 Header de autenticación configurado");
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ No hay ApiToken en sesión para PermissionsApiService");
+            }
+        }
+
+        private string GetApiBaseUrl()
+        {
+            var environment = _environment.IsDevelopment() ? "Development" : "Production";
+            var baseUrl = _configuration[$"ApiSettings:{environment}:BaseUrl"] ?? "https://localhost:7001";
+            _logger.LogInformation("📡 PermissionsApiService - Ambiente: {Env}, URL Base: {Url}", environment, baseUrl);
+            return baseUrl;
+        }
+
+        public async Task<List<PermissionDto>> GetAllAsync()
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/permission";
+                _logger.LogInformation("📡 Llamando API: {Url}", url);
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<List<PermissionDto>>(json, JsonOptions) ?? new();
+                    _logger.LogInformation("✅ Permisos obtenidos: {Count}", result.Count);
+                    return result;
+                }
+
+                _logger.LogWarning("❌ Error obteniendo permisos: {Status}", response.StatusCode);
+                return new();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error obteniendo permisos");
+                return new();
+            }
+        }
+
+        public async Task<PermissionDto?> GetByIdAsync(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/permission/{id}";
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<PermissionDto>(json, JsonOptions);
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permiso {Id}", id);
+                return null;
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage, int? Id)> CreateAsync(PermissionCreateDto dto)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/permission";
+                var content = new StringContent(
+                    JsonSerializer.Serialize(dto),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await _httpClient.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<PermissionDto>(json, JsonOptions);
+                    return (true, null, result?.Id);
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                return (false, $"Error: {response.StatusCode} - {errorJson}", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando permiso");
+                return (false, ex.Message, null);
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(int id, PermissionUpdateDto dto)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/permission/{id}";
+                var content = new StringContent(
+                    JsonSerializer.Serialize(dto),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await _httpClient.PutAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                return (false, $"Error: {response.StatusCode} - {errorJson}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando permiso {Id}", id);
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/permission/{id}";
+                var response = await _httpClient.DeleteAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                return (false, $"Error: {response.StatusCode} - {errorJson}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando permiso {Id}", id);
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<List<string>> GetModulesAsync()
+        {
+            var permissions = await GetAllAsync();
+            return permissions
+                .Select(p => p.Module)
+                .Where(m => !string.IsNullOrEmpty(m))
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
+        }
+    }
+}

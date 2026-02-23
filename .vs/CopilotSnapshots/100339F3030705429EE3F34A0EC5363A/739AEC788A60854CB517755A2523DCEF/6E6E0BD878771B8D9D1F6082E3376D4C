@@ -1,0 +1,348 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.UI/Controllers/RolesController.cs
+// PROPÓSITO: Controlador para gestión de Roles en la UI
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-17
+// ================================================================================
+
+using CMS.UI.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace CMS.UI.Controllers
+{
+    [Authorize]
+    public class RolesController : Controller
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<RolesController> _logger;
+        private readonly IConfiguration _configuration;
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public RolesController(
+            IHttpClientFactory httpClientFactory,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<RolesController> logger,
+            IConfiguration configuration)
+        {
+            _httpClient = httpClientFactory.CreateClient("cmsapi");
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+            _configuration = configuration;
+        }
+
+        #region DTOs
+
+        public class RoleDto
+        {
+            public int Id { get; set; }
+            public string RoleName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public bool IsSystem { get; set; }
+            public bool IsActive { get; set; }
+            public int UserCount { get; set; }
+            public int PermissionCount { get; set; }
+        }
+
+        public class RoleDetailDto
+        {
+            public int Id { get; set; }
+            public string RoleName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public bool IsSystem { get; set; }
+            public bool IsActive { get; set; }
+            public List<PermissionDto> Permissions { get; set; } = new();
+            public List<UserSimpleDto> Users { get; set; } = new();
+        }
+
+        public class PermissionDto
+        {
+            public int Id { get; set; }
+            public string PermissionKey { get; set; } = string.Empty;
+            public string PermissionName { get; set; } = string.Empty;
+            public bool IsAllowed { get; set; }
+        }
+
+        public class UserSimpleDto
+        {
+            public int Id { get; set; }
+            public string Username { get; set; } = string.Empty;
+            public string? Email { get; set; }
+        }
+
+        #endregion
+
+        private void ConfigureAuthHeader()
+        {
+            var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        private string GetApiBaseUrl()
+        {
+            // Usar ASPNETCORE_ENVIRONMENT para determinar el ambiente correcto
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+            var baseUrl = _configuration[$"ApiSettings:{environment}:BaseUrl"];
+
+            _logger.LogDebug("🔧 RolesController - Environment: {Env}, BaseUrl: {Url}", environment, baseUrl);
+
+            return baseUrl ?? "https://localhost:7001";
+        }
+
+        /// <summary>
+        /// Lista de roles
+        /// GET: /Roles
+        /// </summary>
+        public async Task<IActionResult> Index()
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/role";
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var roles = JsonSerializer.Deserialize<List<RoleDto>>(json, JsonOptions) ?? new();
+                    return View(roles);
+                }
+
+                _logger.LogWarning("Error obteniendo roles: {Status}", response.StatusCode);
+                TempData["Error"] = "Error al cargar roles";
+                return View(new List<RoleDto>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo roles");
+                TempData["Error"] = "Error al cargar roles";
+                return View(new List<RoleDto>());
+            }
+        }
+
+        /// <summary>
+        /// Detalle de un rol con sus permisos
+        /// GET: /Roles/Details/{id}
+        /// </summary>
+        public async Task<IActionResult> Details(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/role/{id}";
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var role = JsonSerializer.Deserialize<RoleDetailDto>(json, JsonOptions);
+                    return View(role);
+                }
+
+                TempData["Error"] = "Rol no encontrado";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo rol {Id}", id);
+                TempData["Error"] = "Error al cargar rol";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// Vista para crear rol
+        /// GET: /Roles/Create
+        /// </summary>
+        public IActionResult Create()
+        {
+            return View(new RoleCreateModel());
+        }
+
+        /// <summary>
+        /// Crear rol
+        /// POST: /Roles/Create
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(RoleCreateModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return View(model);
+
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/role";
+                var content = new StringContent(
+                    JsonSerializer.Serialize(new { roleName = model.RoleName, description = model.Description }),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await _httpClient.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = $"Rol '{model.RoleName}' creado exitosamente";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                TempData["Error"] = $"Error al crear rol: {errorJson}";
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando rol");
+                TempData["Error"] = "Error interno al crear rol";
+                return View(model);
+            }
+        }
+
+        /// <summary>
+        /// Vista para editar rol
+        /// GET: /Roles/Edit/{id}
+        /// </summary>
+        public async Task<IActionResult> Edit(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/role/{id}";
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var role = JsonSerializer.Deserialize<RoleDetailDto>(json, JsonOptions);
+
+                    if (role == null)
+                    {
+                        TempData["Error"] = "Rol no encontrado";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    var model = new RoleEditModel
+                    {
+                        Id = role.Id,
+                        RoleName = role.RoleName,
+                        Description = role.Description,
+                        IsSystem = role.IsSystem
+                    };
+
+                    return View(model);
+                }
+
+                TempData["Error"] = "Rol no encontrado";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo rol {Id}", id);
+                TempData["Error"] = "Error al cargar rol";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// Editar rol
+        /// POST: /Roles/Edit/{id}
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, RoleEditModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return View(model);
+
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/role/{id}";
+                var content = new StringContent(
+                    JsonSerializer.Serialize(new { roleName = model.RoleName, description = model.Description }),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await _httpClient.PutAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Rol actualizado exitosamente";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                TempData["Error"] = $"Error al actualizar rol: {errorJson}";
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando rol {Id}", id);
+                TempData["Error"] = "Error interno al actualizar rol";
+                return View(model);
+            }
+        }
+
+        /// <summary>
+        /// Eliminar rol
+        /// POST: /Roles/Delete/{id}
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+                var url = $"{GetApiBaseUrl()}/api/role/{id}";
+                var response = await _httpClient.DeleteAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Rol eliminado exitosamente";
+                }
+                else
+                {
+                    var errorJson = await response.Content.ReadAsStringAsync();
+                    TempData["Error"] = $"Error al eliminar rol: {errorJson}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando rol {Id}", id);
+                TempData["Error"] = "Error interno al eliminar rol";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        #region Models
+
+        public class RoleCreateModel
+        {
+            public string RoleName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+        }
+
+        public class RoleEditModel
+        {
+            public int Id { get; set; }
+            public string RoleName { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public bool IsSystem { get; set; }
+        }
+
+        #endregion
+    }
+}

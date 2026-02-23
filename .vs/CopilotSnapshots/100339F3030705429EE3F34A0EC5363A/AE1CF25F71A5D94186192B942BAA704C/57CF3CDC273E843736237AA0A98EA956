@@ -1,0 +1,402 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.UI/Controllers/InventoryController.cs
+// PROPÓSITO: Controlador para las vistas de Inventory incluyendo Label Items
+// DESCRIPCIÓN: Maneja las vistas de gestión de artículos
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-19
+// ================================================================================
+
+using System.Net.Http.Headers;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CMS.UI.Controllers
+{
+    [Authorize]
+    public class InventoryController : Controller
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<InventoryController> _logger;
+        private readonly IConfiguration _configuration;
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public InventoryController(
+            HttpClient httpClient,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<InventoryController> logger,
+            IConfiguration configuration)
+        {
+            _httpClient = httpClient;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+            _configuration = configuration;
+        }
+
+        private void ConfigureAuthHeader()
+        {
+            var token = _httpContextAccessor.HttpContext?.Session.GetString("ApiToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+            else
+            {
+                token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+                if (!string.IsNullOrEmpty(token))
+                {
+                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                }
+            }
+        }
+
+        private string GetApiBaseUrl()
+        {
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+            var baseUrl = _configuration[$"ApiSettings:{environment}:BaseUrl"];
+            return baseUrl ?? (environment == "Production" 
+                ? "https://cms.biti-solutions.com" 
+                : "https://localhost:7001");
+        }
+
+        #region Label Items
+
+        /// <summary>
+        /// Lista de artículos
+        /// GET: /Inventory/Items
+        /// </summary>
+        public async Task<IActionResult> Items(string? search = null, string? category = null, int page = 1)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+
+                var url = $"{GetApiBaseUrl()}/api/item?page={page}&pageSize=20";
+                if (!string.IsNullOrEmpty(search))
+                    url += $"&search={Uri.EscapeDataString(search)}";
+                if (!string.IsNullOrEmpty(category))
+                    url += $"&category={Uri.EscapeDataString(category)}";
+
+                var response = await _httpClient.GetAsync(url);
+
+                var viewModel = new ItemListViewModel
+                {
+                    Search = search,
+                    Category = category,
+                    CurrentPage = page
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<ItemListResponse>(json, JsonOptions);
+                    
+                    if (result != null)
+                    {
+                        viewModel.Items = result.Items;
+                        viewModel.TotalCount = result.TotalCount;
+                        viewModel.TotalPages = result.TotalPages;
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Error obteniendo artículos: {StatusCode} - {Error}", 
+                        response.StatusCode, errorContent);
+                    TempData["Error"] = "Error al cargar los artículos. Verifique que la base de datos de la compañía existe.";
+                }
+
+                // Obtener categorías para el filtro
+                try
+                {
+                    var categoriesResponse = await _httpClient.GetAsync($"{GetApiBaseUrl()}/api/item/categories");
+                    if (categoriesResponse.IsSuccessStatusCode)
+                    {
+                        var categoriesJson = await categoriesResponse.Content.ReadAsStringAsync();
+                        viewModel.Categories = JsonSerializer.Deserialize<List<string>>(categoriesJson, JsonOptions) ?? new();
+                    }
+                }
+                catch { /* Ignorar error de categorías */ }
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en Items");
+                TempData["Error"] = "Error al cargar los artículos";
+                return View(new ItemListViewModel());
+            }
+        }
+
+        /// <summary>
+        /// Detalle de un artículo
+        /// GET: /Inventory/Items/{id}
+        /// </summary>
+        [HttpGet("Inventory/Items/{id:int}")]
+        public async Task<IActionResult> ItemDetails(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+
+                var response = await _httpClient.GetAsync($"{GetApiBaseUrl()}/api/item/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Artículo no encontrado";
+                    return RedirectToAction(nameof(Items));
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var item = JsonSerializer.Deserialize<ItemDto>(json, JsonOptions);
+
+                return View("ItemDetails", item);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo detalle de artículo {Id}", id);
+                TempData["Error"] = "Error al cargar el artículo";
+                return RedirectToAction(nameof(Items));
+            }
+        }
+
+        /// <summary>
+        /// Formulario para crear artículo
+        /// GET: /Inventory/Items/Create
+        /// </summary>
+        [HttpGet("Inventory/Items/Create")]
+        public IActionResult CreateItem()
+        {
+            return View("CreateItem", new CreateItemViewModel());
+        }
+
+        /// <summary>
+        /// Crear artículo
+        /// POST: /Inventory/Items/Create
+        /// </summary>
+        [HttpPost("Inventory/Items/Create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateItem(CreateItemViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("CreateItem", model);
+            }
+
+            try
+            {
+                ConfigureAuthHeader();
+
+                var payload = JsonSerializer.Serialize(model);
+                var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync($"{GetApiBaseUrl()}/api/item", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Artículo creado exitosamente";
+                    return RedirectToAction(nameof(Items));
+                }
+
+                var error = await response.Content.ReadAsStringAsync();
+                TempData["Error"] = $"Error al crear artículo: {error}";
+                return View("CreateItem", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando artículo");
+                TempData["Error"] = "Error al crear el artículo";
+                return View("CreateItem", model);
+            }
+        }
+
+        /// <summary>
+        /// Formulario para editar artículo
+        /// GET: /Inventory/Items/Edit/{id}
+        /// </summary>
+        [HttpGet("Inventory/Items/Edit/{id:int}")]
+        public async Task<IActionResult> EditItem(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+
+                var response = await _httpClient.GetAsync($"{GetApiBaseUrl()}/api/item/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Artículo no encontrado";
+                    return RedirectToAction(nameof(Items));
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var item = JsonSerializer.Deserialize<EditItemViewModel>(json, JsonOptions);
+
+                return View("EditItem", item);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo artículo para editar {Id}", id);
+                TempData["Error"] = "Error al cargar el artículo";
+                return RedirectToAction(nameof(Items));
+            }
+        }
+
+        /// <summary>
+        /// Actualizar artículo
+        /// POST: /Inventory/Items/Edit/{id}
+        /// </summary>
+        [HttpPost("Inventory/Items/Edit/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditItem(int id, EditItemViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("EditItem", model);
+            }
+
+            try
+            {
+                ConfigureAuthHeader();
+
+                var payload = JsonSerializer.Serialize(model);
+                var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PutAsync($"{GetApiBaseUrl()}/api/item/{id}", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Artículo actualizado exitosamente";
+                    return RedirectToAction(nameof(Items));
+                }
+
+                var error = await response.Content.ReadAsStringAsync();
+                TempData["Error"] = $"Error al actualizar artículo: {error}";
+                return View("EditItem", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando artículo {Id}", id);
+                TempData["Error"] = "Error al actualizar el artículo";
+                return View("EditItem", model);
+            }
+        }
+
+        /// <summary>
+        /// Eliminar artículo
+        /// POST: /Inventory/Items/Delete/{id}
+        /// </summary>
+        [HttpPost("Inventory/Items/Delete/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteItem(int id)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+
+                var response = await _httpClient.DeleteAsync($"{GetApiBaseUrl()}/api/item/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Artículo eliminado exitosamente";
+                }
+                else
+                {
+                    TempData["Error"] = "Error al eliminar el artículo";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando artículo {Id}", id);
+                TempData["Error"] = "Error al eliminar el artículo";
+            }
+
+            return RedirectToAction(nameof(Items));
+        }
+
+        #endregion
+    }
+
+    // ===== VIEW MODELS =====
+
+    public class ItemListViewModel
+    {
+        public List<ItemDto> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; } = 1;
+        public string? Search { get; set; }
+        public string? Category { get; set; }
+        public List<string> Categories { get; set; } = new();
+    }
+
+    public class ItemListResponse
+    {
+        public List<ItemDto> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class ItemDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Barcode { get; set; }
+        public string? Category { get; set; }
+        public string? Subcategory { get; set; }
+        public string? Brand { get; set; }
+        public string UnitOfMeasure { get; set; } = "unidad";
+        public decimal CostPrice { get; set; }
+        public decimal SalePrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal MinStock { get; set; }
+        public decimal MaxStock { get; set; }
+        public decimal CurrentStock { get; set; }
+        public string? ImageUrl { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsSellable { get; set; }
+        public bool IsPurchasable { get; set; }
+        public bool TrackLots { get; set; }
+        public bool TrackSerialNumbers { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+
+    public class CreateItemViewModel
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Barcode { get; set; }
+        public string? Category { get; set; }
+        public string? Subcategory { get; set; }
+        public string? Brand { get; set; }
+        public string UnitOfMeasure { get; set; } = "unidad";
+        public decimal CostPrice { get; set; }
+        public decimal SalePrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal MinStock { get; set; }
+        public decimal MaxStock { get; set; }
+        public decimal CurrentStock { get; set; }
+        public string? ImageUrl { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsSellable { get; set; } = true;
+        public bool IsPurchasable { get; set; } = true;
+        public bool TrackLots { get; set; }
+        public bool TrackSerialNumbers { get; set; }
+    }
+
+    public class EditItemViewModel : CreateItemViewModel
+    {
+        public int Id { get; set; }
+    }
+}

@@ -1,0 +1,387 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.UI/Program.cs
+// PROPÓSITO: Configuración y arranque de la interfaz web del Sistema CMS
+// DESCRIPCIÓN: BOOTSTRAP desde appsettings.json + Configuración desde BD
+//              Autenticación dual: Azure AD + Local (email/password)
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// ACTUALIZADO: 2026-02-13
+// ================================================================================
+
+using CMS.UI.Services;
+using CMS.Data;
+using CMS.Data.Services;
+using CMS.Entities;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Identity.Web;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ⭐ Configuración de Forwarded Headers (para proxy/reverse proxy)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.ForwardLimit = 2;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// ================================================================================
+// FASE 1: DETECTAR AMBIENTE Y CARGAR CONFIGURACIÓN DESDE /app/appsettings.json o local
+// ================================================================================
+var configFile = "/app/appsettings.json";
+if (!File.Exists(configFile))
+{
+    // fallback para desarrollo local: ContentRoot/appsettings.json
+    configFile = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
+}
+
+if (!File.Exists(configFile))
+{
+    throw new FileNotFoundException($"❌ No se encontró: {configFile}");
+}
+
+Console.WriteLine($"✅ Cargando desde: {configFile}");
+
+builder.Configuration.AddJsonFile(configFile, optional: false, reloadOnChange: true);
+
+// ⭐ LEER AMBIENTE
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? builder.Configuration["Environment"]
+    ?? "Development";
+
+var isDevelopment = environment == "Development";
+
+Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
+Console.WriteLine($"║  🌍 Ambiente: {environment.PadRight(45)}║");
+Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+
+// ⭐ LEER CONFIGURACIÓN BÁSICA
+var companySchema = builder.Configuration["CompanySchema"]
+    ?? throw new InvalidOperationException("❌ 'CompanySchema' no configurado");
+
+var bootstrapConnectionString = builder.Configuration[$"ConnectionStrings:{environment}:DefaultConnection"]
+    ?? throw new InvalidOperationException($"❌ ConnectionStrings:{environment}:DefaultConnection no encontrado");
+
+var apiBaseUrlFromConfig = builder.Configuration[$"ApiSettings:{environment}:BaseUrl"];
+
+Console.WriteLine($"📂 Schema: {companySchema}");
+Console.WriteLine($"🗄️  BD: {(isDevelopment ? "10.0.0.1 (Development)" : "cms-postgres (Production)")}");
+Console.WriteLine($"🔗 API: {apiBaseUrlFromConfig}");
+
+// ================================================================================
+// FASE 2: CONFIGURAR DbContext
+// ================================================================================
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseNpgsql(bootstrapConnectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
+        npgsqlOptions.CommandTimeout(60);
+    });
+
+    if (isDevelopment)
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<CompanyConfigService>();
+
+// ================================================================================
+// FASE 3: CARGAR CONFIGURACIÓN DESDE BD
+// ================================================================================
+var serviceProvider = builder.Services.BuildServiceProvider();
+using var scope = serviceProvider.CreateScope();
+var configService = scope.ServiceProvider.GetRequiredService<CompanyConfigService>();
+
+Company companyConfig;
+try
+{
+    companyConfig = await configService.GetCompanyConfigAsync(companySchema);
+}
+catch (Exception ex)
+{
+    throw new InvalidOperationException($"❌ Error cargando configuración: {ex.Message}", ex);
+}
+
+Console.WriteLine($"✅ Compañía: {companyConfig.COMPANY_NAME}");
+
+var apiBaseUrl = apiBaseUrlFromConfig ?? companyConfig.GetAPIBaseUrl();
+var environmentName = isDevelopment ? "DEVELOPMENT" : "PRODUCTION";
+
+builder.Services.AddSingleton(companyConfig);
+
+// ================================================================================
+// FASE 4: CONFIGURAR AUTENTICACIÓN DUAL (Azure AD + Local)
+// ================================================================================
+
+// ⭐ CONFIGURAR AZURE AD (solo si la compañía lo usa y tiene configuración)
+var hasAzureAdConfig = !string.IsNullOrEmpty(companyConfig.AZURE_AD_UI_INSTANCE) &&
+                       !string.IsNullOrEmpty(companyConfig.AZURE_AD_UI_TENANT_ID) &&
+                       !string.IsNullOrEmpty(companyConfig.AZURE_AD_UI_CLIENT_ID);
+
+if (hasAzureAdConfig)
+{
+    var azureAdConfig = new Dictionary<string, string>
+    {
+        ["AzureAd:Instance"] = companyConfig.AZURE_AD_UI_INSTANCE!,
+        ["AzureAd:TenantId"] = companyConfig.AZURE_AD_UI_TENANT_ID!,
+        ["AzureAd:Domain"] = companyConfig.AZURE_AD_UI_DOMAIN ?? "",
+        ["AzureAd:ClientId"] = companyConfig.AZURE_AD_UI_CLIENT_ID!,
+        ["AzureAd:ClientSecret"] = companyConfig.AZURE_AD_UI_CLIENT_SECRET ?? "",
+        ["AzureAd:CallbackPath"] = companyConfig.AZURE_AD_UI_CALL_BACK_PATH ?? "/signin-oidc"
+    };
+
+    var inMemoryConfig = new ConfigurationBuilder()
+        .AddInMemoryCollection(azureAdConfig!)
+        .Build();
+
+    // ⭐ AUTENTICACIÓN CON COOKIES COMO DEFAULT + AZURE AD DISPONIBLE
+    // El esquema por defecto es Cookies, Azure AD se invoca explícitamente desde el controlador
+    builder.Services
+        .AddAuthentication(options =>
+        {
+            // Cookies es el esquema por defecto (para auth local)
+            options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            // El challenge por defecto también es Cookies (redirige a /Account/SelectCompany)
+            options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        })
+        .AddMicrosoftIdentityWebApp(options =>
+        {
+            inMemoryConfig.GetSection("AzureAd").Bind(options);
+
+            var scopes = companyConfig.API_SCOPES?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                ?? new[] { "api://b231a44d-7e9d-4d9b-8866-9a4b3c5ab5cd/access_as_user" };
+
+            foreach (var scope in scopes)
+            {
+                options.Scope.Add(scope);
+            }
+
+            options.ResponseType = "code";
+            options.SaveTokens = true;
+
+            options.Events = new OpenIdConnectEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var services = context.HttpContext.RequestServices;
+                    var syncService = services.GetRequiredService<UserSyncApiService>();
+                    var tokenService = services.GetRequiredService<TokenApiService>();
+                    var logger = services.GetRequiredService<ILogger<Program>>();
+
+                    var principal = context.Principal;
+                    if (principal == null)
+                    {
+                        logger.LogWarning("⚠️ Principal es null");
+                        return;
+                    }
+
+                    var oid = principal.FindFirstValue("oid")
+                        ?? principal.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")
+                        ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                    var upn = principal.FindFirstValue("preferred_username")
+                        ?? principal.FindFirstValue(ClaimTypes.Upn)
+                        ?? principal.FindFirstValue(ClaimTypes.Email);
+
+                    var email = principal.FindFirstValue(ClaimTypes.Email)
+                        ?? principal.FindFirstValue("preferred_username")
+                        ?? principal.FindFirstValue("email");
+
+                    var displayName = principal.FindFirstValue("name")
+                        ?? principal.Identity?.Name
+                        ?? email;
+
+                    logger.LogInformation("🔍 Claims recibidos de Azure AD:");
+                    logger.LogInformation("  - OID: {Oid}", oid ?? "(null)");
+                    logger.LogInformation("  - UPN: {Upn}", upn ?? "(null)");
+                    logger.LogInformation("  - Email: {Email}", email ?? "(null)");
+                    logger.LogInformation("  - DisplayName: {DisplayName}", displayName ?? "(null)");
+
+                    // Guardar tipo de autenticación en sesión
+                    context.HttpContext.Session.SetString("AuthType", "azure");
+
+                    if (string.IsNullOrEmpty(oid) && string.IsNullOrEmpty(upn))
+                    {
+                        logger.LogError("❌ No se pudo obtener OID ni UPN del token de Azure AD");
+                        return;
+                    }
+
+                    var azureUser = new UserSyncApiService.AzureUserInfo
+                    {
+                        ObjectId = oid,
+                        UserPrincipalName = upn,
+                        DisplayName = displayName,
+                        Email = email
+                    };
+
+                    var syncResult = await syncService.SyncAzureUserAsync(azureUser);
+
+                    if (syncResult == null)
+                    {
+                        logger.LogWarning("⚠️ No se pudo sincronizar usuario");
+                        return;
+                    }
+
+                    logger.LogInformation("✅ Usuario sincronizado: {User}", syncResult.Username);
+
+                    var tokenResult = await tokenService.GetApiTokenAsync(azureUser);
+
+                    if (tokenResult?.Success == true && !string.IsNullOrEmpty(tokenResult.Token))
+                    {
+                        context.HttpContext.Session.SetString("ApiToken", tokenResult.Token);
+                        context.HttpContext.Session.SetString("ApiTokenExpiry", tokenResult.ExpiresAt.ToUniversalTime().ToString("O"));
+
+                        logger.LogInformation("✅ JWT obtenido y guardado en sesión. Expira: {Expiry}",
+                            tokenResult.ExpiresAt.ToUniversalTime());
+                    }
+                    else
+                    {
+                        logger.LogWarning("⚠️ No se pudo obtener JWT del API: {Message}",
+                            tokenResult?.Message ?? "Sin respuesta");
+                    }
+                },
+
+                OnAuthenticationFailed = context =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(context.Exception, "❌ Error en autenticación de Azure AD");
+                    context.HandleResponse();
+                    context.Response.Redirect("/Home/Error?statusCode=401");
+                    return Task.CompletedTask;
+                }
+            };
+        })
+        .EnableTokenAcquisitionToCallDownstreamApi()
+        .AddInMemoryTokenCaches();
+
+    // ⭐ CONFIGURAR OPCIONES DE COOKIES (separado porque AddMicrosoftIdentityWebApp ya registra el esquema)
+    builder.Services.Configure<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+    {
+        options.LoginPath = "/Account/SelectCompany";
+        options.LogoutPath = "/Account/SignOut";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+
+    Console.WriteLine("✅ Autenticación configurada: Azure AD + Cookies");
+}
+else
+{
+    // ⭐ SOLO AUTENTICACIÓN LOCAL (sin Azure AD)
+    builder.Services
+        .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+        {
+            options.LoginPath = "/Account/SelectCompany";
+            options.LogoutPath = "/Account/SignOut";
+            options.AccessDeniedPath = "/Account/AccessDenied";
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = true;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+        });
+
+    Console.WriteLine("✅ Autenticación configurada: Solo Cookies (sin Azure AD)");
+}
+
+// ================================================================================
+// FASE 5: CONFIGURAR SERVICIOS
+// ================================================================================
+
+builder.Services.AddControllersWithViews();
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+builder.Services.AddHttpClient("cmsapi", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
+builder.Services.AddHttpClient("cmsapi-authenticated", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(60);
+})
+.AddHttpMessageHandler<AuthenticatedApiMessageHandler>();
+
+Console.WriteLine($"✅ HttpClients configurados para JWT");
+
+// ⭐ AGREGAR CACHE EN MEMORIA
+builder.Services.AddMemoryCache();
+
+builder.Services.AddScoped<MenuApiService>();
+builder.Services.AddScoped<UserSyncApiService>();
+builder.Services.AddScoped<TokenApiService>();
+builder.Services.AddScoped<SettingsApiService>();
+builder.Services.AddScoped<LocalAuthService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<SystemConfigService>();
+builder.Services.AddTransient<AuthenticatedApiMessageHandler>();
+
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(
+    isDevelopment ? LogLevel.Information : LogLevel.Warning
+);
+
+// ================================================================================
+// FASE 6: CONSTRUIR Y CONFIGURAR PIPELINE
+// ================================================================================
+var app = builder.Build();
+
+app.UseForwardedHeaders();
+
+if (isDevelopment)
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+
+app.UseSession();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+// ⭐ CONFIGURAR RUTAS
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Account}/{action=SelectCompany}/{id?}");
+
+Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
+Console.WriteLine($"║  ✅ CMS.UI INICIADA - {environmentName.PadRight(36)}║");
+Console.WriteLine($"║  🔐 Auth: Azure AD + Local (email/password)                 ║");
+Console.WriteLine($"║  🌐 URLs: https://localhost:5001, http://localhost:5000    ║");
+Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+
+app.Run();

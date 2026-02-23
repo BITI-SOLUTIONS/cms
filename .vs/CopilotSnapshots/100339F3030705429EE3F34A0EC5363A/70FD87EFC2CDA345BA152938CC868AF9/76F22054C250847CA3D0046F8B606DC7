@@ -1,0 +1,431 @@
+﻿using CMS.Application.DTOs;
+using CMS.Data;
+using CMS.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+
+namespace CMS.API.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class UserController : ControllerBase
+    {
+        private readonly IUserRepository _repo;
+        private readonly ILogger<UserController> _logger;
+        private readonly AppDbContext _db;
+
+        public UserController(IUserRepository repo, ILogger<UserController> logger, AppDbContext db)
+        {
+            _repo = repo;
+            _logger = logger;
+            _db = db;
+        }
+
+        // GET: api/user (solo admins) - Lista completa con roles
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<ActionResult<List<UserListDto>>> Get()
+        {
+            try
+            {
+                var users = await _db.Users
+                    .Select(u => new UserListDto
+                    {
+                        Id = u.ID_USER,
+                        Username = u.USER_NAME,
+                        Email = u.EMAIL,
+                        DisplayName = u.DISPLAY_NAME,
+                        IsActive = u.IS_ACTIVE,
+                        CreateDate = u.CreateDate,
+                        Roles = (from ur in _db.UserRoles
+                                 join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                                 where ur.UserId == u.ID_USER
+                                 select r.ROLE_NAME).ToList()
+                    })
+                    .OrderBy(u => u.Username)
+                    .ToListAsync();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo usuarios");
+                return StatusCode(500, new { message = "Error obteniendo usuarios" });
+            }
+        }
+
+        // GET: api/user/me (usuario actual)
+        [HttpGet("me")]
+        public IActionResult GetCurrentUser()
+        {
+            var userInfo = new
+            {
+                Id = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                Name = User.Identity?.Name,
+                Email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("preferred_username"),
+                Roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList(),
+                Groups = User.FindAll("groups").Select(c => c.Value).ToList(),
+                Claims = User.Claims.Select(c => new { c.Type, c.Value })
+            };
+
+            return Ok(userInfo);
+        }
+
+        // GET: api/user/5 - Detalle completo con roles y permisos
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDetailDto>> Get(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var roles = await (from ur in _db.UserRoles
+                                   join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                                   where ur.UserId == id
+                                   select new RoleSimpleDto
+                                   {
+                                       Id = r.ID_ROLE,
+                                       RoleName = r.ROLE_NAME
+                                   }).ToListAsync();
+
+                var permissions = await (from up in _db.UserPermissions
+                                         join p in _db.Permissions on up.PermissionId equals p.ID_PERMISSION
+                                         where up.UserId == id
+                                         select new PermissionSimpleDto
+                                         {
+                                             Id = p.ID_PERMISSION,
+                                             PermissionKey = p.PERMISSION_KEY,
+                                             PermissionName = p.PERMISSION_NAME,
+                                             IsAllowed = up.IsAllowed
+                                         }).ToListAsync();
+
+                var dto = new UserDetailDto
+                {
+                    Id = user.ID_USER,
+                    Username = user.USER_NAME,
+                    Email = user.EMAIL,
+                    DisplayName = user.DISPLAY_NAME,
+                    AzureOid = user.AZURE_OID,
+                    AzureUpn = user.AZURE_UPN,
+                    IsActive = user.IS_ACTIVE,
+                    CreateDate = user.CreateDate,
+                    CreatedBy = user.CreatedBy,
+                    Roles = roles,
+                    DirectPermissions = permissions
+                };
+
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo usuario" });
+            }
+        }
+
+        // POST: api/user - Crear usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<ActionResult<UserDetailDto>> Post([FromBody] UserCreateDto dto)
+        {
+            try
+            {
+                // Validar username único
+                if (await _db.Users.AnyAsync(u => u.USER_NAME == dto.Username))
+                    return BadRequest(new { message = "El username ya existe" });
+
+                // Validar email único
+                if (await _db.Users.AnyAsync(u => u.EMAIL == dto.Email))
+                    return BadRequest(new { message = "El email ya existe" });
+
+                var user = new User
+                {
+                    USER_NAME = dto.Username,
+                    EMAIL = dto.Email,
+                    DISPLAY_NAME = dto.DisplayName ?? string.Empty,
+                    PASSWORD_HASH = dto.PasswordHash,
+                    IS_ACTIVE = dto.IsActive,
+                    FIRST_NAME = "User",
+                    LAST_NAME = "System",
+                    PHONE_NUMBER = string.Empty,
+                    TIME_ZONE = "UTC",
+                    DATE_OF_BIRTH = DateTime.UtcNow,
+                    RecordDate = DateTime.UtcNow,
+                    CreateDate = DateTime.UtcNow,
+                    RowPointer = Guid.NewGuid(),
+                    CreatedBy = User.Identity?.Name ?? "system",
+                    UpdatedBy = User.Identity?.Name ?? "system"
+                };
+
+                _db.Users.Add(user);
+                await _db.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(Get), new { id = user.ID_USER },
+                    await Get(user.ID_USER));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando usuario");
+                return StatusCode(500, new { message = "Error creando usuario" });
+            }
+        }
+
+        // PUT: api/user/5 - Actualizar usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, [FromBody] UserUpdateDto dto)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Validar email único si cambió
+                if (dto.Email != null && dto.Email != user.EMAIL)
+                {
+                    if (await _db.Users.AnyAsync(u => u.EMAIL == dto.Email && u.ID_USER != id))
+                        return BadRequest(new { message = "El email ya existe" });
+                    user.EMAIL = dto.Email;
+                }
+
+                user.DISPLAY_NAME = dto.DisplayName ?? user.DISPLAY_NAME;
+                user.IS_ACTIVE = dto.IsActive;
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+
+                await _db.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando usuario {Id}", id);
+                return StatusCode(500, new { message = "Error actualizando usuario" });
+            }
+        }
+
+        // DELETE: api/user/5 - Soft delete
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Soft delete
+                user.IS_ACTIVE = false;
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+                await _db.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando usuario {Id}", id);
+                return StatusCode(500, new { message = "Error eliminando usuario" });
+            }
+        }
+
+        // =====================================================
+        // GESTIÓN DE ROLES
+        // =====================================================
+
+        // GET: api/user/{id}/roles - Obtener roles del usuario
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}/roles")]
+        public async Task<ActionResult<List<RoleSimpleDto>>> GetUserRoles(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var roles = await (from ur in _db.UserRoles
+                   join r in _db.Roles on ur.RoleId equals r.ID_ROLE
+                   where ur.UserId == id
+                   select new RoleSimpleDto
+                   {
+                       Id = r.ID_ROLE,
+                       RoleName = r.ROLE_NAME
+                   }).ToListAsync();
+
+                return Ok(roles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo roles del usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo roles" });
+            }
+        }
+
+        // POST: api/user/{id}/roles - Asignar roles al usuario
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/roles")]
+        public async Task<IActionResult> AssignRoles(int id, [FromBody] List<int> roleIds)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Validar que todos los roles existen
+                var existingRoleIds = await _db.Roles
+                    .Where(r => roleIds.Contains(r.ID_ROLE))
+                    .Select(r => r.ID_ROLE)
+                    .ToListAsync();
+
+                if (existingRoleIds.Count != roleIds.Count)
+                    return BadRequest(new { message = "Uno o más roles no existen" });
+
+                // Eliminar roles existentes
+                var currentRoles = await _db.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
+                _db.UserRoles.RemoveRange(currentRoles);
+
+                // Agregar nuevos roles
+                var userName = User.Identity?.Name ?? "system";
+                foreach (var roleId in roleIds)
+                {
+                    _db.UserRoles.Add(new UserRole
+                    {
+                        UserId = id,
+                        RoleId = roleId,
+                        RecordDate = DateTime.UtcNow,
+                        CreateDate = DateTime.UtcNow,
+                        RowPointer = Guid.NewGuid(),
+                        CreatedBy = userName,
+                        UpdatedBy = userName
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Roles asignados al usuario {UserId}: {Roles}", id, string.Join(", ", roleIds));
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando roles al usuario {Id}", id);
+                return StatusCode(500, new { message = "Error asignando roles" });
+            }
+        }
+
+        // DELETE: api/user/{id}/roles/{roleId} - Remover un rol específico
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}/roles/{roleId}")]
+        public async Task<IActionResult> RemoveRole(int id, int roleId)
+        {
+            try
+            {
+                var userRole = await _db.UserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == id && ur.RoleId == roleId);
+
+                if (userRole == null)
+                    return NotFound(new { message = "Asignación de rol no encontrada" });
+
+                _db.UserRoles.Remove(userRole);
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Rol {RoleId} removido del usuario {UserId}", roleId, id);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removiendo rol {RoleId} del usuario {UserId}", roleId, id);
+                return StatusCode(500, new { message = "Error removiendo rol" });
+            }
+        }
+
+        // =====================================================
+        // GESTIÓN DE PERMISOS DIRECTOS
+        // =====================================================
+
+        // GET: api/user/{id}/permissions - Obtener permisos directos
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}/permissions")]
+        public async Task<ActionResult<List<PermissionSimpleDto>>> GetUserPermissions(int id)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                var permissions = await (from up in _db.UserPermissions
+                         join p in _db.Permissions on up.PermissionId equals p.ID_PERMISSION
+                         where up.UserId == id
+                         select new PermissionSimpleDto
+                         {
+                             Id = p.ID_PERMISSION,
+                             PermissionKey = p.PERMISSION_KEY,
+                             PermissionName = p.PERMISSION_NAME,
+                             IsAllowed = up.IsAllowed
+                         }).ToListAsync();
+
+                return Ok(permissions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permisos del usuario {Id}", id);
+                return StatusCode(500, new { message = "Error obteniendo permisos" });
+            }
+        }
+
+        // POST: api/user/{id}/permissions - Asignar permisos directos
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/permissions")]
+        public async Task<IActionResult> AssignPermissions(int id, [FromBody] List<PermissionAssignment> permissions)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { message = "Usuario no encontrado" });
+
+                // Eliminar permisos existentes
+                var currentPermissions = await _db.UserPermissions.Where(up => up.UserId == id).ToListAsync();
+                _db.UserPermissions.RemoveRange(currentPermissions);
+
+                // Agregar nuevos permisos
+                var userName = User.Identity?.Name ?? "system";
+                foreach (var perm in permissions)
+                {
+                    _db.UserPermissions.Add(new UserPermission
+                    {
+                        UserId = id,
+                        PermissionId = perm.PermissionId,
+                        IsAllowed = perm.IsAllowed,
+                        RecordDate = DateTime.UtcNow,
+                        CreateDate = DateTime.UtcNow,
+                        RowPointer = Guid.NewGuid(),
+                        CreatedBy = userName,
+                        UpdatedBy = userName
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Permisos asignados al usuario {UserId}: {Count} permisos", id, permissions.Count);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error asignando permisos al usuario {Id}", id);
+                return StatusCode(500, new { message = "Error asignando permisos" });
+            }
+        }
+    }
+}

@@ -1,0 +1,180 @@
+﻿// ================================================================================
+// ARCHIVO: CMS.API/Controllers/CatalogController.cs
+// PROPÓSITO: Endpoints para catálogos del sistema (países, géneros, etc.)
+// AUTOR: EAMR, BITI SOLUTIONS S.A
+// CREADO: 2026-02-14
+// ================================================================================
+
+using CMS.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace CMS.API.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CatalogController : ControllerBase
+    {
+        private readonly AppDbContext _db;
+        private readonly ILogger<CatalogController> _logger;
+
+        public CatalogController(AppDbContext db, ILogger<CatalogController> logger)
+        {
+            _db = db;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtener lista de países
+        /// GET: api/catalog/countries
+        /// </summary>
+        [HttpGet("countries")]
+        public async Task<IActionResult> GetCountries()
+        {
+            try
+            {
+                // TODO: Implementar tabla de países en la base de datos
+                // Por ahora retornamos una lista estática
+                var countries = new List<CatalogItem>
+                {
+                    new() { Id = 1, Name = "Costa Rica", Code = "CR" },
+                    new() { Id = 2, Name = "Estados Unidos", Code = "US" },
+                    new() { Id = 3, Name = "México", Code = "MX" },
+                    new() { Id = 4, Name = "España", Code = "ES" },
+                    new() { Id = 5, Name = "Colombia", Code = "CO" },
+                    new() { Id = 6, Name = "Argentina", Code = "AR" },
+                    new() { Id = 7, Name = "Chile", Code = "CL" },
+                    new() { Id = 8, Name = "Perú", Code = "PE" },
+                    new() { Id = 9, Name = "Panamá", Code = "PA" },
+                    new() { Id = 10, Name = "Guatemala", Code = "GT" },
+                };
+
+                return Ok(countries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo países");
+                return StatusCode(500, new { message = "Error obteniendo países" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener lista de géneros
+        /// GET: api/catalog/genders
+        /// </summary>
+        [HttpGet("genders")]
+        public async Task<IActionResult> GetGenders()
+        {
+            try
+            {
+                // TODO: Implementar tabla de géneros en la base de datos
+                var genders = new List<CatalogItem>
+                {
+                    new() { Id = 1, Name = "Masculino", Code = "M" },
+                    new() { Id = 2, Name = "Femenino", Code = "F" },
+                    new() { Id = 3, Name = "Otro", Code = "O" },
+                    new() { Id = 4, Name = "Prefiero no decir", Code = "N" },
+                };
+
+                return Ok(genders);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo géneros");
+                return StatusCode(500, new { message = "Error obteniendo géneros" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener lista de idiomas
+        /// GET: api/catalog/languages
+        /// </summary>
+        [HttpGet("languages")]
+        public async Task<IActionResult> GetLanguages()
+        {
+            try
+            {
+                var languages = new List<CatalogItem>
+                {
+                    new() { Id = 1832, Name = "Español", Code = "es" },
+                    new() { Id = 1833, Name = "English", Code = "en" },
+                    new() { Id = 1834, Name = "Português", Code = "pt" },
+                };
+
+                return Ok(languages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo idiomas");
+                return StatusCode(500, new { message = "Error obteniendo idiomas" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener lista de zonas horarias
+        /// GET: api/catalog/timezones
+        /// </summary>
+        [HttpGet("timezones")]
+        public async Task<IActionResult> GetTimezones()
+        {
+            try
+            {
+                var timezones = new List<CatalogItem>
+                {
+                    new() { Id = 1, Name = "Costa Rica (UTC-6)", Code = "America/Costa_Rica" },
+                    new() { Id = 2, Name = "México (UTC-6)", Code = "America/Mexico_City" },
+                    new() { Id = 3, Name = "Nueva York (UTC-5)", Code = "America/New_York" },
+                    new() { Id = 4, Name = "Los Ángeles (UTC-8)", Code = "America/Los_Angeles" },
+                    new() { Id = 5, Name = "Madrid (UTC+1)", Code = "Europe/Madrid" },
+                    new() { Id = 6, Name = "Londres (UTC+0)", Code = "Europe/London" },
+                    new() { Id = 7, Name = "Bogotá (UTC-5)", Code = "America/Bogota" },
+                    new() { Id = 8, Name = "Buenos Aires (UTC-3)", Code = "America/Argentina/Buenos_Aires" },
+                    new() { Id = 9, Name = "Santiago (UTC-3)", Code = "America/Santiago" },
+                    new() { Id = 10, Name = "Lima (UTC-5)", Code = "America/Lima" },
+                };
+
+                return Ok(timezones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo zonas horarias");
+                return StatusCode(500, new { message = "Error obteniendo zonas horarias" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener lista de estados de usuario
+        /// GET: api/catalog/user-statuses
+        /// </summary>
+        [HttpGet("user-statuses")]
+        public async Task<IActionResult> GetUserStatuses()
+        {
+            try
+            {
+                var statuses = new List<CatalogItem>
+                {
+                    new() { Id = 1, Name = "Activo", Code = "active" },
+                    new() { Id = 2, Name = "Inactivo", Code = "inactive" },
+                    new() { Id = 3, Name = "Bloqueado", Code = "locked" },
+                    new() { Id = 4, Name = "Pendiente verificación", Code = "pending" },
+                };
+
+                return Ok(statuses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo estados de usuario");
+                return StatusCode(500, new { message = "Error obteniendo estados" });
+            }
+        }
+
+        public class CatalogItem
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string? Code { get; set; }
+        }
+    }
+}

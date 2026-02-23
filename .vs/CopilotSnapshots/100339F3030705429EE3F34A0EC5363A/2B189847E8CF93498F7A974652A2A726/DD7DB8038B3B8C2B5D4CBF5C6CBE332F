@@ -1,0 +1,165 @@
+﻿@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Roles/Details.cshtml                                       *@
+@* PROPÓSITO: Detalle de un rol con sus permisos y usuarios                         *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                  *@
+@* CREADO: 2026-02-17                                                               *@
+@* ================================================================================ *@
+
+@model CMS.UI.Controllers.RolesController.RoleDetailDto
+
+@{
+    ViewData["Title"] = $"Rol: {Model.RoleName}";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1>
+                @if (Model.IsSystem)
+                {
+                    <i class="bi bi-shield-fill-check text-warning me-2"></i>
+                }
+                else
+                {
+                    <i class="bi bi-person-badge me-2"></i>
+                }
+                @Model.RoleName
+            </h1>
+            <p class="text-muted mb-0">@(Model.Description ?? "Sin descripción")</p>
+        </div>
+        <div class="page-header-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+            @if (!Model.IsSystem)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-tech-primary">
+                    <i class="bi bi-pencil me-2"></i>Editar
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ===== PERMISOS ===== -->
+        <div class="col-lg-8">
+            <div class="card bg-dark-card border-0">
+                <div class="card-header bg-dark-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-key me-2"></i>Permisos (@Model.Permissions.Count)</h5>
+                    @if (!Model.IsSystem)
+                    {
+                        <a asp-action="ManagePermissions" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-gear me-1"></i>Gestionar Permisos
+                        </a>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Permissions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Permiso</th>
+                                        <th>Clave</th>
+                                        <th class="text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var perm in Model.Permissions.OrderBy(p => p.PermissionKey))
+                                    {
+                                        <tr>
+                                            <td>@perm.PermissionName</td>
+                                            <td><code class="text-info">@perm.PermissionKey</code></td>
+                                            <td class="text-center">
+                                                @if (perm.IsAllowed)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle"></i> Permitido
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">
+                                                        <i class="bi bi-x-circle"></i> Denegado
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-key display-4 d-block mb-3 text-secondary"></i>
+                            <p class="text-light mb-2">Este rol no tiene permisos asignados</p>
+                            @if (!Model.IsSystem)
+                            {
+                                <a asp-action="ManagePermissions" asp-route-id="@Model.Id" class="btn btn-tech-primary mt-2">
+                                    <i class="bi bi-plus-circle me-2"></i>Asignar Permisos
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== USUARIOS ===== -->
+        <div class="col-lg-4">
+            <div class="card bg-dark-card border-0">
+                <div class="card-header bg-dark-header">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Usuarios (@Model.Users.Count)</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Users.Any())
+                    {
+                        <ul class="list-group list-group-flush bg-transparent">
+                            @foreach (var user in Model.Users)
+                            {
+                                <li class="list-group-item bg-transparent d-flex align-items-center">
+                                    <div class="avatar-circle me-3">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                    <div>
+                                        <strong>@user.Username</strong>
+                                        <br>
+                                        <small class="text-muted">@user.Email</small>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-people display-6 d-block mb-2"></i>
+                            No hay usuarios con este rol
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-dark-card { background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%); }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .table-dark { --bs-table-bg: transparent; }
+    .list-group-item { border-color: rgba(255, 255, 255, 0.1) !important; }
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(0, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-cyan);
+    }
+</style>

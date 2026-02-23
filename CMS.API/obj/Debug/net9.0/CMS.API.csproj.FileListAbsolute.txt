@@ -121,7 +121,6 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\n
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.AssemblyInfoInputs.cache
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.AssemblyInfo.cs
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.csproj.CoreCompileInputs.cache
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.MvcApplicationPartsAssemblyInfo.cs
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.MvcApplicationPartsAssemblyInfo.cache
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.sourcelink.json
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -141,3 +140,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\n
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\ref\CMS.API.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\appsettings.json
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\appsettings.production.json
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\CMS.Shared.dll
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\CMS.Shared.pdb
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.MvcApplicationPartsAssemblyInfo.cs
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
