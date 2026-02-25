@@ -210,14 +210,8 @@ namespace CMS.API.Controllers
                 var temporaryPassword = _emailService.GenerateTemporaryPassword();
                 var verificationToken = _emailService.GenerateSecureToken();
 
-                // Hashear la contraseña temporal
-                string passwordHash;
-                using (var sha256 = SHA256.Create())
-                {
-                    var bytes = System.Text.Encoding.UTF8.GetBytes(temporaryPassword);
-                    var hash = sha256.ComputeHash(bytes);
-                    passwordHash = Convert.ToBase64String(hash);
-                }
+                // ⭐ Hashear la contraseña temporal usando PBKDF2 (compatible con LocalAuthService)
+                var passwordHash = HashPasswordPBKDF2(temporaryPassword);
 
                 // ⭐ Convertir DateOfBirth a UTC (Npgsql requiere DateTimeKind.Utc)
                 DateTime dateOfBirth;
@@ -335,11 +329,9 @@ namespace CMS.API.Controllers
                         string.Join(", ", dto.RoleIds), companyIdsToAssign.Count);
                 }
 
-                // ⭐ Enviar email de verificación
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-                var baseUrl = environment == "Development" 
-                    ? "https://localhost:5001" 
-                    : "https://cms.biti-solutions.com";
+                // ⭐ Enviar email de verificación - Usar URL de la compañía desde BD
+                var baseUrl = await GetUiBaseUrlFromCompanyAsync();
+                _logger.LogInformation("📧 Enviando email de verificación a {Email} con baseUrl: {BaseUrl}", user.EMAIL, baseUrl);
 
                 var emailResult = await _emailService.SendVerificationEmailAsync(
                     user.EMAIL,
@@ -830,13 +822,11 @@ namespace CMS.API.Controllers
                 var temporaryPassword = _emailService.GenerateTemporaryPassword();
                 var resetToken = _emailService.GenerateSecureToken();
 
-                // Hashear la contraseña temporal
-                using var sha256 = SHA256.Create();
-                var passwordBytes = System.Text.Encoding.UTF8.GetBytes(temporaryPassword);
-                var hash = sha256.ComputeHash(passwordBytes);
-                var passwordHash = Convert.ToBase64String(hash);
+                // ⭐ Hashear la contraseña temporal usando PBKDF2 (compatible con LocalAuthService)
+                var passwordHash = HashPasswordPBKDF2(temporaryPassword);
 
                 // ⭐ Hashear el token para guardarlo en BD (el token plano se envía por email)
+                using var sha256 = SHA256.Create();
                 var tokenBytes = System.Text.Encoding.UTF8.GetBytes(resetToken);
                 var tokenHash = sha256.ComputeHash(tokenBytes);
                 var tokenHashBase64 = Convert.ToBase64String(tokenHash);
@@ -846,14 +836,14 @@ namespace CMS.API.Controllers
                 user.PASSWORD_RESET_TOKEN = tokenHashBase64; // ⭐ Guardar HASH del token
                 user.PASSWORD_RESET_TOKEN_EXPIRY = DateTime.UtcNow.AddMinutes(VERIFICATION_TOKEN_EXPIRY_MINUTES);
                 user.LAST_PASSWORD_CHANGE = null; // Forzar cambio de contraseña
+                user.LOCKOUT_END = null; // ⭐ Desbloquear cuenta
+                user.FAILED_LOGIN_ATTEMPTS = 0; // ⭐ Reiniciar intentos fallidos
                 user.UpdatedBy = User.Identity?.Name ?? "system";
                 await _db.SaveChangesAsync();
 
-                // Enviar email
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-                var baseUrl = environment == "Development" 
-                    ? "https://localhost:5001" 
-                    : "https://cms.biti-solutions.com";
+                // Enviar email - Usar URL de la compañía desde BD
+                var baseUrl = await GetUiBaseUrlFromCompanyAsync();
+                _logger.LogInformation("📧 Enviando email de reset a {Email} con baseUrl: {BaseUrl}", user.EMAIL, baseUrl);
 
                 var emailResult = await _emailService.SendPasswordResetEmailAsync(
                     user.EMAIL,
@@ -887,6 +877,168 @@ namespace CMS.API.Controllers
             }
         }
 
+        // POST: api/user/{id}/set-password - Establecer contraseña directamente (Admin)
+        /// <summary>
+        /// Permite a un administrador establecer la contraseña de un usuario directamente
+        /// sin enviar correo ni requerir cambio posterior.
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/set-password")]
+        public async Task<IActionResult> SetPassword(int id, [FromBody] SetPasswordRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request?.NewPassword))
+                    return BadRequest(new { success = false, message = "La contraseña es requerida" });
+
+                if (request.NewPassword.Length < 8)
+                    return BadRequest(new { success = false, message = "La contraseña debe tener al menos 8 caracteres" });
+
+                var user = await _db.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { success = false, message = "Usuario no encontrado" });
+
+                // ⭐ Hashear la contraseña usando PBKDF2 (igual que LocalAuthService)
+                var passwordHash = HashPasswordPBKDF2(request.NewPassword);
+
+                _logger.LogInformation("🔐 Cambiando contraseña usuario {UserId}: NewHashLength={HashLength}", 
+                    id, passwordHash.Length);
+
+                // Actualizar usuario - NO marca como temporal
+                // También desbloquea la cuenta y reinicia intentos fallidos
+                user.PASSWORD_HASH = passwordHash;
+                user.PASSWORD_RESET_TOKEN = null; // Limpiar token de reset
+                user.PASSWORD_RESET_TOKEN_EXPIRY = null;
+                user.LAST_PASSWORD_CHANGE = DateTime.UtcNow; // Marcar como cambiada para evitar prompt de cambio
+                user.LOCKOUT_END = null; // ⭐ Desbloquear cuenta
+                user.FAILED_LOGIN_ATTEMPTS = 0; // ⭐ Reiniciar intentos fallidos
+                user.UpdatedBy = User.Identity?.Name ?? "system";
+
+                // Forzar que EF Core detecte el cambio en PASSWORD_HASH
+                _db.Entry(user).Property(u => u.PASSWORD_HASH).IsModified = true;
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Contraseña establecida por administrador para usuario {UserId} (cuenta desbloqueada)", id);
+
+                return Ok(new { 
+                    success = true, 
+                    message = "Contraseña establecida correctamente" 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error estableciendo contraseña para usuario {Id}", id);
+                return StatusCode(500, new { success = false, message = "Error estableciendo contraseña" });
+            }
+        }
+
+        /// <summary>
+        /// Genera un hash seguro de la contraseña usando PBKDF2 (compatible con LocalAuthService)
+        /// </summary>
+        private static string HashPasswordPBKDF2(string password)
+        {
+            using var rng = RandomNumberGenerator.Create();
+            var salt = new byte[16];
+            rng.GetBytes(salt);
+
+            using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000, HashAlgorithmName.SHA256);
+            var hash = pbkdf2.GetBytes(32);
+
+            var combined = new byte[salt.Length + hash.Length];
+            Buffer.BlockCopy(salt, 0, combined, 0, salt.Length);
+            Buffer.BlockCopy(hash, 0, combined, salt.Length, hash.Length);
+
+            return Convert.ToBase64String(combined);
+        }
+
+        /// <summary>
+        /// Obtiene la URL base del UI desde la configuración de la compañía en la base de datos.
+        /// Usa IS_PRODUCTION para determinar si usar ui_development_base_url o ui_production_base_url.
+        /// Si no está configurado, usa el appsettings.json como fallback.
+        /// </summary>
+        private async Task<string> GetUiBaseUrlFromCompanyAsync()
+        {
+            try
+            {
+                // Obtener companyId del JWT
+                var companyIdClaim = User.FindFirst("CompanyId")?.Value;
+                if (string.IsNullOrEmpty(companyIdClaim) || !int.TryParse(companyIdClaim, out var companyId))
+                {
+                    // Fallback: usar la compañía por defecto (la primera activa que es admin_company)
+                    var defaultCompany = await _db.Companies
+                        .Where(c => c.IS_ACTIVE && c.IS_ADMIN_COMPANY)
+                        .FirstOrDefaultAsync();
+
+                    if (defaultCompany == null)
+                    {
+                        defaultCompany = await _db.Companies.FirstOrDefaultAsync(c => c.IS_ACTIVE);
+                    }
+
+                    if (defaultCompany != null)
+                    {
+                        companyId = defaultCompany.ID;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ No se encontró companyId en JWT ni compañía por defecto");
+                        return GetFallbackUiUrl();
+                    }
+                }
+
+                var company = await _db.Companies.FindAsync(companyId);
+                if (company == null)
+                {
+                    _logger.LogWarning("⚠️ Compañía {CompanyId} no encontrada", companyId);
+                    return GetFallbackUiUrl();
+                }
+
+                // Determinar qué URL usar basándose en IS_PRODUCTION
+                string? baseUrl;
+                if (company.IS_PRODUCTION)
+                {
+                    baseUrl = company.UI_PRODUCTION_BASE_URL;
+                    _logger.LogInformation("🌐 Usando UI_PRODUCTION_BASE_URL: {Url}", baseUrl);
+                }
+                else
+                {
+                    baseUrl = company.UI_DEVELOPMENT_BASE_URL;
+                    _logger.LogInformation("🌐 Usando UI_DEVELOPMENT_BASE_URL: {Url}", baseUrl);
+                }
+
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    _logger.LogWarning("⚠️ URL del UI no configurada en compañía {CompanyId}, usando fallback", companyId);
+                    return GetFallbackUiUrl();
+                }
+
+                return baseUrl;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo URL del UI desde la compañía");
+                return GetFallbackUiUrl();
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la URL fallback del UI desde appsettings o valores por defecto
+        /// </summary>
+        private string GetFallbackUiUrl()
+        {
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            var baseUrl = _configuration[$"UiSettings:{environment}:BaseUrl"];
+
+            if (!string.IsNullOrEmpty(baseUrl))
+            {
+                return baseUrl;
+            }
+
+            return environment == "Development" 
+                ? "https://localhost:5001" 
+                : "https://cms.biti-solutions.com";
+        }
+
         // POST: api/user/{id}/send-verification - Enviar/Reenviar email de verificación
         [Authorize(Roles = "Admin")]
         [HttpPost("{id}/send-verification")]
@@ -905,11 +1057,8 @@ namespace CMS.API.Controllers
                 var temporaryPassword = _emailService.GenerateTemporaryPassword();
                 var verificationToken = _emailService.GenerateSecureToken();
 
-                // Hashear la contraseña temporal
-                using var sha256 = SHA256.Create();
-                var passwordBytes = System.Text.Encoding.UTF8.GetBytes(temporaryPassword);
-                var hash = sha256.ComputeHash(passwordBytes);
-                var passwordHash = Convert.ToBase64String(hash);
+                // ⭐ Hashear la contraseña temporal usando PBKDF2 (compatible con LocalAuthService)
+                var passwordHash = HashPasswordPBKDF2(temporaryPassword);
 
                 // Actualizar usuario
                 user.PASSWORD_HASH = passwordHash;
@@ -918,11 +1067,9 @@ namespace CMS.API.Controllers
                 user.UpdatedBy = User.Identity?.Name ?? "system";
                 await _db.SaveChangesAsync();
 
-                // Enviar email
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-                var baseUrl = environment == "Development" 
-                    ? "https://localhost:5001" 
-                    : "https://cms.biti-solutions.com";
+                // Enviar email - Usar URL de la compañía desde BD
+                var baseUrl = await GetUiBaseUrlFromCompanyAsync();
+                _logger.LogInformation("📧 Enviando email de verificación a {Email} con baseUrl: {BaseUrl}", user.EMAIL, baseUrl);
 
                 var emailResult = await _emailService.SendVerificationEmailAsync(
                     user.EMAIL,

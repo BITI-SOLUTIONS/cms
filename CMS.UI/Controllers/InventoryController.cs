@@ -164,7 +164,24 @@ namespace CMS.UI.Controllers
                 {
                     labelItem = request.LabelItem,
                     labelPrice = request.LabelPrice,
-                    labelItemBarcode = request.LabelItemBarcode
+                    labelItemBarcode = request.LabelItemBarcode,
+                    printLabelName = request.PrintLabelName,
+                    printLabelPrice = request.PrintLabelPrice,
+                    printLabelBarcode = request.PrintLabelBarcode,
+                    labelWidthCm = request.LabelWidthCm,
+                    labelHeightCm = request.LabelHeightCm,
+                    labelOrientation = request.LabelOrientation,
+                    printLabelBorder = request.PrintLabelBorder,
+                    labelBorderColor = request.LabelBorderColor,
+                    labelNameColor = request.LabelNameColor,
+                    labelPriceColor = request.LabelPriceColor,
+                    labelBarcodeColor = request.LabelBarcodeColor,
+                    labelFontSize = request.LabelFontSize,
+                    labelFontFamily = request.LabelFontFamily,
+                    labelPriceDecimals = request.LabelPriceDecimals,
+                    labelThousandSeparator = request.LabelThousandSeparator,
+                    labelCurrencySymbol = request.LabelCurrencySymbol,
+                    printCurrencySymbol = request.PrintCurrencySymbol
                 });
 
                 var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
@@ -172,7 +189,10 @@ namespace CMS.UI.Controllers
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return Json(new { success = true, message = "Etiqueta guardada exitosamente" });
+                    // Devolver también el item actualizado para refrescar la lista
+                    var json = await response.Content.ReadAsStringAsync();
+                    var updatedItem = JsonSerializer.Deserialize<ItemDto>(json, JsonOptions);
+                    return Json(new { success = true, message = "Etiqueta guardada exitosamente", item = updatedItem });
                 }
 
                 var error = await response.Content.ReadAsStringAsync();
@@ -182,6 +202,65 @@ namespace CMS.UI.Controllers
             {
                 _logger.LogError(ex, "Error guardando etiqueta del artículo {Id}", request.ItemId);
                 return Json(new { success = false, message = "Error al guardar la etiqueta" });
+            }
+        }
+
+        /// <summary>
+        /// Registra una impresión de etiqueta en el historial
+        /// POST: /Inventory/LabelItems/RecordPrint
+        /// </summary>
+        [HttpPost("Inventory/LabelItems/RecordPrint")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> RecordPrint([FromBody] RecordPrintRequest request)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+
+                var payload = JsonSerializer.Serialize(new
+                {
+                    labelItem = request.LabelItem,
+                    labelPrice = request.LabelPrice,
+                    labelItemBarcode = request.LabelItemBarcode,
+                    printLabelName = request.PrintLabelName,
+                    printLabelPrice = request.PrintLabelPrice,
+                    printLabelBarcode = request.PrintLabelBarcode,
+                    printLabelBorder = request.PrintLabelBorder,
+                    printCurrencySymbol = request.PrintCurrencySymbol,
+                    labelWidthCm = request.LabelWidthCm,
+                    labelHeightCm = request.LabelHeightCm,
+                    labelOrientation = request.LabelOrientation,
+                    labelBorderColor = request.LabelBorderColor,
+                    labelNameColor = request.LabelNameColor,
+                    labelPriceColor = request.LabelPriceColor,
+                    labelBarcodeColor = request.LabelBarcodeColor,
+                    labelFontSize = request.LabelFontSize,
+                    labelFontFamily = request.LabelFontFamily,
+                    labelPriceDecimals = request.LabelPriceDecimals,
+                    labelThousandSeparator = request.LabelThousandSeparator,
+                    labelCurrencySymbol = request.LabelCurrencySymbol,
+                    formattedPrice = request.FormattedPrice,
+                    quantityPrinted = request.QuantityPrinted,
+                    printerName = request.PrinterName,
+                    printNotes = request.PrintNotes
+                });
+
+                var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{GetApiBaseUrl()}/api/item/{request.ItemId}/print", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = true, message = "Impresión registrada exitosamente" });
+                }
+
+                var error = await response.Content.ReadAsStringAsync();
+                return Json(new { success = false, message = $"Error al registrar impresión: {error}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error registrando impresión del artículo {Id}", request.ItemId);
+                return Json(new { success = false, message = "Error al registrar la impresión" });
             }
         }
 
@@ -496,6 +575,27 @@ namespace CMS.UI.Controllers
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
         public bool IsLabelItem { get; set; }
+        public bool PrintLabelName { get; set; }
+        public bool PrintLabelPrice { get; set; }
+        public bool PrintLabelBarcode { get; set; }
+
+        // Label size and format
+        public decimal LabelWidthCm { get; set; }
+        public decimal LabelHeightCm { get; set; }
+        public string LabelOrientation { get; set; } = "horizontal";
+        public bool PrintLabelBorder { get; set; }
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+        public bool PrintCurrencySymbol { get; set; } = true;
 
         // Auditoría
         public DateTime CreateDate { get; set; }
@@ -533,6 +633,9 @@ namespace CMS.UI.Controllers
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
         public bool IsLabelItem { get; set; }
+        public bool PrintLabelName { get; set; } = true;
+        public bool PrintLabelPrice { get; set; } = true;
+        public bool PrintLabelBarcode { get; set; } = true;
     }
 
     public class EditItemViewModel : CreateItemViewModel
@@ -558,5 +661,67 @@ namespace CMS.UI.Controllers
         public string? LabelItem { get; set; }
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
+        public bool PrintLabelName { get; set; } = true;
+        public bool PrintLabelPrice { get; set; } = true;
+        public bool PrintLabelBarcode { get; set; } = true;
+
+        // Label size and format
+        public decimal LabelWidthCm { get; set; } = 4.0m;
+        public decimal LabelHeightCm { get; set; } = 2.0m;
+        public string LabelOrientation { get; set; } = "horizontal";
+        public bool PrintLabelBorder { get; set; } = true;
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+        public bool PrintCurrencySymbol { get; set; } = true;
+    }
+
+    public class RecordPrintRequest
+    {
+        public int ItemId { get; set; }
+        public string? ItemCode { get; set; }
+        public string? ItemName { get; set; }
+        public string? LabelItem { get; set; }
+        public decimal LabelPrice { get; set; }
+        public string? LabelItemBarcode { get; set; }
+        public bool PrintLabelName { get; set; } = true;
+        public bool PrintLabelPrice { get; set; } = true;
+        public bool PrintLabelBarcode { get; set; } = true;
+        public bool PrintLabelBorder { get; set; } = true;
+        public bool PrintCurrencySymbol { get; set; } = true;
+
+        // Label size
+        public decimal LabelWidthCm { get; set; } = 4.0m;
+        public decimal LabelHeightCm { get; set; } = 2.0m;
+        public string LabelOrientation { get; set; } = "horizontal";
+
+        // Label colors
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+
+        // Formatted price as printed
+        public string? FormattedPrice { get; set; }
+
+        // Print info
+        public int QuantityPrinted { get; set; } = 1;
+        public string? PrinterName { get; set; }
+        public string? PrintNotes { get; set; }
     }
 }

@@ -367,7 +367,7 @@ namespace CMS.UI.Controllers
             try
             {
                 var result = await _usersApi.SendPasswordResetAsync(id);
-                
+
                 if (result.Success)
                 {
                     TempData["Success"] = "Se ha enviado un correo para restablecer la contraseña";
@@ -384,6 +384,47 @@ namespace CMS.UI.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        /// <summary>
+        /// Establece contraseña directamente (Admin)
+        /// POST: /Users/SetPassword
+        /// </summary>
+        [HttpPost]
+        [IgnoreAntiforgeryToken] // AJAX call
+        public async Task<IActionResult> SetPassword([FromBody] SetPasswordModel model)
+        {
+            try
+            {
+                if (model == null || model.UserId <= 0)
+                {
+                    return Json(new { success = false, message = "Datos inválidos" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.NewPassword))
+                {
+                    return Json(new { success = false, message = "La contraseña es requerida" });
+                }
+
+                if (model.NewPassword.Length < 8)
+                {
+                    return Json(new { success = false, message = "La contraseña debe tener al menos 8 caracteres" });
+                }
+
+                if (model.NewPassword != model.ConfirmPassword)
+                {
+                    return Json(new { success = false, message = "Las contraseñas no coinciden" });
+                }
+
+                var result = await _usersApi.SetPasswordAsync(model.UserId, model.NewPassword);
+
+                return Json(new { success = result.Success, message = result.Success ? "Contraseña establecida correctamente" : result.ErrorMessage });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error estableciendo contraseña para usuario {UserId}", model?.UserId);
+                return Json(new { success = false, message = "Error interno al establecer la contraseña" });
+            }
         }
 
         #endregion
@@ -483,6 +524,13 @@ namespace CMS.UI.Controllers
         {
             public int UserId { get; set; }
             public List<int>? RoleIds { get; set; }
+        }
+
+        public class SetPasswordModel
+        {
+            public int UserId { get; set; }
+            public string NewPassword { get; set; } = string.Empty;
+            public string ConfirmPassword { get; set; } = string.Empty;
         }
 
         #endregion

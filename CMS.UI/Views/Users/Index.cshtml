@@ -248,6 +248,14 @@
                                                class="btn-action btn-action-edit" title="Editar datos">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
+                                            <button type="button" class="btn-action btn-action-key" 
+                                                    title="Establecer contraseña"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#setPasswordModal"
+                                                    data-user-id="@user.Id"
+                                                    data-user-name="@user.FullName">
+                                                <i class="bi bi-key"></i>
+                                            </button>
                                             <button type="button" class="btn-action btn-action-delete" 
                                                     title="@(user.IsActive ? "Desactivar" : "Activar")"
                                                     data-bs-toggle="modal" 
@@ -337,60 +345,210 @@
     </div>
 </div>
 
+<!-- ===== MODAL ESTABLECER CONTRASEÑA ===== -->
+<div class="modal fade" id="setPasswordModal" tabindex="-1" aria-labelledby="setPasswordTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-tech">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="setPasswordTitle">
+                    <i class="bi bi-key me-2 text-warning"></i>Establecer Contraseña
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="setPasswordUserId" />
+                <div class="text-center mb-4">
+                    <div class="status-icon-container status-icon-warning">
+                        <i class="bi bi-key" style="font-size: 2rem;"></i>
+                    </div>
+                    <h6 class="text-light mt-3">Usuario: <span id="setPasswordUserName" class="text-info"></span></h6>
+                    <p class="text-muted small">La contraseña se establecerá directamente sin enviar correo al usuario.</p>
+                </div>
+                <div class="mb-3">
+                    <label for="newPasswordInput" class="form-label text-light">Nueva Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control bg-dark text-light border-secondary" id="newPasswordInput" 
+                               placeholder="Mínimo 8 caracteres" minlength="8" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('newPasswordInput', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="confirmPasswordInput" class="form-label text-light">Confirmar Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control bg-dark text-light border-secondary" id="confirmPasswordInput" 
+                               placeholder="Repetir contraseña" minlength="8" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('confirmPasswordInput', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="passwordError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer border-secondary justify-content-center gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="setPasswordBtn" class="btn btn-warning" onclick="submitSetPassword()">
+                    <i class="bi bi-check-lg me-1"></i>Establecer Contraseña
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         (function() {
             'use strict';
 
+            // ===== Modal Toggle Status =====
             var toggleModal = document.getElementById('toggleStatusModal');
 
-            if (!toggleModal) {
-                console.warn('Modal toggleStatusModal no encontrado');
+            if (toggleModal) {
+                document.body.appendChild(toggleModal);
+
+                toggleModal.addEventListener('show.bs.modal', function(event) {
+                    var button = event.relatedTarget;
+                    if (!button) return;
+
+                    var userId = button.getAttribute('data-user-id');
+                    var userName = button.getAttribute('data-user-name');
+                    var isActive = button.getAttribute('data-user-active') === 'true';
+
+                    var form = document.getElementById('toggleStatusForm');
+                    var icon = document.querySelector('#toggleStatusIcon i');
+                    var iconDiv = document.getElementById('toggleStatusIcon');
+                    var question = document.getElementById('toggleStatusQuestion');
+                    var userNameEl = document.getElementById('toggleStatusUserName');
+                    var btn = document.getElementById('toggleStatusBtn');
+
+                    if (!form || !icon || !iconDiv || !question || !userNameEl || !btn) {
+                        console.error('Elementos del modal no encontrados');
+                        return;
+                    }
+
+                    if (isActive) {
+                        form.action = '@Url.Action("Delete", "Users")/' + userId;
+                        iconDiv.className = 'status-icon-container status-icon-danger';
+                        icon.className = 'bi bi-person-dash';
+                        question.textContent = '¿Desactivar este usuario?';
+                        btn.className = 'btn btn-danger';
+                        btn.innerHTML = '<i class="bi bi-person-dash me-1"></i>Desactivar';
+                    } else {
+                        form.action = '@Url.Action("Activate", "Users")/' + userId;
+                        iconDiv.className = 'status-icon-container status-icon-success';
+                        icon.className = 'bi bi-person-check';
+                        question.textContent = '¿Activar este usuario?';
+                        btn.className = 'btn btn-success';
+                        btn.innerHTML = '<i class="bi bi-person-check me-1"></i>Activar';
+                    }
+
+                    userNameEl.textContent = userName;
+                });
+            }
+
+            // ===== Modal Set Password =====
+            var setPasswordModal = document.getElementById('setPasswordModal');
+
+            if (setPasswordModal) {
+                document.body.appendChild(setPasswordModal);
+
+                setPasswordModal.addEventListener('show.bs.modal', function(event) {
+                    var button = event.relatedTarget;
+                    if (!button) return;
+
+                    var userId = button.getAttribute('data-user-id');
+                    var userName = button.getAttribute('data-user-name');
+
+                    document.getElementById('setPasswordUserId').value = userId;
+                    document.getElementById('setPasswordUserName').textContent = userName;
+                    document.getElementById('newPasswordInput').value = '';
+                    document.getElementById('confirmPasswordInput').value = '';
+                    document.getElementById('passwordError').classList.add('d-none');
+                });
+            }
+        })();
+
+        function togglePasswordVisibility(inputId, btn) {
+            var input = document.getElementById(inputId);
+            var icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+
+        function submitSetPassword() {
+            var userId = document.getElementById('setPasswordUserId').value;
+            var newPassword = document.getElementById('newPasswordInput').value;
+            var confirmPassword = document.getElementById('confirmPasswordInput').value;
+            var errorDiv = document.getElementById('passwordError');
+            var btn = document.getElementById('setPasswordBtn');
+
+            errorDiv.classList.add('d-none');
+
+            // Validaciones
+            if (!newPassword || newPassword.length < 8) {
+                errorDiv.textContent = 'La contraseña debe tener al menos 8 caracteres';
+                errorDiv.classList.remove('d-none');
                 return;
             }
 
-            // Mover el modal al final del body para evitar problemas de z-index
-            document.body.appendChild(toggleModal);
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'Las contraseñas no coinciden';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
 
-            toggleModal.addEventListener('show.bs.modal', function(event) {
-                var button = event.relatedTarget;
-                if (!button) return;
+            // Deshabilitar botón
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
 
-                var userId = button.getAttribute('data-user-id');
-                var userName = button.getAttribute('data-user-name');
-                var isActive = button.getAttribute('data-user-active') === 'true';
+            fetch('@Url.Action("SetPassword", "Users")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    newPassword: newPassword,
+                    confirmPassword: confirmPassword
+                })
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(result) {
+                if (result.success) {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('setPasswordModal'));
+                    modal.hide();
 
-                var form = document.getElementById('toggleStatusForm');
-                var icon = document.querySelector('#toggleStatusIcon i');
-                var iconDiv = document.getElementById('toggleStatusIcon');
-                var question = document.getElementById('toggleStatusQuestion');
-                var userNameEl = document.getElementById('toggleStatusUserName');
-                var btn = document.getElementById('toggleStatusBtn');
-
-                if (!form || !icon || !iconDiv || !question || !userNameEl || !btn) {
-                    console.error('Elementos del modal no encontrados');
-                    return;
-                }
-
-                if (isActive) {
-                    form.action = '@Url.Action("Delete", "Users")/' + userId;
-                    iconDiv.className = 'status-icon-container status-icon-danger';
-                    icon.className = 'bi bi-person-dash';
-                    question.textContent = '¿Desactivar este usuario?';
-                    btn.className = 'btn btn-danger';
-                    btn.innerHTML = '<i class="bi bi-person-dash me-1"></i>Desactivar';
+                    // Mostrar mensaje de éxito
+                    var alertHtml = '<div class="alert alert-success-tech d-flex align-items-center" role="alert">' +
+                        '<i class="bi bi-check-circle-fill me-2"></i>' +
+                        '<div>Contraseña establecida correctamente</div>' +
+                        '<button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>' +
+                        '</div>';
+                    var container = document.querySelector('.content-container');
+                    container.insertAdjacentHTML('afterbegin', alertHtml);
                 } else {
-                    form.action = '@Url.Action("Activate", "Users")/' + userId;
-                    iconDiv.className = 'status-icon-container status-icon-success';
-                    icon.className = 'bi bi-person-check';
-                    question.textContent = '¿Activar este usuario?';
-                    btn.className = 'btn btn-success';
-                    btn.innerHTML = '<i class="bi bi-person-check me-1"></i>Activar';
+                    errorDiv.textContent = result.message || 'Error al establecer la contraseña';
+                    errorDiv.classList.remove('d-none');
                 }
-
-                userNameEl.textContent = userName;
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                errorDiv.textContent = 'Error al establecer la contraseña';
+                errorDiv.classList.remove('d-none');
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Establecer Contraseña';
             });
-        })();
+        }
     </script>
 }
 
@@ -439,6 +597,24 @@
 
     .status-icon-success i {
         color: #10b981;
+    }
+
+    .status-icon-warning {
+        background: rgba(245, 158, 11, 0.15);
+    }
+
+    .status-icon-warning i {
+        color: #f59e0b;
+    }
+
+    .btn-action-key {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .btn-action-key:hover {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
     }
 
     /* ===== PAGE HEADER ===== */

@@ -27,11 +27,16 @@ namespace CMS.Data
         }
 
         // ===== TABLAS OPERACIONALES =====
-        
+
         /// <summary>
         /// Artículos/Productos del inventario
         /// </summary>
         public DbSet<Item> Items { get; set; } = null!;
+
+        /// <summary>
+        /// Historial de impresiones de etiquetas
+        /// </summary>
+        public DbSet<LabelPrintHistory> LabelPrintHistory { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,12 +49,24 @@ namespace CMS.Data
             modelBuilder.Entity<Item>(entity =>
             {
                 entity.ToTable("item", _schema);
-                
+
                 // Índices
                 entity.HasIndex(e => e.Code).IsUnique();
                 entity.HasIndex(e => e.Barcode);
                 entity.HasIndex(e => e.Category);
                 entity.HasIndex(e => e.IsActive);
+            });
+
+            // Configurar la tabla LabelPrintHistory
+            modelBuilder.Entity<LabelPrintHistory>(entity =>
+            {
+                entity.ToTable("label_print_history", _schema);
+
+                // Índices
+                entity.HasIndex(e => e.IdItem);
+                entity.HasIndex(e => e.ItemCode);
+                entity.HasIndex(e => e.PrintDate);
+                entity.HasIndex(e => e.PrintedBy);
             });
         }
     }

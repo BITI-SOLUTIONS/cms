@@ -73,6 +73,120 @@ namespace CMS.Entities.Operational
         [Column("is_label_item")]
         public bool IsLabelItem { get; set; }
 
+        /// <summary>
+        /// Indica si se debe imprimir el nombre en la etiqueta
+        /// </summary>
+        [Column("print_label_name")]
+        public bool PrintLabelName { get; set; } = true;
+
+        /// <summary>
+        /// Indica si se debe imprimir el precio en la etiqueta
+        /// </summary>
+        [Column("print_label_price")]
+        public bool PrintLabelPrice { get; set; } = true;
+
+        /// <summary>
+        /// Indica si se debe imprimir el código de barras en la etiqueta
+        /// </summary>
+        [Column("print_label_barcode")]
+        public bool PrintLabelBarcode { get; set; } = true;
+
+        // ===== CONFIGURACIÓN DE TAMAÑO Y FORMATO DE ETIQUETA =====
+
+        /// <summary>
+        /// Ancho de la etiqueta en centímetros (horizontal)
+        /// </summary>
+        [Column("label_width_cm", TypeName = "decimal(5,2)")]
+        public decimal LabelWidthCm { get; set; } = 4.0m;
+
+        /// <summary>
+        /// Alto de la etiqueta en centímetros (vertical)
+        /// </summary>
+        [Column("label_height_cm", TypeName = "decimal(5,2)")]
+        public decimal LabelHeightCm { get; set; } = 2.0m;
+
+        /// <summary>
+        /// Orientación de la etiqueta: 'horizontal' o 'vertical'
+        /// </summary>
+        [MaxLength(20)]
+        [Column("label_orientation")]
+        public string LabelOrientation { get; set; } = "horizontal";
+
+        /// <summary>
+        /// Indica si se debe imprimir el borde/recuadro de la etiqueta
+        /// </summary>
+        [Column("print_label_border")]
+        public bool PrintLabelBorder { get; set; } = true;
+
+        /// <summary>
+        /// Color del borde de la etiqueta (formato hex: #000000)
+        /// </summary>
+        [MaxLength(7)]
+        [Column("label_border_color")]
+        public string LabelBorderColor { get; set; } = "#000000";
+
+        /// <summary>
+        /// Color del nombre en la etiqueta (formato hex: #000000)
+        /// </summary>
+        [MaxLength(7)]
+        [Column("label_name_color")]
+        public string LabelNameColor { get; set; } = "#000000";
+
+        /// <summary>
+        /// Color del precio en la etiqueta (formato hex: #000000)
+        /// </summary>
+        [MaxLength(7)]
+        [Column("label_price_color")]
+        public string LabelPriceColor { get; set; } = "#16a34a";
+
+        /// <summary>
+        /// Color del código de barras en la etiqueta (formato hex: #000000)
+        /// </summary>
+        [MaxLength(7)]
+        [Column("label_barcode_color")]
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // ===== CONFIGURACIÓN DE FUENTE Y FORMATO DE PRECIO =====
+
+        /// <summary>
+        /// Tamaño de fuente para la etiqueta en puntos
+        /// </summary>
+        [Column("label_font_size", TypeName = "decimal(4,1)")]
+        public decimal LabelFontSize { get; set; } = 14.0m;
+
+        /// <summary>
+        /// Tipo de fuente para la etiqueta
+        /// </summary>
+        [MaxLength(50)]
+        [Column("label_font_family")]
+        public string LabelFontFamily { get; set; } = "Arial";
+
+        /// <summary>
+        /// Cantidad de decimales para el precio
+        /// </summary>
+        [Column("label_price_decimals")]
+        public int LabelPriceDecimals { get; set; } = 2;
+
+        /// <summary>
+        /// Separador de miles: ',' o '.'
+        /// </summary>
+        [MaxLength(1)]
+        [Column("label_thousand_separator")]
+        public string LabelThousandSeparator { get; set; } = ",";
+
+        /// <summary>
+        /// Símbolo de moneda: '₡', '$', '€'
+        /// </summary>
+        [MaxLength(5)]
+        [Column("label_currency_symbol")]
+        public string LabelCurrencySymbol { get; set; } = "₡";
+
+        /// <summary>
+        /// Indica si se debe imprimir el símbolo de moneda
+        /// </summary>
+        [Column("print_currency_symbol")]
+        public bool PrintCurrencySymbol { get; set; } = true;
+
         // ===== INFORMACIÓN BÁSICA =====
 
         /// <summary>

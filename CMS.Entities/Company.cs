@@ -122,6 +122,15 @@ namespace CMS.Entities
         [MaxLength(500)]
         public string? API_SCOPES { get; set; }
 
+        // ===== UI ENDPOINTS =====
+        [Column("ui_development_base_url")]
+        [MaxLength(200)]
+        public string? UI_DEVELOPMENT_BASE_URL { get; set; }
+
+        [Column("ui_production_base_url")]
+        [MaxLength(200)]
+        public string? UI_PRODUCTION_BASE_URL { get; set; }
+
         // ===== HACIENDA - E-INVOICE =====
         [Column("hacienda_environment")]
         [MaxLength(20)]

@@ -350,6 +350,41 @@ namespace CMS.UI.Services
             }
         }
 
+        /// <summary>
+        /// Establece la contraseña de un usuario directamente (sin enviar correo)
+        /// </summary>
+        public async Task<UserOperationResult> SetPasswordAsync(int id, string newPassword)
+        {
+            try
+            {
+                var client = CreateClient();
+                var response = await client.PostAsJsonAsync($"api/user/{id}/set-password", new { newPassword });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return UserOperationResult.Ok();
+                }
+
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Error estableciendo contraseña: {Error}", errorContent);
+
+                try
+                {
+                    var errorResult = JsonSerializer.Deserialize<ApiResponse>(errorContent, JsonOptions);
+                    return UserOperationResult.Error(errorResult?.Message ?? "Error al establecer la contraseña");
+                }
+                catch
+                {
+                    return UserOperationResult.Error("Error al establecer la contraseña");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error estableciendo contraseña para usuario {UserId}", id);
+                return UserOperationResult.Error("Error interno");
+            }
+        }
+
         #endregion
 
         #region Validaciones
@@ -656,6 +691,12 @@ namespace CMS.UI.Services
             public string? Code { get; set; }
             public string? Details { get; set; }
             public DateTime? Timestamp { get; set; }
+        }
+
+        private class ApiResponse
+        {
+            public bool Success { get; set; }
+            public string? Message { get; set; }
         }
 
         private class AvailabilityResponse

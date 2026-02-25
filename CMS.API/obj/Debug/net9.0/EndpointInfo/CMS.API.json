@@ -1156,6 +1156,154 @@
         }
       }
     },
+    "/api/Item/{id}/print": {
+      "post": {
+        "tags": [
+          "Item"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPrintRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPrintRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPrintRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelPrintHistoryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelPrintHistoryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelPrintHistoryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Item/print-history": {
+      "get": {
+        "tags": [
+          "Item"
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "printedBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LabelPrintHistoryDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LabelPrintHistoryDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LabelPrintHistoryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Menu": {
       "get": {
         "tags": [
@@ -2548,6 +2696,48 @@
         }
       }
     },
+    "/api/User/{id}/set-password": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/User/{id}/send-verification": {
       "post": {
         "tags": [
@@ -3589,6 +3779,15 @@
           },
           "isLabelItem": {
             "type": "boolean"
+          },
+          "printLabelName": {
+            "type": "boolean"
+          },
+          "printLabelPrice": {
+            "type": "boolean"
+          },
+          "printLabelBarcode": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -3771,6 +3970,69 @@
           "isLabelItem": {
             "type": "boolean"
           },
+          "printLabelName": {
+            "type": "boolean"
+          },
+          "printLabelPrice": {
+            "type": "boolean"
+          },
+          "printLabelBarcode": {
+            "type": "boolean"
+          },
+          "labelWidthCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelHeightCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelOrientation": {
+            "type": "string",
+            "nullable": true
+          },
+          "printLabelBorder": {
+            "type": "boolean"
+          },
+          "labelBorderColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelNameColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelBarcodeColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelFontSize": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelFontFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceDecimals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelThousandSeparator": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelCurrencySymbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "printCurrencySymbol": {
+            "type": "boolean"
+          },
           "createDate": {
             "type": "string",
             "format": "date-time"
@@ -3819,6 +4081,52 @@
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LabelPrintHistoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idItem": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemName": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelItem": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "formattedPrice": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantityPrinted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "printDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "printedBy": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -3999,6 +4307,103 @@
         },
         "additionalProperties": false
       },
+      "RecordPrintRequest": {
+        "type": "object",
+        "properties": {
+          "labelItem": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelItemBarcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "printLabelName": {
+            "type": "boolean"
+          },
+          "printLabelPrice": {
+            "type": "boolean"
+          },
+          "printLabelBarcode": {
+            "type": "boolean"
+          },
+          "printLabelBorder": {
+            "type": "boolean"
+          },
+          "printCurrencySymbol": {
+            "type": "boolean"
+          },
+          "labelWidthCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelHeightCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelOrientation": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelBorderColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelNameColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelBarcodeColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelFontSize": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelFontFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceDecimals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelThousandSeparator": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelCurrencySymbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "formattedPrice": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantityPrinted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "printerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "printNotes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RoleCreateDto": {
         "type": "object",
         "properties": {
@@ -4051,6 +4456,16 @@
           "companyId": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4241,6 +4656,69 @@
           },
           "isLabelItem": {
             "type": "boolean"
+          },
+          "printLabelName": {
+            "type": "boolean"
+          },
+          "printLabelPrice": {
+            "type": "boolean"
+          },
+          "printLabelBarcode": {
+            "type": "boolean"
+          },
+          "labelWidthCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelHeightCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelOrientation": {
+            "type": "string",
+            "nullable": true
+          },
+          "printLabelBorder": {
+            "type": "boolean"
+          },
+          "labelBorderColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelNameColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelBarcodeColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelFontSize": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelFontFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceDecimals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelThousandSeparator": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelCurrencySymbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "printCurrencySymbol": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -4259,6 +4737,69 @@
           "labelItemBarcode": {
             "type": "string",
             "nullable": true
+          },
+          "printLabelName": {
+            "type": "boolean"
+          },
+          "printLabelPrice": {
+            "type": "boolean"
+          },
+          "printLabelBarcode": {
+            "type": "boolean"
+          },
+          "labelWidthCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelHeightCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelOrientation": {
+            "type": "string",
+            "nullable": true
+          },
+          "printLabelBorder": {
+            "type": "boolean"
+          },
+          "labelBorderColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelNameColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelBarcodeColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelFontSize": {
+            "type": "number",
+            "format": "double"
+          },
+          "labelFontFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelPriceDecimals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelThousandSeparator": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelCurrencySymbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "printCurrencySymbol": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

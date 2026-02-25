@@ -133,7 +133,28 @@ namespace CMS.API.Controllers
                 var user = GetCurrentUser();
 
                 var updated = await _itemService.UpdateLabelInfoAsync(
-                    companyId, id, request.LabelItem, request.LabelPrice, request.LabelItemBarcode, user);
+                    companyId, id, 
+                    request.LabelItem, 
+                    request.LabelPrice, 
+                    request.LabelItemBarcode,
+                    request.PrintLabelName,
+                    request.PrintLabelPrice,
+                    request.PrintLabelBarcode,
+                    request.LabelWidthCm,
+                    request.LabelHeightCm,
+                    request.LabelOrientation,
+                    request.PrintLabelBorder,
+                    request.LabelBorderColor,
+                    request.LabelNameColor,
+                    request.LabelPriceColor,
+                    request.LabelBarcodeColor,
+                    request.LabelFontSize,
+                    request.LabelFontFamily,
+                    request.LabelPriceDecimals,
+                    request.LabelThousandSeparator,
+                    request.LabelCurrencySymbol,
+                    request.PrintCurrencySymbol,
+                    user);
 
                 if (updated == null)
                 {
@@ -368,45 +389,180 @@ namespace CMS.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Registra una impresión de etiqueta en el historial
+        /// POST: api/item/{id}/print
+        /// </summary>
+        [HttpPost("{id}/print")]
+        public async Task<ActionResult<LabelPrintHistoryDto>> RecordLabelPrint(int id, [FromBody] RecordPrintRequest request)
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+                var user = GetCurrentUser();
+
+                // Obtener el artículo para validar y obtener datos
+                var item = await _itemService.GetItemByIdAsync(companyId, id);
+                if (item == null)
+                {
+                    return NotFound(new { message = "Artículo no encontrado" });
+                }
+
+                var printHistory = await _itemService.RecordLabelPrintAsync(
+                    companyId,
+                    id,
+                    item.Code,
+                    item.Name,
+                    request.LabelItem ?? item.LabelItem ?? item.Name,
+                    request.LabelPrice,
+                    request.LabelItemBarcode,
+                    request.PrintLabelName,
+                    request.PrintLabelPrice,
+                    request.PrintLabelBarcode,
+                    request.PrintLabelBorder,
+                    request.PrintCurrencySymbol,
+                    request.LabelWidthCm,
+                    request.LabelHeightCm,
+                    request.LabelOrientation,
+                    request.LabelBorderColor,
+                    request.LabelNameColor,
+                    request.LabelPriceColor,
+                    request.LabelBarcodeColor,
+                    request.LabelFontSize,
+                    request.LabelFontFamily,
+                    request.LabelPriceDecimals,
+                    request.LabelThousandSeparator,
+                    request.LabelCurrencySymbol,
+                    request.FormattedPrice,
+                    request.QuantityPrinted,
+                    user,
+                    request.PrinterName,
+                    request.PrintNotes
+                );
+
+                return Ok(new LabelPrintHistoryDto
+                {
+                    Id = printHistory.Id,
+                    IdItem = printHistory.IdItem,
+                    ItemCode = printHistory.ItemCode,
+                    ItemName = printHistory.ItemName,
+                    LabelItem = printHistory.LabelItem,
+                    LabelPrice = printHistory.LabelPrice,
+                    FormattedPrice = printHistory.FormattedPrice,
+                    QuantityPrinted = printHistory.QuantityPrinted,
+                    PrintDate = printHistory.PrintDate,
+                    PrintedBy = printHistory.PrintedBy
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error registrando impresión de etiqueta para artículo {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el historial de impresiones de etiquetas
+        /// GET: api/item/print-history
+        /// </summary>
+        [HttpGet("print-history")]
+        public async Task<ActionResult<List<LabelPrintHistoryDto>>> GetLabelPrintHistory(
+            [FromQuery] int? itemId = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? printedBy = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+                var history = await _itemService.GetLabelPrintHistoryAsync(
+                    companyId, itemId, fromDate, toDate, printedBy, page, pageSize);
+
+                var dtos = history.Select(h => new LabelPrintHistoryDto
+                {
+                    Id = h.Id,
+                    IdItem = h.IdItem,
+                    ItemCode = h.ItemCode,
+                    ItemName = h.ItemName,
+                    LabelItem = h.LabelItem,
+                    LabelPrice = h.LabelPrice,
+                    FormattedPrice = h.FormattedPrice,
+                    QuantityPrinted = h.QuantityPrinted,
+                    PrintDate = h.PrintDate,
+                    PrintedBy = h.PrintedBy
+                }).ToList();
+
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo historial de impresiones");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
         // ===== MAPPERS Y DTOS =====
 
         private static ItemDto MapToDto(Item item) => new()
-        {
-            Id = item.Id,
-            Code = item.Code,
-            Name = item.Name,
-            Description = item.Description,
-            Barcode = item.Barcode,
-            Category = item.Category,
-            Subcategory = item.Subcategory,
-            Brand = item.Brand,
-            UnitOfMeasure = item.UnitOfMeasure,
-            CostPrice = item.CostPrice,
-            SalePrice = item.SalePrice,
-            TaxRate = item.TaxRate,
-            MinStock = item.MinStock,
-            MaxStock = item.MaxStock,
-            CurrentStock = item.CurrentStock,
-            ImageUrl = item.ImageUrl,
-            IsActive = item.IsActive,
-            IsSellable = item.IsSellable,
-            IsPurchasable = item.IsPurchasable,
-            TrackLots = item.TrackLots,
-            TrackSerialNumbers = item.TrackSerialNumbers,
+            {
+                Id = item.Id,
+                Code = item.Code,
+                Name = item.Name,
+                Description = item.Description,
+                Barcode = item.Barcode,
+                Category = item.Category,
+                Subcategory = item.Subcategory,
+                Brand = item.Brand,
+                UnitOfMeasure = item.UnitOfMeasure,
+                CostPrice = item.CostPrice,
+                SalePrice = item.SalePrice,
+                TaxRate = item.TaxRate,
+                MinStock = item.MinStock,
+                MaxStock = item.MaxStock,
+                CurrentStock = item.CurrentStock,
+                ImageUrl = item.ImageUrl,
+                IsActive = item.IsActive,
+                IsSellable = item.IsSellable,
+                IsPurchasable = item.IsPurchasable,
+                TrackLots = item.TrackLots,
+                TrackSerialNumbers = item.TrackSerialNumbers,
 
-            // Label Item fields
-            LabelItem = item.LabelItem,
-            LabelPrice = item.LabelPrice,
-            LabelItemBarcode = item.LabelItemBarcode,
-            IsLabelItem = item.IsLabelItem,
+                // Label Item fields
+                LabelItem = item.LabelItem,
+                LabelPrice = item.LabelPrice,
+                LabelItemBarcode = item.LabelItemBarcode,
+                IsLabelItem = item.IsLabelItem,
+                PrintLabelName = item.PrintLabelName,
+                PrintLabelPrice = item.PrintLabelPrice,
+                PrintLabelBarcode = item.PrintLabelBarcode,
 
-            // Auditoría
-            CreateDate = item.CreateDate,
-            RecordDate = item.RecordDate,
-            CreatedBy = item.CreatedBy,
-            UpdatedBy = item.UpdatedBy,
-            RowPointer = item.RowPointer
-        };
+                // Label size and format
+                LabelWidthCm = item.LabelWidthCm,
+                LabelHeightCm = item.LabelHeightCm,
+                LabelOrientation = item.LabelOrientation,
+                PrintLabelBorder = item.PrintLabelBorder,
+                LabelBorderColor = item.LabelBorderColor,
+                LabelNameColor = item.LabelNameColor,
+                LabelPriceColor = item.LabelPriceColor,
+                LabelBarcodeColor = item.LabelBarcodeColor,
+
+                // Label font and price format
+                LabelFontSize = item.LabelFontSize,
+                LabelFontFamily = item.LabelFontFamily,
+                LabelPriceDecimals = item.LabelPriceDecimals,
+                LabelThousandSeparator = item.LabelThousandSeparator,
+                LabelCurrencySymbol = item.LabelCurrencySymbol,
+                PrintCurrencySymbol = item.PrintCurrencySymbol,
+
+                // Auditoría
+                CreateDate = item.CreateDate,
+                RecordDate = item.RecordDate,
+                CreatedBy = item.CreatedBy,
+                UpdatedBy = item.UpdatedBy,
+                RowPointer = item.RowPointer
+            };
     }
 
     // ===== REQUEST/RESPONSE DTOS =====
@@ -449,6 +605,27 @@ namespace CMS.API.Controllers
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
         public bool IsLabelItem { get; set; }
+        public bool PrintLabelName { get; set; }
+        public bool PrintLabelPrice { get; set; }
+        public bool PrintLabelBarcode { get; set; }
+
+        // Label size and format
+        public decimal LabelWidthCm { get; set; }
+        public decimal LabelHeightCm { get; set; }
+        public string LabelOrientation { get; set; } = "horizontal";
+        public bool PrintLabelBorder { get; set; }
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+        public bool PrintCurrencySymbol { get; set; } = true;
 
         // Auditoría
         public DateTime CreateDate { get; set; }
@@ -486,6 +663,9 @@ namespace CMS.API.Controllers
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
         public bool IsLabelItem { get; set; }
+        public bool PrintLabelName { get; set; } = true;
+        public bool PrintLabelPrice { get; set; } = true;
+        public bool PrintLabelBarcode { get; set; } = true;
     }
 
     public class UpdateItemRequest
@@ -516,6 +696,27 @@ namespace CMS.API.Controllers
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
         public bool IsLabelItem { get; set; }
+        public bool PrintLabelName { get; set; }
+        public bool PrintLabelPrice { get; set; }
+        public bool PrintLabelBarcode { get; set; }
+
+        // Label size and format
+        public decimal LabelWidthCm { get; set; } = 4.0m;
+        public decimal LabelHeightCm { get; set; } = 2.0m;
+        public string LabelOrientation { get; set; } = "horizontal";
+        public bool PrintLabelBorder { get; set; } = true;
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+        public bool PrintCurrencySymbol { get; set; } = true;
     }
 
     /// <summary>
@@ -526,5 +727,84 @@ namespace CMS.API.Controllers
         public string? LabelItem { get; set; }
         public decimal LabelPrice { get; set; }
         public string? LabelItemBarcode { get; set; }
+        public bool PrintLabelName { get; set; } = true;
+        public bool PrintLabelPrice { get; set; } = true;
+        public bool PrintLabelBarcode { get; set; } = true;
+
+        // Label size and format
+        public decimal LabelWidthCm { get; set; } = 4.0m;
+        public decimal LabelHeightCm { get; set; } = 2.0m;
+        public string LabelOrientation { get; set; } = "horizontal";
+        public bool PrintLabelBorder { get; set; } = true;
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+        public bool PrintCurrencySymbol { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Request para registrar una impresión de etiqueta
+    /// </summary>
+    public class RecordPrintRequest
+    {
+        public string? LabelItem { get; set; }
+        public decimal LabelPrice { get; set; }
+        public string? LabelItemBarcode { get; set; }
+        public bool PrintLabelName { get; set; } = true;
+        public bool PrintLabelPrice { get; set; } = true;
+        public bool PrintLabelBarcode { get; set; } = true;
+        public bool PrintLabelBorder { get; set; } = true;
+        public bool PrintCurrencySymbol { get; set; } = true;
+
+        // Label size
+        public decimal LabelWidthCm { get; set; } = 4.0m;
+        public decimal LabelHeightCm { get; set; } = 2.0m;
+        public string LabelOrientation { get; set; } = "horizontal";
+
+        // Label colors
+        public string LabelBorderColor { get; set; } = "#000000";
+        public string LabelNameColor { get; set; } = "#000000";
+        public string LabelPriceColor { get; set; } = "#16a34a";
+        public string LabelBarcodeColor { get; set; } = "#000000";
+
+        // Label font and price format
+        public decimal LabelFontSize { get; set; } = 14.0m;
+        public string LabelFontFamily { get; set; } = "Arial";
+        public int LabelPriceDecimals { get; set; } = 2;
+        public string LabelThousandSeparator { get; set; } = ",";
+        public string LabelCurrencySymbol { get; set; } = "₡";
+
+        // Formatted price as printed
+        public string? FormattedPrice { get; set; }
+
+        // Print info
+        public int QuantityPrinted { get; set; } = 1;
+        public string? PrinterName { get; set; }
+        public string? PrintNotes { get; set; }
+    }
+
+    /// <summary>
+    /// DTO para historial de impresiones
+    /// </summary>
+    public class LabelPrintHistoryDto
+    {
+        public int Id { get; set; }
+        public int IdItem { get; set; }
+        public string ItemCode { get; set; } = string.Empty;
+        public string ItemName { get; set; } = string.Empty;
+        public string? LabelItem { get; set; }
+        public decimal LabelPrice { get; set; }
+        public string? FormattedPrice { get; set; }
+        public int QuantityPrinted { get; set; }
+        public DateTime PrintDate { get; set; }
+        public string? PrintedBy { get; set; }
     }
 }

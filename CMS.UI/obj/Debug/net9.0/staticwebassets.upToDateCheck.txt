@@ -14,6 +14,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.min.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.esm.js.map
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\favicon.svg
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\logo-full.svg
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.min.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\favicon.svg
@@ -66,6 +67,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.css
 wwwroot\css\site.css
 wwwroot\favicon.ico
+wwwroot\favicon.svg
 wwwroot\img\favicon.svg
 wwwroot\img\logo-biti.svg
 wwwroot\img\logo-full.svg

@@ -74,6 +74,23 @@
                                      data-item-label="@(item.LabelItem ?? item.Name)"
                                      data-item-price="@item.LabelPrice"
                                      data-item-barcode="@(item.LabelItemBarcode ?? item.Barcode)"
+                                     data-print-name="@item.PrintLabelName.ToString().ToLower()"
+                                     data-print-price="@item.PrintLabelPrice.ToString().ToLower()"
+                                     data-print-barcode="@item.PrintLabelBarcode.ToString().ToLower()"
+                                     data-label-width="@item.LabelWidthCm"
+                                     data-label-height="@item.LabelHeightCm"
+                                     data-label-orientation="@item.LabelOrientation"
+                                     data-print-border="@item.PrintLabelBorder.ToString().ToLower()"
+                                     data-border-color="@item.LabelBorderColor"
+                                     data-name-color="@item.LabelNameColor"
+                                     data-price-color="@item.LabelPriceColor"
+                                     data-barcode-color="@item.LabelBarcodeColor"
+                                     data-font-size="@item.LabelFontSize"
+                                     data-font-family="@item.LabelFontFamily"
+                                     data-price-decimals="@item.LabelPriceDecimals"
+                                     data-thousand-separator="@item.LabelThousandSeparator"
+                                     data-currency-symbol="@item.LabelCurrencySymbol"
+                                     data-print-currency="@item.PrintCurrencySymbol.ToString().ToLower()"
                                      onclick="selectItem(this)"
                                      style="background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;">
                                     <div class="d-flex justify-content-between align-items-start">
@@ -164,19 +181,19 @@
                                        style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
                                 <small style="color: #94a3b8;">Este texto se imprimirá como nombre del producto</small>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label class="form-label text-white">
-                                    <i class="bi bi-currency-dollar me-1 text-success"></i>Precio de Etiqueta
+                                    <i class="bi bi-currency-dollar me-1 text-success" id="priceLabelIcon"></i><span id="priceLabelText">Precio de Etiqueta</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text" style="background-color: #334155; border-color: rgba(6, 182, 212, 0.5); color: #06b6d4;">₡</span>
+                                    <span class="input-group-text" id="priceInputSymbol" style="background-color: #334155; border-color: rgba(6, 182, 212, 0.5); color: #06b6d4;">₡</span>
                                     <input type="number" id="labelPrice" class="form-control form-control-lg" step="0.01" min="0"
                                            placeholder="0.00"
                                            style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label class="form-label text-white">
                                     <i class="bi bi-upc me-1 text-warning"></i>Código de Barras
@@ -184,6 +201,214 @@
                                 <input type="text" id="labelBarcode" class="form-control form-control-lg"
                                        placeholder="Código de barras para la etiqueta"
                                        style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                            </div>
+
+                            <!-- Checkboxes de impresión -->
+                            <div class="col-12">
+                                <hr style="border-color: rgba(255,255,255,0.2);" class="my-2" />
+                                <label class="form-label text-white mb-3">
+                                    <i class="bi bi-printer me-1 text-info"></i>Opciones de Impresión
+                                </label>
+                                <div class="d-flex flex-wrap gap-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="printLabelPrice" checked>
+                                        <label class="form-check-label text-white" for="printLabelPrice">
+                                            <i class="bi bi-currency-dollar me-1"></i>Imprimir Precio
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="printCurrencySymbol" checked>
+                                        <label class="form-check-label text-white" for="printCurrencySymbol">
+                                            <i class="bi bi-cash me-1"></i>Mostrar Símbolo Moneda
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="printLabelName" checked>
+                                        <label class="form-check-label text-white" for="printLabelName">
+                                            <i class="bi bi-fonts me-1"></i>Imprimir Nombre
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="printLabelBarcode" checked>
+                                        <label class="form-check-label text-white" for="printLabelBarcode">
+                                            <i class="bi bi-upc me-1"></i>Imprimir Código de Barras
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="printLabelBorder" checked>
+                                        <label class="form-check-label text-white" for="printLabelBorder">
+                                            <i class="bi bi-square me-1"></i>Imprimir Recuadro
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tamaño de la etiqueta -->
+                            <div class="col-12">
+                                <hr style="border-color: rgba(255,255,255,0.2);" class="my-2" />
+                                <label class="form-label text-white mb-3">
+                                    <i class="bi bi-rulers me-1 text-info"></i>Tamaño de Etiqueta
+                                </label>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-white small">Ancho (cm)</label>
+                                        <input type="number" id="labelWidthCm" class="form-control" step="0.1" min="1" max="20" value="4"
+                                               style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-white small">Alto (cm)</label>
+                                        <input type="number" id="labelHeightCm" class="form-control" step="0.1" min="1" max="20" value="2"
+                                               style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-white small">Orientación</label>
+                                        <select id="labelOrientation" class="form-select"
+                                                style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                            <option value="horizontal">Horizontal</option>
+                                            <option value="vertical">Vertical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Colores de impresión -->
+                            <div class="col-12">
+                                <hr style="border-color: rgba(255,255,255,0.2);" class="my-2" />
+                                <label class="form-label text-white mb-3">
+                                    <i class="bi bi-palette me-1 text-info"></i>Colores de Impresión
+                                </label>
+                                <div class="row g-3">
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-white small">Color del Recuadro</label>
+                                        <div class="input-group">
+                                            <input type="color" id="labelBorderColor" class="form-control form-control-color" value="#000000">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBorderColor', '#000000')"><span class="color-dot" style="background:#000000"></span> Negro</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBorderColor', '#ff0000')"><span class="color-dot" style="background:#ff0000"></span> Rojo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBorderColor', '#ffff00')"><span class="color-dot" style="background:#ffff00"></span> Amarillo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBorderColor', '#ffffff')"><span class="color-dot" style="background:#ffffff;border:1px solid #ccc"></span> Blanco</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-white small">Color del Nombre</label>
+                                        <div class="input-group">
+                                            <input type="color" id="labelNameColor" class="form-control form-control-color" value="#000000">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelNameColor', '#000000')"><span class="color-dot" style="background:#000000"></span> Negro</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelNameColor', '#ff0000')"><span class="color-dot" style="background:#ff0000"></span> Rojo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelNameColor', '#ffff00')"><span class="color-dot" style="background:#ffff00"></span> Amarillo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelNameColor', '#ffffff')"><span class="color-dot" style="background:#ffffff;border:1px solid #ccc"></span> Blanco</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-white small">Color del Precio</label>
+                                        <div class="input-group">
+                                            <input type="color" id="labelPriceColor" class="form-control form-control-color" value="#16a34a">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelPriceColor', '#000000')"><span class="color-dot" style="background:#000000"></span> Negro</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelPriceColor', '#ff0000')"><span class="color-dot" style="background:#ff0000"></span> Rojo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelPriceColor', '#ffff00')"><span class="color-dot" style="background:#ffff00"></span> Amarillo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelPriceColor', '#ffffff')"><span class="color-dot" style="background:#ffffff;border:1px solid #ccc"></span> Blanco</a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelPriceColor', '#16a34a')"><span class="color-dot" style="background:#16a34a"></span> Verde (default)</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-white small">Color del Código</label>
+                                        <div class="input-group">
+                                            <input type="color" id="labelBarcodeColor" class="form-control form-control-color" value="#000000">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBarcodeColor', '#000000')"><span class="color-dot" style="background:#000000"></span> Negro</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBarcodeColor', '#ff0000')"><span class="color-dot" style="background:#ff0000"></span> Rojo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBarcodeColor', '#ffff00')"><span class="color-dot" style="background:#ffff00"></span> Amarillo</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="resetColor('labelBarcodeColor', '#ffffff')"><span class="color-dot" style="background:#ffffff;border:1px solid #ccc"></span> Blanco</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Formato de texto y precio -->
+                            <div class="col-12">
+                                <hr style="border-color: rgba(255,255,255,0.2);" class="my-2" />
+                                <label class="form-label text-white mb-3">
+                                    <i class="bi bi-type me-1 text-info"></i>Formato de Texto y Precio
+                                </label>
+                                <div class="row g-3">
+                                    <!-- Primera fila: Tamaño Fuente y Tipo de Letra -->
+                                    <div class="col-6">
+                                        <label class="form-label text-white small">Tamaño Fuente</label>
+                                        <div class="input-group">
+                                            <input type="number" id="labelFontSize" class="form-control" step="0.5" min="6" max="72" value="14"
+                                                   style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                            <span class="input-group-text" style="background-color: #334155; border-color: rgba(6, 182, 212, 0.5); color: #94a3b8;">pt</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-white small">Tipo de Letra</label>
+                                        <select id="labelFontFamily" class="form-select"
+                                                style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                            <option value="Arial">Arial</option>
+                                            <option value="Helvetica">Helvetica</option>
+                                            <option value="Times New Roman">Times New Roman</option>
+                                            <option value="Georgia">Georgia</option>
+                                            <option value="Verdana">Verdana</option>
+                                            <option value="Tahoma">Tahoma</option>
+                                            <option value="Courier New">Courier New</option>
+                                            <option value="Impact">Impact</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Segunda fila: Decimales y Sep. Miles -->
+                                    <div class="col-6">
+                                        <label class="form-label text-white small">Cantidad de Decimales</label>
+                                        <select id="labelPriceDecimals" class="form-select"
+                                                style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                            <option value="0">0 decimales</option>
+                                            <option value="1">1 decimal</option>
+                                            <option value="2" selected>2 decimales</option>
+                                            <option value="3">3 decimales</option>
+                                            <option value="4">4 decimales</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-white small">Separador de Miles</label>
+                                        <select id="labelThousandSeparator" class="form-select"
+                                                style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                            <option value=",">, (coma)</option>
+                                            <option value=".">. (punto)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Tercera fila: Moneda -->
+                                    <div class="col-6">
+                                        <label class="form-label text-white small">Símbolo de Moneda</label>
+                                        <select id="labelCurrencySymbol" class="form-select"
+                                                style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                                            <option value="₡">₡ Colones (Costa Rica)</option>
+                                            <option value="$">$ Dólares (USD)</option>
+                                            <option value="€">€ Euros (EUR)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <small class="text-muted mt-2 d-block" style="color: #64748b !important;">
+                                    <i class="bi bi-info-circle me-1"></i>El separador de decimales es el contrario al separador de miles seleccionado.
+                                </small>
                             </div>
                         </div>
 
@@ -198,10 +423,12 @@
 
                         <div class="mt-4 p-4 rounded" style="background: white; color: black;">
                             <h6 class="text-muted mb-3">Vista Previa de Etiqueta:</h6>
-                            <div class="text-center border border-dark p-3" id="labelPreview" style="min-height: 120px;">
-                                <div id="previewName" class="fw-bold fs-4">Nombre del Producto</div>
-                                <div id="previewPrice" class="fs-2 fw-bold text-success">₡0.00</div>
-                                <div id="previewBarcode" class="font-monospace mt-2">||||||||||||||||</div>
+                            <div class="d-flex justify-content-center">
+                                <div class="text-center p-3" id="labelPreview" style="min-height: 75px; border: 2px solid #000000;">
+                                    <div id="previewName" class="fw-bold" style="font-size: 14px;">Nombre del Producto</div>
+                                    <div id="previewPrice" class="fw-bold" style="font-size: 20px; color: #16a34a;">₡0.00</div>
+                                    <div id="previewBarcode" class="font-monospace" style="font-size: 10px;">||||||||||||||||</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -236,6 +463,57 @@
     .form-control::placeholder {
         color: #94a3b8 !important;
         opacity: 1 !important;
+    }
+
+    /* Estilo para checkboxes */
+    .form-check-input {
+        background-color: #1e293b;
+        border-color: #06b6d4;
+    }
+
+    .form-check-input:checked {
+        background-color: #06b6d4;
+        border-color: #06b6d4;
+    }
+
+    .form-check-input:focus {
+        border-color: #06b6d4;
+        box-shadow: 0 0 0 0.25rem rgba(6, 182, 212, 0.25);
+    }
+
+    /* Color picker styles */
+    .form-control-color {
+        width: 50px;
+        height: 38px;
+        padding: 2px;
+        cursor: pointer;
+    }
+
+    .color-dot {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    .dropdown-menu {
+        background-color: #1e293b;
+        border-color: #06b6d4;
+    }
+
+    .dropdown-item {
+        color: #f0f0f0;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(6, 182, 212, 0.2);
+        color: #fff;
+    }
+
+    .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2306b6d4' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
     }
 </style>
 

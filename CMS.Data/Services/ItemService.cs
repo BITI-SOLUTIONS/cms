@@ -256,6 +256,23 @@ namespace CMS.Data.Services
             string? labelItem,
             decimal labelPrice,
             string? labelItemBarcode,
+            bool printLabelName,
+            bool printLabelPrice,
+            bool printLabelBarcode,
+            decimal labelWidthCm,
+            decimal labelHeightCm,
+            string labelOrientation,
+            bool printLabelBorder,
+            string labelBorderColor,
+            string labelNameColor,
+            string labelPriceColor,
+            string labelBarcodeColor,
+            decimal labelFontSize,
+            string labelFontFamily,
+            int labelPriceDecimals,
+            string labelThousandSeparator,
+            string labelCurrencySymbol,
+            bool printCurrencySymbol,
             string? updatedBy = null)
         {
             using var dbContext = await _dbContextFactory.CreateDbContextAsync(companyId);
@@ -266,10 +283,32 @@ namespace CMS.Data.Services
                 return null;
             }
 
-            // Actualizar solo campos de etiqueta
+            // Actualizar campos de etiqueta
             item.LabelItem = labelItem;
             item.LabelPrice = labelPrice;
             item.LabelItemBarcode = labelItemBarcode;
+            item.PrintLabelName = printLabelName;
+            item.PrintLabelPrice = printLabelPrice;
+            item.PrintLabelBarcode = printLabelBarcode;
+
+            // Actualizar campos de tamaño y formato
+            item.LabelWidthCm = labelWidthCm;
+            item.LabelHeightCm = labelHeightCm;
+            item.LabelOrientation = labelOrientation;
+            item.PrintLabelBorder = printLabelBorder;
+            item.LabelBorderColor = labelBorderColor;
+            item.LabelNameColor = labelNameColor;
+            item.LabelPriceColor = labelPriceColor;
+            item.LabelBarcodeColor = labelBarcodeColor;
+
+            // Actualizar campos de fuente y formato de precio
+            item.LabelFontSize = labelFontSize;
+            item.LabelFontFamily = labelFontFamily;
+            item.LabelPriceDecimals = labelPriceDecimals;
+            item.LabelThousandSeparator = labelThousandSeparator;
+            item.LabelCurrencySymbol = labelCurrencySymbol;
+            item.PrintCurrencySymbol = printCurrencySymbol;
+
             item.RecordDate = DateTime.UtcNow;
             item.UpdatedBy = updatedBy ?? "SYSTEM";
 
@@ -278,6 +317,130 @@ namespace CMS.Data.Services
             _logger.LogInformation("Etiqueta del artículo {Code} actualizada en compañía {CompanyId}", item.Code, companyId);
 
             return item;
+        }
+
+        /// <summary>
+        /// Registra una impresión de etiqueta en el historial.
+        /// </summary>
+        public async Task<LabelPrintHistory> RecordLabelPrintAsync(
+            int companyId,
+            int itemId,
+            string itemCode,
+            string itemName,
+            string? labelItem,
+            decimal labelPrice,
+            string? labelItemBarcode,
+            bool printLabelName,
+            bool printLabelPrice,
+            bool printLabelBarcode,
+            bool printLabelBorder,
+            bool printCurrencySymbol,
+            decimal labelWidthCm,
+            decimal labelHeightCm,
+            string labelOrientation,
+            string labelBorderColor,
+            string labelNameColor,
+            string labelPriceColor,
+            string labelBarcodeColor,
+            decimal labelFontSize,
+            string labelFontFamily,
+            int labelPriceDecimals,
+            string labelThousandSeparator,
+            string labelCurrencySymbol,
+            string? formattedPrice,
+            int quantityPrinted,
+            string? printedBy,
+            string? printerName = null,
+            string? printNotes = null)
+        {
+            using var dbContext = await _dbContextFactory.CreateDbContextAsync(companyId);
+
+            var printHistory = new LabelPrintHistory
+            {
+                IdItem = itemId,
+                ItemCode = itemCode,
+                ItemName = itemName,
+                LabelItem = labelItem,
+                LabelPrice = labelPrice,
+                LabelItemBarcode = labelItemBarcode,
+                PrintLabelName = printLabelName,
+                PrintLabelPrice = printLabelPrice,
+                PrintLabelBarcode = printLabelBarcode,
+                PrintLabelBorder = printLabelBorder,
+                PrintCurrencySymbol = printCurrencySymbol,
+                LabelWidthCm = labelWidthCm,
+                LabelHeightCm = labelHeightCm,
+                LabelOrientation = labelOrientation,
+                LabelBorderColor = labelBorderColor,
+                LabelNameColor = labelNameColor,
+                LabelPriceColor = labelPriceColor,
+                LabelBarcodeColor = labelBarcodeColor,
+                LabelFontSize = labelFontSize,
+                LabelFontFamily = labelFontFamily,
+                LabelPriceDecimals = labelPriceDecimals,
+                LabelThousandSeparator = labelThousandSeparator,
+                LabelCurrencySymbol = labelCurrencySymbol,
+                FormattedPrice = formattedPrice,
+                QuantityPrinted = quantityPrinted,
+                PrintDate = DateTime.UtcNow,
+                PrintedBy = printedBy,
+                PrinterName = printerName,
+                PrintNotes = printNotes,
+                CreateDate = DateTime.UtcNow,
+                RecordDate = DateTime.UtcNow,
+                CreatedBy = printedBy ?? "SYSTEM"
+            };
+
+            dbContext.LabelPrintHistory.Add(printHistory);
+            await dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Impresión de etiqueta registrada: Artículo {ItemCode}, Cantidad {Quantity}, Usuario {User}", 
+                itemCode, quantityPrinted, printedBy);
+
+            return printHistory;
+        }
+
+        /// <summary>
+        /// Obtiene el historial de impresiones de un artículo.
+        /// </summary>
+        public async Task<List<LabelPrintHistory>> GetLabelPrintHistoryAsync(
+            int companyId,
+            int? itemId = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            string? printedBy = null,
+            int page = 1,
+            int pageSize = 50)
+        {
+            using var dbContext = await _dbContextFactory.CreateDbContextAsync(companyId);
+
+            var query = dbContext.LabelPrintHistory.AsQueryable();
+
+            if (itemId.HasValue)
+            {
+                query = query.Where(h => h.IdItem == itemId.Value);
+            }
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(h => h.PrintDate >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(h => h.PrintDate <= toDate.Value);
+            }
+
+            if (!string.IsNullOrEmpty(printedBy))
+            {
+                query = query.Where(h => h.PrintedBy != null && h.PrintedBy.ToLower().Contains(printedBy.ToLower()));
+            }
+
+            return await query
+                .OrderByDescending(h => h.PrintDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
     }
 
@@ -304,8 +467,25 @@ namespace CMS.Data.Services
         Task<Item?> GetItemByCodeAsync(int companyId, string code);
         Task<Item> CreateItemAsync(int companyId, Item item, string? createdBy = null);
         Task<Item?> UpdateItemAsync(int companyId, Item item, string? updatedBy = null);
-        Task<Item?> UpdateLabelInfoAsync(int companyId, int itemId, string? labelItem, decimal labelPrice, string? labelItemBarcode, string? updatedBy = null);
+        Task<Item?> UpdateLabelInfoAsync(int companyId, int itemId, string? labelItem, decimal labelPrice, string? labelItemBarcode, bool printLabelName, bool printLabelPrice, bool printLabelBarcode, decimal labelWidthCm, decimal labelHeightCm, string labelOrientation, bool printLabelBorder, string labelBorderColor, string labelNameColor, string labelPriceColor, string labelBarcodeColor, decimal labelFontSize, string labelFontFamily, int labelPriceDecimals, string labelThousandSeparator, string labelCurrencySymbol, bool printCurrencySymbol, string? updatedBy = null);
         Task<bool> DeleteItemAsync(int companyId, int itemId, string? deletedBy = null);
         Task<List<string>> GetCategoriesAsync(int companyId);
+
+        // Historial de impresiones
+        Task<LabelPrintHistory> RecordLabelPrintAsync(
+            int companyId, int itemId, string itemCode, string itemName,
+            string? labelItem, decimal labelPrice, string? labelItemBarcode,
+            bool printLabelName, bool printLabelPrice, bool printLabelBarcode,
+            bool printLabelBorder, bool printCurrencySymbol,
+            decimal labelWidthCm, decimal labelHeightCm, string labelOrientation,
+            string labelBorderColor, string labelNameColor, string labelPriceColor, string labelBarcodeColor,
+            decimal labelFontSize, string labelFontFamily, int labelPriceDecimals,
+            string labelThousandSeparator, string labelCurrencySymbol,
+            string? formattedPrice, int quantityPrinted, string? printedBy,
+            string? printerName = null, string? printNotes = null);
+
+        Task<List<LabelPrintHistory>> GetLabelPrintHistoryAsync(
+            int companyId, int? itemId = null, DateTime? fromDate = null, DateTime? toDate = null,
+            string? printedBy = null, int page = 1, int pageSize = 50);
     }
 }
