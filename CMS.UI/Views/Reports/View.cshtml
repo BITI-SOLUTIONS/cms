@@ -1,0 +1,583 @@
+@{
+    ViewData["Title"] = "Ver Reporte";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="content-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title" id="reportTitle">
+                <i class="bi bi-file-earmark-bar-graph me-2" id="reportIcon"></i>
+                <span id="reportName">Cargando...</span>
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="/Reports/General">Reportes</a></li>
+                    <li class="breadcrumb-item active" id="breadcrumbReport">Ver Reporte</li>
+                </ol>
+            </nav>
+        </div>
+        <div id="headerActions">
+            <button class="btn btn-outline-secondary me-2" onclick="goBack()">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="content-body">
+    <!-- Loading inicial -->
+    <div id="loadingReport" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2 text-muted">Cargando configuración del reporte...</p>
+    </div>
+
+    <!-- Contenido del reporte -->
+    <div id="reportContent" style="display: none;">
+        <!-- Panel de Filtros -->
+        <div class="card mb-4" id="filtersCard">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-funnel me-2"></i>Filtros
+                </h6>
+                <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filtersBody">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="filtersBody">
+                <div class="card-body">
+                    <form id="filtersForm">
+                        <div class="row g-3" id="filtersContainer">
+                            <!-- Filtros dinámicos se generan aquí -->
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-play-fill me-1"></i> Ejecutar Reporte
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearFilters()">
+                                    <i class="bi bi-x-circle me-1"></i> Limpiar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">
+                        <i class="bi bi-table me-2"></i>Resultados
+                        <span id="resultCount" class="badge bg-secondary ms-2">0</span>
+                    </h6>
+                </div>
+                <div id="exportButtons">
+                    <button class="btn btn-sm btn-outline-success me-1" onclick="exportReport('EXCEL')" id="btnExportExcel" style="display: none;">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger me-1" onclick="exportReport('PDF')" id="btnExportPdf" style="display: none;">
+                        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="exportReport('CSV')" id="btnExportCsv" style="display: none;">
+                        <i class="bi bi-file-earmark-text me-1"></i> CSV
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- Loading resultados -->
+                <div id="loadingResults" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Ejecutando reporte...</p>
+                </div>
+
+                <!-- Tabla de resultados -->
+                <div class="table-responsive" id="resultsTableContainer" style="display: none;">
+                    <table class="table table-striped table-hover mb-0" id="resultsTable">
+                        <thead class="table-light" id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                        <tfoot id="tableFooter" style="display: none;"></tfoot>
+                    </table>
+                </div>
+
+                <!-- Sin resultados -->
+                <div id="noResults" class="text-center py-5" style="display: none;">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <h5 class="mt-3 text-muted">No hay resultados</h5>
+                    <p class="text-muted">Ajusta los filtros y ejecuta el reporte nuevamente</p>
+                </div>
+
+                <!-- Mensaje inicial -->
+                <div id="initialMessage" class="text-center py-5">
+                    <i class="bi bi-play-circle display-1 text-muted"></i>
+                    <h5 class="mt-3 text-muted">Configura los filtros y ejecuta el reporte</h5>
+                    <p class="text-muted">Los resultados aparecerán aquí</p>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            <div class="card-footer" id="paginationContainer" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted">
+                            Mostrando <span id="showingFrom">0</span> - <span id="showingTo">0</span> 
+                            de <span id="totalRows">0</span> registros
+                        </span>
+                        <span class="ms-3 text-muted small">
+                            <i class="bi bi-clock me-1"></i><span id="executionTime">0</span>ms
+                        </span>
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let reportId = null;
+    let reportConfig = null;
+    let currentPage = 1;
+    let pageSize = 25;
+    let sortColumn = null;
+    let sortDirection = 'ASC';
+    let currentFilters = {};
+    const apiBaseUrl = '@(ViewData["ApiBaseUrl"] ?? "")';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtener ID del reporte de la URL
+        const pathParts = window.location.pathname.split('/');
+        reportId = parseInt(pathParts[pathParts.length - 1]);
+
+        if (isNaN(reportId)) {
+            showError('ID de reporte inválido');
+            return;
+        }
+
+        loadReportConfig();
+
+        document.getElementById('filtersForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentPage = 1;
+            executeReport();
+        });
+    });
+
+    async function loadReportConfig() {
+        try {
+            const response = await fetch(apiBaseUrl + '/api/report/' + reportId, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('Reporte no encontrado');
+            }
+
+            reportConfig = await response.json();
+            renderReportConfig();
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Error cargando configuración del reporte');
+        }
+    }
+
+    function renderReportConfig() {
+        // Actualizar header
+        document.getElementById('reportName').textContent = reportConfig.reportName;
+        document.getElementById('reportIcon').className = (reportConfig.icon || 'bi-file-earmark-bar-graph') + ' me-2';
+        document.getElementById('breadcrumbReport').textContent = reportConfig.reportName;
+        document.title = reportConfig.reportName + ' - CMS';
+
+        // Mostrar botones de exportación según configuración
+        if (reportConfig.allowExportExcel) document.getElementById('btnExportExcel').style.display = 'inline-block';
+        if (reportConfig.allowExportPdf) document.getElementById('btnExportPdf').style.display = 'inline-block';
+        if (reportConfig.allowExportCsv) document.getElementById('btnExportCsv').style.display = 'inline-block';
+
+        pageSize = reportConfig.defaultPageSize || 25;
+
+        // Renderizar filtros
+        renderFilters();
+
+        // Mostrar contenido
+        document.getElementById('loadingReport').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'block';
+    }
+
+    function renderFilters() {
+        const container = document.getElementById('filtersContainer');
+        
+        if (!reportConfig.filters || reportConfig.filters.length === 0) {
+            document.getElementById('filtersCard').style.display = 'none';
+            return;
+        }
+
+        let html = '';
+        const groups = {};
+
+        // Agrupar filtros
+        reportConfig.filters.forEach(filter => {
+            const group = filter.groupName || '_default';
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(filter);
+        });
+
+        for (const [groupName, filters] of Object.entries(groups)) {
+            if (groupName !== '_default') {
+                html += `<div class="col-12"><h6 class="text-muted mb-2">${groupName}</h6></div>`;
+            }
+
+            filters.forEach(filter => {
+                html += `<div class="col-md-${filter.colSpan || 3}">${renderFilterControl(filter)}</div>`;
+            });
+        }
+
+        container.innerHTML = html;
+    }
+
+    function renderFilterControl(filter) {
+        const id = `filter_${filter.filterKey.replace('@@', '')}`;
+        const required = filter.isRequired ? 'required' : '';
+        const label = filter.filterName + (filter.isRequired ? ' *' : '');
+
+        let control = '';
+
+        switch (filter.filterType) {
+            case 'TEXT':
+                control = `<input type="text" class="form-control" id="${id}" name="${filter.filterKey}" 
+                           placeholder="${filter.placeholder || ''}" ${required} value="${filter.defaultValue || ''}">`;
+                break;
+
+            case 'NUMBER':
+            case 'INTEGER':
+            case 'DECIMAL':
+                control = `<input type="number" class="form-control" id="${id}" name="${filter.filterKey}"
+                           placeholder="${filter.placeholder || ''}" ${required}
+                           ${filter.minValue ? 'min="' + filter.minValue + '"' : ''}
+                           ${filter.maxValue ? 'max="' + filter.maxValue + '"' : ''}
+                           value="${filter.defaultValue || ''}">`;
+                break;
+
+            case 'DATE':
+                control = `<input type="date" class="form-control" id="${id}" name="${filter.filterKey}" 
+                           ${required} value="${filter.defaultValue || ''}">`;
+                break;
+
+            case 'DATETIME':
+                control = `<input type="datetime-local" class="form-control" id="${id}" name="${filter.filterKey}"
+                           ${required} value="${filter.defaultValue || ''}">`;
+                break;
+
+            case 'SELECT':
+                let options = '<option value="">-- Seleccionar --</option>';
+                if (filter.options) {
+                    filter.options.forEach(opt => {
+                        const selected = opt.value === filter.defaultValue ? 'selected' : '';
+                        options += `<option value="${opt.value}" ${selected}>${opt.text}</option>`;
+                    });
+                }
+                control = `<select class="form-select" id="${id}" name="${filter.filterKey}" ${required}>${options}</select>`;
+                break;
+
+            case 'MULTISELECT':
+                let multiOptions = '';
+                if (filter.options) {
+                    filter.options.forEach(opt => {
+                        multiOptions += `<option value="${opt.value}">${opt.text}</option>`;
+                    });
+                }
+                control = `<select class="form-select" id="${id}" name="${filter.filterKey}" multiple ${required}>${multiOptions}</select>`;
+                break;
+
+            case 'CHECKBOX':
+                control = `<div class="form-check mt-2">
+                           <input type="checkbox" class="form-check-input" id="${id}" name="${filter.filterKey}" 
+                           ${filter.defaultValue === 'true' ? 'checked' : ''}>
+                           <label class="form-check-label" for="${id}">${filter.placeholder || 'Sí'}</label>
+                           </div>`;
+                return control; // Sin label externo
+
+            default:
+                control = `<input type="text" class="form-control" id="${id}" name="${filter.filterKey}" 
+                           placeholder="${filter.placeholder || ''}" value="${filter.defaultValue || ''}">`;
+        }
+
+        return `
+            <label class="form-label" for="${id}">${label}</label>
+            ${control}
+            ${filter.filterDescription ? `<small class="text-muted">${filter.filterDescription}</small>` : ''}
+        `;
+    }
+
+    function clearFilters() {
+        document.getElementById('filtersForm').reset();
+        currentFilters = {};
+    }
+
+    async function executeReport() {
+        // Recopilar filtros
+        const form = document.getElementById('filtersForm');
+        const formData = new FormData(form);
+        currentFilters = {};
+
+        for (const [key, value] of formData.entries()) {
+            const filterKey = key.replace('@@', '');
+            if (value !== '') {
+                currentFilters[filterKey] = value;
+            }
+        }
+
+        // Mostrar loading
+        document.getElementById('initialMessage').style.display = 'none';
+        document.getElementById('noResults').style.display = 'none';
+        document.getElementById('resultsTableContainer').style.display = 'none';
+        document.getElementById('paginationContainer').style.display = 'none';
+        document.getElementById('loadingResults').style.display = 'block';
+
+        try {
+            const response = await fetch(apiBaseUrl + '/api/report/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    reportId: reportId,
+                    filters: currentFilters,
+                    page: currentPage,
+                    pageSize: pageSize,
+                    sortColumn: sortColumn,
+                    sortDirection: sortDirection
+                })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.errorMessage || 'Error ejecutando reporte');
+            }
+
+            renderResults(result);
+        } catch (error) {
+            console.error('Error:', error);
+            showResultError(error.message);
+        } finally {
+            document.getElementById('loadingResults').style.display = 'none';
+        }
+    }
+
+    function renderResults(result) {
+        if (!result.data || result.data.length === 0) {
+            document.getElementById('noResults').style.display = 'block';
+            document.getElementById('resultCount').textContent = '0';
+            return;
+        }
+
+        // Actualizar contadores
+        document.getElementById('resultCount').textContent = result.totalRows;
+        document.getElementById('totalRows').textContent = result.totalRows;
+        document.getElementById('showingFrom').textContent = ((result.page - 1) * result.pageSize) + 1;
+        document.getElementById('showingTo').textContent = Math.min(result.page * result.pageSize, result.totalRows);
+        document.getElementById('executionTime').textContent = result.executionTimeMs;
+
+        // Renderizar header
+        const header = document.getElementById('tableHeader');
+        let headerHtml = '<tr>';
+        reportConfig.columns.filter(c => c.isVisible).forEach(col => {
+            const sortIcon = sortColumn === col.columnKey 
+                ? (sortDirection === 'ASC' ? 'bi-sort-up' : 'bi-sort-down')
+                : 'bi-arrow-down-up';
+            const sortable = col.isSortable 
+                ? `onclick="sortBy('${col.columnKey}')" style="cursor: pointer;"` 
+                : '';
+            const width = col.width ? `style="width: ${col.width}"` : '';
+            const align = col.textAlign ? `text-${col.textAlign.toLowerCase()}` : '';
+            
+            headerHtml += `<th ${width} ${sortable} class="${align}">
+                ${col.columnName}
+                ${col.isSortable ? `<i class="bi ${sortIcon} ms-1 small"></i>` : ''}
+            </th>`;
+        });
+        headerHtml += '</tr>';
+        header.innerHTML = headerHtml;
+
+        // Renderizar body
+        const body = document.getElementById('tableBody');
+        let bodyHtml = '';
+        result.data.forEach(row => {
+            bodyHtml += '<tr>';
+            reportConfig.columns.filter(c => c.isVisible).forEach(col => {
+                const value = row[col.columnKey];
+                const align = col.textAlign ? `text-${col.textAlign.toLowerCase()}` : '';
+                bodyHtml += `<td class="${align} ${col.cssClass || ''}">${formatValue(value, col)}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        body.innerHTML = bodyHtml;
+
+        // Renderizar paginación
+        renderPagination(result);
+
+        document.getElementById('resultsTableContainer').style.display = 'block';
+        document.getElementById('paginationContainer').style.display = 'flex';
+    }
+
+    function formatValue(value, column) {
+        if (value === null || value === undefined) return '-';
+
+        switch (column.dataType) {
+            case 'DATE':
+                return formatDate(value, column.formatPattern || 'dd/MM/yyyy');
+            case 'DATETIME':
+                return formatDateTime(value, column.formatPattern || 'dd/MM/yyyy HH:mm');
+            case 'CURRENCY':
+                return formatCurrency(value);
+            case 'NUMBER':
+            case 'DECIMAL':
+                return formatNumber(value, column.formatPattern);
+            case 'BOOLEAN':
+                return value ? 'Sí' : 'No';
+            case 'BADGE':
+                return renderBadge(value, column.badgeConfig);
+            case 'LINK':
+                return renderLink(value, column.linkTemplate, column.linkTarget);
+            default:
+                return escapeHtml(String(value));
+        }
+    }
+
+    function formatDate(value, format) {
+        if (!value) return '-';
+        const date = new Date(value);
+        return date.toLocaleDateString('es-CR');
+    }
+
+    function formatDateTime(value, format) {
+        if (!value) return '-';
+        const date = new Date(value);
+        return date.toLocaleString('es-CR');
+    }
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC' }).format(value);
+    }
+
+    function formatNumber(value, pattern) {
+        if (pattern && pattern.startsWith('N')) {
+            const decimals = parseInt(pattern.substring(1)) || 0;
+            return new Intl.NumberFormat('es-CR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+        }
+        return value;
+    }
+
+    function renderBadge(value, configJson) {
+        if (!configJson) return value;
+        try {
+            const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
+            const badge = config[String(value)] || config['default'];
+            if (badge) {
+                return `<span class="badge ${badge.class || 'bg-secondary'}">${badge.text || value}</span>`;
+            }
+        } catch (e) {}
+        return value;
+    }
+
+    function renderLink(value, template, target) {
+        if (!template) return value;
+        const url = template.replace(/{(\w+)}/g, (match, key) => value);
+        return `<a href="${url}" target="${target || '_self'}">${value}</a>`;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function sortBy(columnKey) {
+        if (sortColumn === columnKey) {
+            sortDirection = sortDirection === 'ASC' ? 'DESC' : 'ASC';
+        } else {
+            sortColumn = columnKey;
+            sortDirection = 'ASC';
+        }
+        executeReport();
+    }
+
+    function renderPagination(result) {
+        const pagination = document.getElementById('pagination');
+        let html = '';
+
+        const totalPages = result.totalPages;
+        const current = result.page;
+
+        // Anterior
+        html += `<li class="page-item ${current === 1 ? 'disabled' : ''}">
+                 <a class="page-link" href="#" onclick="goToPage(${current - 1})">&laquo;</a></li>`;
+
+        // Páginas
+        let startPage = Math.max(1, current - 2);
+        let endPage = Math.min(totalPages, current + 2);
+
+        if (startPage > 1) {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="goToPage(1)">1</a></li>`;
+            if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<li class="page-item ${i === current ? 'active' : ''}">
+                     <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a></li>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="goToPage(${totalPages})">${totalPages}</a></li>`;
+        }
+
+        // Siguiente
+        html += `<li class="page-item ${current === totalPages ? 'disabled' : ''}">
+                 <a class="page-link" href="#" onclick="goToPage(${current + 1})">&raquo;</a></li>`;
+
+        pagination.innerHTML = html;
+    }
+
+    function goToPage(page) {
+        event.preventDefault();
+        currentPage = page;
+        executeReport();
+    }
+
+    function exportReport(type) {
+        // TODO: Implementar exportación
+        alert('Exportación a ' + type + ' próximamente');
+    }
+
+    function goBack() {
+        window.location.href = '/Reports/General';
+    }
+
+    function showError(message) {
+        document.getElementById('loadingReport').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                ${message}
+            </div>
+            <a href="/Reports/General" class="btn btn-secondary">Volver a Reportes</a>
+        `;
+    }
+
+    function showResultError(message) {
+        document.getElementById('noResults').innerHTML = `
+            <i class="bi bi-exclamation-triangle display-1 text-danger"></i>
+            <h5 class="mt-3 text-danger">Error</h5>
+            <p class="text-muted">${message}</p>
+        `;
+        document.getElementById('noResults').style.display = 'block';
+    }
+</script>
+}

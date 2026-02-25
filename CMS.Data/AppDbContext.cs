@@ -1,4 +1,5 @@
 ﻿using CMS.Entities;
+using CMS.Entities.Reports;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -59,6 +60,14 @@ namespace CMS.Data
 
         // ===== TABLAS NUEVAS: CONFIGURACIÓN GLOBAL =====
         public DbSet<SystemConfig> SystemConfigs { get; set; }
+
+        // ===== TABLAS NUEVAS: SISTEMA DE REPORTES =====
+        public DbSet<ReportCategory> ReportCategories { get; set; }
+        public DbSet<ReportDefinition> ReportDefinitions { get; set; }
+        public DbSet<ReportFilter> ReportFilters { get; set; }
+        public DbSet<ReportColumn> ReportColumns { get; set; }
+        public DbSet<ReportExecutionLog> ReportExecutionLogs { get; set; }
+        public DbSet<ReportFavorite> ReportFavorites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

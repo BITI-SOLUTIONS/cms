@@ -1,0 +1,310 @@
+@{
+    ViewData["Title"] = "Reportes Generales";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="content-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i>
+                Reportes Generales
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Inicio</a></li>
+                    <li class="breadcrumb-item active">Reportes</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div class="content-body">
+    <!-- Filtros de búsqueda -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Buscar</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Nombre o código del reporte...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Categoría</label>
+                    <select id="categoryFilter" class="form-select">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mostrar</label>
+                    <select id="viewFilter" class="form-select">
+                        <option value="all">Todos los reportes</option>
+                        <option value="favorites">Solo favoritos</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-x-circle me-1"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingReports" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2 text-muted">Cargando reportes...</p>
+    </div>
+
+    <!-- Lista de reportes por categoría -->
+    <div id="reportsContainer"></div>
+
+    <!-- Sin resultados -->
+    <div id="noResults" class="text-center py-5" style="display: none;">
+        <i class="bi bi-search display-1 text-muted"></i>
+        <h4 class="mt-3 text-muted">No se encontraron reportes</h4>
+        <p class="text-muted">Intenta con otros filtros de búsqueda</p>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let allReports = [];
+    let categories = [];
+    const apiBaseUrl = '@(ViewData["ApiBaseUrl"] ?? "")';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCategories();
+        loadReports();
+
+        // Evento de búsqueda con debounce
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterReports, 300);
+        });
+
+        document.getElementById('categoryFilter').addEventListener('change', filterReports);
+        document.getElementById('viewFilter').addEventListener('change', filterReports);
+    });
+
+    async function loadCategories() {
+        try {
+            const response = await fetch(apiBaseUrl + '/api/report/categories', {
+                credentials: 'include'
+            });
+            if (response.ok) {
+                categories = await response.json();
+                const select = document.getElementById('categoryFilter');
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = `${cat.categoryName} (${cat.reportCount})`;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando categorías:', error);
+        }
+    }
+
+    async function loadReports() {
+        showLoading(true);
+        try {
+            const response = await fetch(apiBaseUrl + '/api/report', {
+                credentials: 'include'
+            });
+            if (response.ok) {
+                allReports = await response.json();
+                renderReports(allReports);
+            } else {
+                showError('Error cargando reportes');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Error de conexión');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function filterReports() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const categoryId = document.getElementById('categoryFilter').value;
+        const viewFilter = document.getElementById('viewFilter').value;
+
+        let filtered = allReports;
+
+        if (search) {
+            filtered = filtered.filter(r => 
+                r.reportName.toLowerCase().includes(search) ||
+                r.reportCode.toLowerCase().includes(search) ||
+                (r.description && r.description.toLowerCase().includes(search))
+            );
+        }
+
+        if (categoryId) {
+            const cat = categories.find(c => c.id == categoryId);
+            if (cat) {
+                filtered = filtered.filter(r => r.categoryName === cat.categoryName);
+            }
+        }
+
+        if (viewFilter === 'favorites') {
+            filtered = filtered.filter(r => r.isFavorite);
+        }
+
+        renderReports(filtered);
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('viewFilter').value = 'all';
+        renderReports(allReports);
+    }
+
+    function renderReports(reports) {
+        const container = document.getElementById('reportsContainer');
+        const noResults = document.getElementById('noResults');
+
+        if (reports.length === 0) {
+            container.innerHTML = '';
+            noResults.style.display = 'block';
+            return;
+        }
+
+        noResults.style.display = 'none';
+
+        // Agrupar por categoría
+        const grouped = reports.reduce((acc, report) => {
+            const cat = report.categoryName || 'Sin categoría';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(report);
+            return acc;
+        }, {});
+
+        let html = '';
+        for (const [category, categoryReports] of Object.entries(grouped)) {
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="bi bi-folder me-2"></i>
+                            ${category}
+                            <span class="badge bg-secondary ms-2">${categoryReports.length}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            ${categoryReports.map(r => renderReportCard(r)).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    }
+
+    function renderReportCard(report) {
+        const favoriteIcon = report.isFavorite 
+            ? 'bi-star-fill text-warning' 
+            : 'bi-star text-muted';
+
+        return `
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 report-card" onclick="openReport(${report.id})">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="report-icon">
+                                <i class="${report.icon || 'bi-file-earmark-bar-graph'} fs-2 text-primary"></i>
+                            </div>
+                            <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); toggleFavorite(${report.id}, ${report.isFavorite})">
+                                <i class="${favoriteIcon} fs-5"></i>
+                            </button>
+                        </div>
+                        <h6 class="card-title">${report.reportName}</h6>
+                        <p class="card-text small text-muted mb-0">
+                            ${report.description || 'Sin descripción'}
+                        </p>
+                        <div class="mt-2">
+                            <span class="badge bg-light text-dark">${report.reportCode}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function openReport(reportId) {
+        window.location.href = '/Reports/View/' + reportId;
+    }
+
+    async function toggleFavorite(reportId, isFavorite) {
+        try {
+            if (isFavorite) {
+                await fetch(apiBaseUrl + '/api/report/favorites/' + reportId, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+            } else {
+                await fetch(apiBaseUrl + '/api/report/favorites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ reportId: reportId })
+                });
+            }
+            
+            // Actualizar estado local
+            const report = allReports.find(r => r.id === reportId);
+            if (report) report.isFavorite = !isFavorite;
+            filterReports();
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function showLoading(show) {
+        document.getElementById('loadingReports').style.display = show ? 'block' : 'none';
+    }
+
+    function showError(message) {
+        document.getElementById('reportsContainer').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                ${message}
+            </div>
+        `;
+    }
+</script>
+
+<style>
+    .report-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    .report-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: var(--bs-primary);
+    }
+    .report-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(var(--bs-primary-rgb), 0.1);
+        border-radius: 8px;
+    }
+</style>
+}
