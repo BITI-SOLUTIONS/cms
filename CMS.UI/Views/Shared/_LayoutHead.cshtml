@@ -17,8 +17,9 @@
 <!-- CSS Personalizado -->
 <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
-<!-- Favicon - Múltiples formatos para compatibilidad -->
-<link rel="icon" type="image/x-icon" href="~/favicon.ico">
-<link rel="icon" type="image/svg+xml" href="~/favicon.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="~/img/logo.png">
-<link rel="apple-touch-icon" href="~/img/logo.png">
+<!-- Favicon - Con version para evitar caché -->
+<link rel="icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true">
+<link rel="shortcut icon" href="~/favicon.ico" asp-append-version="true">
+<link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true">
+<link rel="icon" type="image/png" sizes="32x32" href="~/img/logo.png" asp-append-version="true">
+<link rel="apple-touch-icon" sizes="180x180" href="~/img/logo.png" asp-append-version="true">
