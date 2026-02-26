@@ -14,17 +14,36 @@ namespace CMS.UI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<ReportsController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
-        public ReportsController(IConfiguration configuration, ILogger<ReportsController> logger)
+        public ReportsController(
+            IConfiguration configuration, 
+            ILogger<ReportsController> logger,
+            IWebHostEnvironment environment)
         {
             _configuration = configuration;
             _logger = logger;
+            _environment = environment;
+        }
+
+        private string GetApiBaseUrl()
+        {
+            var env = _environment.IsDevelopment() ? "Development" : "Production";
+            var baseUrl = _configuration[$"ApiSettings:{env}:BaseUrl"];
+            _logger.LogDebug("API Base URL ({Env}): {BaseUrl}", env, baseUrl);
+            return baseUrl ?? "";
+        }
+
+        // GET: /Reports - Redirige a /Reports/General
+        public IActionResult Index()
+        {
+            return RedirectToAction(nameof(General));
         }
 
         // GET: /Reports/General - Lista de reportes
         public IActionResult General()
         {
-            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"] ?? "";
+            ViewData["ApiBaseUrl"] = GetApiBaseUrl();
             return View();
         }
 
@@ -32,7 +51,7 @@ namespace CMS.UI.Controllers
         [Route("Reports/View/{id}")]
         public IActionResult View(int id)
         {
-            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"] ?? "";
+            ViewData["ApiBaseUrl"] = GetApiBaseUrl();
             ViewData["ReportId"] = id;
             return View();
         }
@@ -41,7 +60,7 @@ namespace CMS.UI.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult Admin()
         {
-            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"] ?? "";
+            ViewData["ApiBaseUrl"] = GetApiBaseUrl();
             return View();
         }
 
@@ -50,7 +69,7 @@ namespace CMS.UI.Controllers
         [Route("Reports/Edit/{id}")]
         public IActionResult Edit(int id)
         {
-            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"] ?? "";
+            ViewData["ApiBaseUrl"] = GetApiBaseUrl();
             ViewData["ReportId"] = id;
             return View();
         }
@@ -59,7 +78,7 @@ namespace CMS.UI.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
-            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"] ?? "";
+            ViewData["ApiBaseUrl"] = GetApiBaseUrl();
             return View();
         }
     }
