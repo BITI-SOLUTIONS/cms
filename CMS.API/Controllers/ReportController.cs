@@ -431,11 +431,18 @@ namespace CMS.API.Controllers
         {
             try
             {
+                // No registrar si no hay userId o companyId (requeridos en la tabla)
+                if (!userId.HasValue || !companyId.HasValue)
+                {
+                    _logger.LogWarning("No se puede registrar ejecución de reporte: userId={UserId}, companyId={CompanyId}", userId, companyId);
+                    return;
+                }
+
                 var log = new ReportExecutionLog
                 {
                     ReportId = reportId,
-                    UserId = userId,
-                    CompanyId = companyId,
+                    UserId = userId.Value,
+                    CompanyId = companyId.Value,
                     FiltersUsed = JsonSerializer.Serialize(filters),
                     RowsReturned = rowsReturned,
                     ExecutionTimeMs = executionTimeMs,
@@ -443,7 +450,9 @@ namespace CMS.API.Controllers
                     Status = status,
                     ErrorMessage = errorMessage,
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = Request.Headers.UserAgent.ToString()
+                    UserAgent = Request.Headers.UserAgent.ToString(),
+                    CreatedBy = User.Identity?.Name ?? "SYSTEM",
+                    UpdatedBy = User.Identity?.Name ?? "SYSTEM"
                 };
 
                 _db.ReportExecutionLogs.Add(log);

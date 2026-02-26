@@ -16,10 +16,10 @@ namespace CMS.Entities.Reports
     public class ReportColumn : IAuditableEntity
     {
         [Key]
-        [Column("id_column")]
+        [Column("id_report_column")]
         public int Id { get; set; }
 
-        [Column("id_report")]
+        [Column("id_report_definition")]
         public int ReportId { get; set; }
 
         // Identificación de la columna
@@ -119,18 +119,18 @@ namespace CMS.Entities.Reports
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Column("create_date")]
+        [Column("createdate")]
         public DateTime CreateDate { get; set; } = DateTime.UtcNow;
 
-        [Column("row_pointer")]
+        [Column("rowpointer")]
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
         [Column("created_by")]
-        [MaxLength(100)]
+        [MaxLength(30)]
         public string? CreatedBy { get; set; }
 
         [Column("updated_by")]
-        [MaxLength(100)]
+        [MaxLength(30)]
         public string? UpdatedBy { get; set; }
     }
 }

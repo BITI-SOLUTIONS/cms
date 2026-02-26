@@ -13,20 +13,20 @@ namespace CMS.Entities.Reports
     /// Registro de ejecuciones de reportes para auditoría
     /// </summary>
     [Table("report_execution_log", Schema = "admin")]
-    public class ReportExecutionLog
+    public class ReportExecutionLog : IAuditableEntity
     {
         [Key]
-        [Column("id_execution")]
-        public long Id { get; set; }
+        [Column("id_report_execution_log")]
+        public int Id { get; set; }
 
-        [Column("id_report")]
+        [Column("id_report_definition")]
         public int ReportId { get; set; }
 
         [Column("id_user")]
-        public int? UserId { get; set; }
+        public int UserId { get; set; }
 
         [Column("id_company")]
-        public int? CompanyId { get; set; }
+        public int CompanyId { get; set; }
 
         [Column("execution_date")]
         public DateTime ExecutionDate { get; set; } = DateTime.UtcNow;
@@ -69,5 +69,23 @@ namespace CMS.Entities.Reports
 
         [ForeignKey("CompanyId")]
         public virtual Company? Company { get; set; }
+
+        // IAuditableEntity
+        [Column("record_date")]
+        public DateTime RecordDate { get; set; } = DateTime.UtcNow;
+
+        [Column("createdate")]
+        public DateTime CreateDate { get; set; } = DateTime.UtcNow;
+
+        [Column("rowpointer")]
+        public Guid RowPointer { get; set; } = Guid.NewGuid();
+
+        [Column("created_by")]
+        [MaxLength(30)]
+        public string? CreatedBy { get; set; }
+
+        [Column("updated_by")]
+        [MaxLength(30)]
+        public string? UpdatedBy { get; set; }
     }
 }
