@@ -77,7 +77,6 @@
 <script>
     let allReports = [];
     let categories = [];
-    const apiBaseUrl = '@(ViewData["ApiBaseUrl"] ?? "")';
 
     document.addEventListener('DOMContentLoaded', function() {
         loadCategories();
@@ -96,9 +95,7 @@
 
     async function loadCategories() {
         try {
-            const response = await fetch(apiBaseUrl + '/api/report/categories', {
-                credentials: 'include'
-            });
+            const response = await fetch('/Reports/Api/Categories');
             if (response.ok) {
                 categories = await response.json();
                 const select = document.getElementById('categoryFilter');
@@ -117,9 +114,7 @@
     async function loadReports() {
         showLoading(true);
         try {
-            const response = await fetch(apiBaseUrl + '/api/report', {
-                credentials: 'include'
-            });
+            const response = await fetch('/Reports/Api/List');
             if (response.ok) {
                 allReports = await response.json();
                 renderReports(allReports);
@@ -249,24 +244,16 @@
 
     async function toggleFavorite(reportId, isFavorite) {
         try {
-            if (isFavorite) {
-                await fetch(apiBaseUrl + '/api/report/favorites/' + reportId, {
-                    method: 'DELETE',
-                    credentials: 'include'
-                });
-            } else {
-                await fetch(apiBaseUrl + '/api/report/favorites', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ reportId: reportId })
-                });
+            const response = await fetch('/Reports/Api/Favorite/' + reportId, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                // Actualizar estado local
+                const report = allReports.find(r => r.id === reportId);
+                if (report) report.isFavorite = !isFavorite;
+                filterReports();
             }
-            
-            // Actualizar estado local
-            const report = allReports.find(r => r.id === reportId);
-            if (report) report.isFavorite = !isFavorite;
-            filterReports();
         } catch (error) {
             console.error('Error:', error);
         }

@@ -150,7 +150,6 @@
     let sortColumn = null;
     let sortDirection = 'ASC';
     let currentFilters = {};
-    const apiBaseUrl = '@(ViewData["ApiBaseUrl"] ?? "")';
 
     document.addEventListener('DOMContentLoaded', function() {
         // Obtener ID del reporte de la URL
@@ -173,9 +172,7 @@
 
     async function loadReportConfig() {
         try {
-            const response = await fetch(apiBaseUrl + '/api/report/' + reportId, {
-                credentials: 'include'
-            });
+            const response = await fetch('/Reports/Api/Detail/' + reportId);
 
             if (!response.ok) {
                 throw new Error('Reporte no encontrado');
@@ -342,10 +339,9 @@
         document.getElementById('loadingResults').style.display = 'block';
 
         try {
-            const response = await fetch(apiBaseUrl + '/api/report/execute', {
+            const response = await fetch('/Reports/Api/Execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({
                     reportId: reportId,
                     filters: currentFilters,
