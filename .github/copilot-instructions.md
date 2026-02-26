@@ -164,6 +164,23 @@
 5. Campo `is_email_verified` indica si el email está verificado.
 6. **Usuario no puede iniciar sesión si email no está verificado.**
 
+### 🎨 Estilos UI/UX (CMS.UI)
+**IMPORTANTE**: El tema del CMS es OSCURO. Al crear nuevas vistas o componentes:
+
+1. **Colores de texto legibles**:
+   - Texto principal: usar `text-light`, `text-white` o colores claros (`#ffffff`, `#e0e0e0`)
+   - Texto secundario: usar `text-muted` que tiene buen contraste en tema oscuro
+   - **NUNCA usar** colores oscuros (`text-dark`, `text-secondary` oscuro, `#333`) sobre fondos oscuros
+
+2. **Tarjetas y contenedores**:
+   - Usar clases Bootstrap con contraste: `card-text text-light`, `text-white-50`
+   - Descripciones en tarjetas: usar `text-light` o `text-white` con opacidad
+   - Ejemplo: `<p class="card-text small text-light">Descripción</p>`
+
+3. **Validación visual**:
+   - Siempre verificar que el texto sea legible sobre el fondo oscuro
+   - Contraste mínimo recomendado: texto claro (#fff) sobre fondos oscuros (#1a1a2e, #16213e)
+
 ## Branching and Commit Conventions
 - Convenciones de branches CMS: main (producción), develop (desarrollo), feature/[nombre], fix/[nombre], hotfix/[nombre]. 
 - Commits: Conventional Commits (feat:, fix:, docs:, test:, refactor:, chore:, ci:, perf:)

@@ -26,15 +26,18 @@ namespace CMS.API.Controllers
         private readonly AppDbContext _db;
         private readonly ILogger<ReportController> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
         public ReportController(
             AppDbContext db,
             ILogger<ReportController> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
         {
             _db = db;
             _logger = logger;
             _configuration = configuration;
+            _environment = environment;
         }
 
         #region Categorías
@@ -326,9 +329,10 @@ namespace CMS.API.Controllers
             }
             else
             {
-                // Usar connection string central (cms) según el ambiente
-                var env = _configuration["Environment"] ?? "Development";
+                // Usar connection string central (cms) según el ambiente real (ASPNETCORE_ENVIRONMENT)
+                var env = _environment.IsDevelopment() ? "Development" : "Production";
                 connectionString = _configuration[$"ConnectionStrings:{env}:DefaultConnection"];
+                _logger.LogDebug("Usando connection string {Env}: {ConnStr}", env, connectionString?.Substring(0, Math.Min(50, connectionString?.Length ?? 0)));
             }
 
             if (string.IsNullOrEmpty(connectionString))
