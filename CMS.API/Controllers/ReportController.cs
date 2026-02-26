@@ -332,7 +332,7 @@ namespace CMS.API.Controllers
                 // Usar connection string central (cms) según el ambiente real (ASPNETCORE_ENVIRONMENT)
                 var env = _environment.IsDevelopment() ? "Development" : "Production";
                 connectionString = _configuration[$"ConnectionStrings:{env}:DefaultConnection"];
-                _logger.LogDebug("Usando connection string {Env}: {ConnStr}", env, connectionString?.Substring(0, Math.Min(50, connectionString?.Length ?? 0)));
+                _logger.LogDebug("Usando connection string {Env}", env);
             }
 
             if (string.IsNullOrEmpty(connectionString))
@@ -345,8 +345,33 @@ namespace CMS.API.Controllers
             await using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync();
 
-            // Preparar el query
+            // Preparar el query - REEMPLAZAR los placeholders @@param
             var baseQuery = report.DataSource;
+            var parameters = new Dictionary<string, NpgsqlParameter>();
+            var paramIndex = 1;
+
+            // Reemplazar cada @@param por un parámetro PostgreSQL $1, $2, etc.
+            foreach (var filter in report.Filters.Where(f => f.IsActive))
+            {
+                var paramPlaceholder = filter.FilterKey; // @@search, @@is_active, etc.
+                var paramName = paramPlaceholder.TrimStart('@'); // search, is_active
+
+                object? value = null;
+                if (request.Filters.TryGetValue(paramName, out var filterValue) && filterValue != null)
+                {
+                    value = ConvertFilterValue(filterValue, filter.FilterType);
+                }
+
+                // Reemplazar @@param con $N (parámetro PostgreSQL)
+                var pgParam = $"${paramIndex}";
+                baseQuery = baseQuery.Replace(paramPlaceholder, pgParam);
+
+                var npgParam = new NpgsqlParameter { Value = value ?? DBNull.Value };
+                parameters[pgParam] = npgParam;
+                paramIndex++;
+            }
+
+            _logger.LogDebug("Query base después de reemplazo: {Query}", baseQuery.Substring(0, Math.Min(200, baseQuery.Length)));
 
             // Construir query con paginación
             var offset = (request.Page - 1) * request.PageSize;
@@ -359,25 +384,17 @@ namespace CMS.API.Controllers
             // Query con paginación
             var pagedQuery = $@"
                 SELECT * FROM ({baseQuery}) AS base_query
-                ORDER BY {sortColumn} {sortDirection}
+                ORDER BY ""{sortColumn}"" {sortDirection}
                 OFFSET {offset} LIMIT {request.PageSize}";
 
             await using var countCmd = new NpgsqlCommand(countQuery, connection);
             await using var dataCmd = new NpgsqlCommand(pagedQuery, connection);
 
-            // Agregar parámetros
-            foreach (var filter in report.Filters.Where(f => f.IsActive))
+            // Agregar los parámetros a ambos comandos
+            foreach (var param in parameters.Values)
             {
-                var paramName = filter.FilterKey.TrimStart('@');
-                object? value = null;
-
-                if (request.Filters.TryGetValue(paramName, out var filterValue) && filterValue != null)
-                {
-                    value = ConvertFilterValue(filterValue, filter.FilterType);
-                }
-
-                countCmd.Parameters.AddWithValue(paramName, value ?? DBNull.Value);
-                dataCmd.Parameters.AddWithValue(paramName, value ?? DBNull.Value);
+                countCmd.Parameters.Add(param.Clone());
+                dataCmd.Parameters.Add(param.Clone());
             }
 
             // Ejecutar count
