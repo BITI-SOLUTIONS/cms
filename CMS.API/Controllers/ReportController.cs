@@ -319,9 +319,17 @@ namespace CMS.API.Controllers
             }
 
             // Obtener connection string
-            var connectionString = report.ConnectionType == "COMPANY"
-                ? await GetCompanyConnectionStringAsync()
-                : _configuration.GetConnectionString("DefaultConnection");
+            string? connectionString;
+            if (report.ConnectionType == "COMPANY")
+            {
+                connectionString = await GetCompanyConnectionStringAsync();
+            }
+            else
+            {
+                // Usar connection string central (cms) según el ambiente
+                var env = _configuration["Environment"] ?? "Development";
+                connectionString = _configuration[$"ConnectionStrings:{env}:DefaultConnection"];
+            }
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -704,7 +712,8 @@ namespace CMS.API.Controllers
 
         private int? GetCurrentCompanyId()
         {
-            var companyIdClaim = User.FindFirst("CompanyId")?.Value;
+            // El claim es "companyId" (minúscula) según JwtTokenService
+            var companyIdClaim = User.FindFirst("companyId")?.Value;
             return int.TryParse(companyIdClaim, out var companyId) ? companyId : null;
         }
 
