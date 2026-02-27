@@ -375,7 +375,9 @@ namespace CMS.API.Controllers
 
             // Construir query con paginación
             var offset = (request.Page - 1) * request.PageSize;
-            var sortColumn = request.SortColumn ?? report.Columns.FirstOrDefault()?.ColumnKey ?? "1";
+            // Solo considerar columnas ACTIVAS para el sort
+            var activeColumns = report.Columns.Where(c => c.IsActive).ToList();
+            var sortColumn = request.SortColumn ?? activeColumns.FirstOrDefault()?.ColumnKey ?? "1";
             var sortDirection = request.SortDirection?.ToUpper() == "DESC" ? "DESC" : "ASC";
 
             // Query para contar total
