@@ -210,9 +210,12 @@
 
     function renderFilters() {
         const container = document.getElementById('filtersContainer');
-        
+
+        // Si no hay filtros, ocultamos solo el contenedor de filtros pero dejamos el botón visible
         if (!reportConfig.filters || reportConfig.filters.length === 0) {
-            document.getElementById('filtersCard').style.display = 'none';
+            container.innerHTML = '<div class="col-12 text-muted"><small>Este reporte no tiene filtros configurados</small></div>';
+            // Ejecutar automáticamente si no hay filtros requeridos
+            setTimeout(() => executeReport(), 100);
             return;
         }
 
