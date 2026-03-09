@@ -1,0 +1,665 @@
+@* ================================================================================
+    ARCHIVO: CMS.UI/Views/Home/Settings.cshtml
+    PROPÓSITO: Página de configuración personal del usuario
+    DESCRIPCIÓN: Permite al usuario ajustar sus preferencias personales
+    AUTOR: EAMR, BITI SOLUTIONS S.A
+    CREADO: 2026-03-04
+   ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Configuración";
+    var userInfo = ViewData["UserInfo"] as CMS.UI.Controllers.UserProfileInfo ?? new CMS.UI.Controllers.UserProfileInfo();
+    var companyName = ViewData["CompanyName"] as string ?? "Sin compañía";
+}
+
+<div class="container-fluid py-4">
+    @* Header de la página *@
+    <div class="d-flex align-items-center mb-4">
+        <div class="rounded-circle bg-gradient d-flex align-items-center justify-content-center me-3"
+             style="width: 60px; height: 60px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <i class="bi bi-gear-fill text-white" style="font-size: 1.8rem;"></i>
+        </div>
+        <div>
+            <h1 class="h3 mb-1 text-white">Configuración</h1>
+            <p class="text-white-50 mb-0">Personaliza tu experiencia en el sistema</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @* Panel de Navegación *@
+        <div class="col-lg-3">
+            <div class="card bg-dark border-secondary sticky-top" style="top: 20px;">
+                <div class="card-body p-0">
+                    <nav class="nav flex-column">
+                        <a class="nav-link active text-white border-start border-primary border-3 bg-primary bg-opacity-10" href="#appearance">
+                            <i class="bi bi-palette me-2"></i>Apariencia
+                        </a>
+                        <a class="nav-link text-white-50" href="#notifications">
+                            <i class="bi bi-bell me-2"></i>Notificaciones
+                        </a>
+                        <a class="nav-link text-white-50" href="#regional">
+                            <i class="bi bi-globe me-2"></i>Regional
+                        </a>
+                        <a class="nav-link text-white-50" href="#security">
+                            <i class="bi bi-shield-lock me-2"></i>Seguridad
+                        </a>
+                        <a class="nav-link text-white-50" href="#activity">
+                            <i class="bi bi-clock-history me-2"></i>Historial
+                        </a>
+                        <a class="nav-link text-white-50" href="#sessions">
+                            <i class="bi bi-laptop me-2"></i>Sesiones
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        @* Contenido Principal *@
+        <div class="col-lg-9">
+            @* Apariencia *@
+            <div class="card bg-dark border-secondary mb-4" id="appearance">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-palette me-2 text-primary"></i>
+                        Apariencia
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Tema de la Interfaz</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="theme" id="themeDark" value="dark" checked>
+                                    <label class="form-check-label text-white" for="themeDark">
+                                        <i class="bi bi-moon-stars me-1"></i> Oscuro
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="theme" id="themeLight" value="light">
+                                    <label class="form-check-label text-white" for="themeLight">
+                                        <i class="bi bi-sun me-1"></i> Claro
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="text-white-50">El tema oscuro reduce la fatiga visual</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Menú Lateral</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sidebarCompact" checked>
+                                <label class="form-check-label text-white" for="sidebarCompact">
+                                    Contraer automáticamente
+                                </label>
+                            </div>
+                            <small class="text-white-50">El menú se contrae al hacer clic fuera de él</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Notificaciones *@
+            <div class="card bg-dark border-secondary mb-4" id="notifications">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-bell me-2 text-warning"></i>
+                        Notificaciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="notifyEmail" checked>
+                                <label class="form-check-label text-white" for="notifyEmail">
+                                    <i class="bi bi-envelope me-2"></i>
+                                    Notificaciones por correo electrónico
+                                </label>
+                                <div class="text-white-50 small">Recibe alertas importantes en tu correo</div>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="notifyBrowser" checked>
+                                <label class="form-check-label text-white" for="notifyBrowser">
+                                    <i class="bi bi-browser-chrome me-2"></i>
+                                    Notificaciones del navegador
+                                </label>
+                                <div class="text-white-50 small">Muestra notificaciones emergentes en el navegador</div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="notifySound">
+                                <label class="form-check-label text-white" for="notifySound">
+                                    <i class="bi bi-volume-up me-2"></i>
+                                    Sonidos de notificación
+                                </label>
+                                <div class="text-white-50 small">Reproduce un sonido cuando llega una notificación</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Regional *@
+            <div class="card bg-dark border-secondary mb-4" id="regional">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-globe me-2 text-info"></i>
+                        Configuración Regional
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Idioma</label>
+                            <select class="form-select bg-dark border-secondary text-white" id="language" name="language">
+                                <option value="es" selected>🇪🇸 Español</option>
+                                <option value="en">🇺🇸 English</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Zona Horaria</label>
+                            <select class="form-select bg-dark border-secondary text-white" id="timezone" name="timezone">
+                                <option value="America/Costa_Rica" selected>UTC-6 (Costa Rica)</option>
+                                <option value="America/Mexico_City">UTC-6 (Ciudad de México)</option>
+                                <option value="America/New_York">UTC-5 (Nueva York)</option>
+                                <option value="America/Los_Angeles">UTC-8 (Los Ángeles)</option>
+                                <option value="Europe/Madrid">UTC+1 (Madrid)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Formato de Fecha</label>
+                            <select class="form-select bg-dark border-secondary text-white" id="dateFormat" name="dateFormat">
+                                <option value="dd/MM/yyyy" selected>DD/MM/YYYY (31/12/2026)</option>
+                                <option value="MM/dd/yyyy">MM/DD/YYYY (12/31/2026)</option>
+                                <option value="yyyy-MM-dd">YYYY-MM-DD (2026-12-31)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Formato de Hora</label>
+                            <select class="form-select bg-dark border-secondary text-white" id="timeFormat" name="timeFormat">
+                                <option value="24h" selected>24 horas (14:30)</option>
+                                <option value="12h">12 horas (2:30 PM)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Seguridad *@
+            <div class="card bg-dark border-secondary mb-4" id="security">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-shield-lock me-2 text-success"></i>
+                        Seguridad
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center p-3 border border-secondary rounded mb-3" style="background: rgba(30, 30, 45, 0.8);">
+                                <div>
+                                    <h6 class="text-white mb-1">
+                                        <i class="bi bi-key me-2 text-warning"></i>Contraseña
+                                    </h6>
+                                    <small class="text-white-50">Última modificación: hace más de 30 días</small>
+                                </div>
+                                <a href="@Url.Action("ChangePassword", "Account")" class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-pencil me-1"></i>Cambiar
+                                </a>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-3 border border-secondary rounded mb-3" style="background: rgba(30, 30, 45, 0.8);">
+                                <div>
+                                    <h6 class="text-white mb-1">
+                                        <i class="bi bi-phone me-2 text-info"></i>Autenticación de dos factores
+                                    </h6>
+                                    <small class="text-danger">
+                                        <i class="bi bi-x-circle me-1"></i>No configurada
+                                    </small>
+                                </div>
+                                <button class="btn btn-outline-secondary btn-sm" disabled>
+                                    <span class="badge bg-info text-dark me-1">Próximamente</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Historial de Actividad *@
+            <div class="card bg-dark border-secondary mb-4" id="activity">
+                <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-clock-history me-2 text-info"></i>
+                        Historial de Actividad
+                    </h5>
+                    <span class="badge bg-info" id="activityCount">Últimos eventos</span>
+                </div>
+                <div class="card-body p-0">
+                    @* Contenedor con scroll *@
+                    <div style="max-height: 400px; overflow-y: auto;" id="activityScrollContainer">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead style="position: sticky; top: 0; z-index: 1; background: #212529;">
+                                <tr class="text-white-50">
+                                    <th class="border-secondary ps-3">Evento</th>
+                                    <th class="border-secondary">Fecha</th>
+                                    <th class="border-secondary">IP</th>
+                                    <th class="border-secondary">Dispositivo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activityTable">
+                                @* Se carga dinámicamente *@
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center py-4" id="activityLoading">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="text-white-50 mt-2 mb-0">Cargando historial...</p>
+                    </div>
+                    <div class="text-center py-4 d-none" id="activityEmpty">
+                        <i class="bi bi-calendar-x text-white-50" style="font-size: 2.5rem;"></i>
+                        <p class="text-white-50 mt-2 mb-0">No hay actividad reciente registrada</p>
+                    </div>
+                    @* Paginación *@
+                    <div class="d-flex justify-content-center py-3 border-top border-secondary d-none" id="activityPagination">
+                        <nav aria-label="Paginación de actividad">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item" id="prevPage">
+                                    <button class="page-link bg-dark border-secondary text-white" onclick="loadActivityPage(currentActivityPage - 1)">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                </li>
+                                <li class="page-item active" id="page1">
+                                    <button class="page-link bg-primary border-primary" onclick="loadActivityPage(1)">1</button>
+                                </li>
+                                <li class="page-item d-none" id="page2">
+                                    <button class="page-link bg-dark border-secondary text-white" onclick="loadActivityPage(2)">2</button>
+                                </li>
+                                <li class="page-item d-none" id="page3">
+                                    <button class="page-link bg-dark border-secondary text-white" onclick="loadActivityPage(3)">3</button>
+                                </li>
+                                <li class="page-item" id="nextPage">
+                                    <button class="page-link bg-dark border-secondary text-white" onclick="loadActivityPage(currentActivityPage + 1)">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            @* Sesiones Activas *@
+            <div class="card bg-dark border-secondary mb-4" id="sessions">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-laptop me-2 text-primary"></i>
+                        Sesiones Activas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center p-3 bg-success bg-opacity-10 border border-success rounded mb-3">
+                        <div class="me-3">
+                            <i class="bi bi-laptop text-success" style="font-size: 2rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="text-white mb-0">Esta sesión</h6>
+                            <small class="text-white-50">
+                                <i class="bi bi-building me-1"></i>@companyName •
+                                <i class="bi bi-clock me-1"></i>Activa ahora
+                            </small>
+                        </div>
+                        <span class="badge bg-success">Actual</span>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="@Url.Action("Logout", "Account")" class="btn btn-outline-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Cerrar sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* Botón Guardar *@
+            <div class="d-flex justify-content-end gap-2">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary">
+                    <i class="bi bi-x me-1"></i>Cancelar
+                </a>
+                <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // =====================================================
+        // Variables globales
+        // =====================================================
+        let currentActivityPage = 1;
+        let totalActivityPages = 1;
+        const apiBaseUrl = '@(ViewContext.HttpContext.Session.GetString("ApiBaseUrl") ?? "/api")';
+
+        // =====================================================
+        // Cargar configuración al iniciar
+        // =====================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettingsFromApi();
+            loadActivityPage(1);
+        });
+
+        // =====================================================
+        // Cargar configuración desde API
+        // =====================================================
+        async function loadSettingsFromApi() {
+            try {
+                const response = await fetch('/api/usersettings', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    const settings = await response.json();
+                    applySettings(settings);
+                } else {
+                    // Fallback a localStorage
+                    console.log('Usando configuración local');
+                    const localSettings = JSON.parse(localStorage.getItem('cmsUserSettings') || '{}');
+                    applySettings(localSettings);
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+                // Fallback a localStorage
+                const localSettings = JSON.parse(localStorage.getItem('cmsUserSettings') || '{}');
+                applySettings(localSettings);
+            }
+        }
+
+        function applySettings(settings) {
+            // Tema
+            if (settings.theme) {
+                document.getElementById('themeDark').checked = settings.theme === 'dark';
+                document.getElementById('themeLight').checked = settings.theme === 'light';
+            }
+
+            // Apariencia
+            if (settings.sidebarCompact !== undefined) {
+                document.getElementById('sidebarCompact').checked = settings.sidebarCompact;
+            }
+
+            // Notificaciones
+            if (settings.notifyEmail !== undefined) {
+                document.getElementById('notifyEmail').checked = settings.notifyEmail;
+            }
+            if (settings.notifyBrowser !== undefined) {
+                document.getElementById('notifyBrowser').checked = settings.notifyBrowser;
+            }
+            if (settings.notifySound !== undefined) {
+                document.getElementById('notifySound').checked = settings.notifySound;
+            }
+
+            // Regional
+            if (settings.language) {
+                document.getElementById('language').value = settings.language;
+            }
+            if (settings.timezone) {
+                document.getElementById('timezone').value = settings.timezone;
+            }
+            if (settings.dateFormat) {
+                document.getElementById('dateFormat').value = settings.dateFormat;
+            }
+            if (settings.timeFormat) {
+                document.getElementById('timeFormat').value = settings.timeFormat;
+            }
+        }
+
+        // =====================================================
+        // Guardar configuración
+        // =====================================================
+        async function saveSettings() {
+            const settings = {
+                theme: document.getElementById('themeDark').checked ? 'dark' : 'light',
+                sidebarCompact: document.getElementById('sidebarCompact').checked,
+                notifyEmail: document.getElementById('notifyEmail').checked,
+                notifyBrowser: document.getElementById('notifyBrowser').checked,
+                notifySound: document.getElementById('notifySound').checked,
+                language: document.getElementById('language').value,
+                timezone: document.getElementById('timezone').value,
+                dateFormat: document.getElementById('dateFormat').value,
+                timeFormat: document.getElementById('timeFormat').value
+            };
+
+            // Guardar en localStorage como backup
+            localStorage.setItem('cmsUserSettings', JSON.stringify(settings));
+
+            try {
+                const response = await fetch('/api/usersettings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    showToast('success', 'Configuración guardada correctamente');
+
+                    // Aplicar tema si cambió
+                    applyTheme(settings.theme);
+                } else {
+                    showToast('warning', 'Guardado localmente (sin conexión al servidor)');
+                }
+            } catch (error) {
+                console.error('Error guardando configuración:', error);
+                showToast('warning', 'Guardado localmente (sin conexión al servidor)');
+            }
+        }
+
+        function applyTheme(theme) {
+            // Por ahora solo soportamos tema oscuro, pero la estructura está lista
+            document.body.setAttribute('data-bs-theme', theme);
+            if (theme === 'light') {
+                document.body.classList.add('bg-light');
+                document.body.classList.remove('bg-dark');
+            } else {
+                document.body.classList.add('bg-dark');
+                document.body.classList.remove('bg-light');
+            }
+        }
+
+        function showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed top-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+
+            const bgClass = type === 'success' ? 'bg-success' : (type === 'warning' ? 'bg-warning' : 'bg-danger');
+            const textClass = type === 'warning' ? 'text-dark' : 'text-white';
+            const icon = type === 'success' ? 'bi-check-circle' : (type === 'warning' ? 'bi-exclamation-triangle' : 'bi-x-circle');
+
+            toast.innerHTML = `
+                <div class="toast show ${bgClass} ${textClass} border-0" role="alert">
+                    <div class="toast-body d-flex align-items-center">
+                        <i class="bi ${icon} me-2 fs-5"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // =====================================================
+        // Historial de Actividad con Paginación
+        // =====================================================
+        async function loadActivityPage(page) {
+            if (page < 1 || page > 3) return;
+
+            const tableBody = document.getElementById('activityTable');
+            const loading = document.getElementById('activityLoading');
+            const empty = document.getElementById('activityEmpty');
+            const pagination = document.getElementById('activityPagination');
+            const countBadge = document.getElementById('activityCount');
+
+            loading.classList.remove('d-none');
+            tableBody.innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/usersettings/activity?page=${page}&pageSize=10`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                });
+
+                loading.classList.add('d-none');
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (!data.activities || data.activities.length === 0) {
+                        empty.classList.remove('d-none');
+                        pagination.classList.add('d-none');
+                        countBadge.textContent = 'Sin actividad';
+                        return;
+                    }
+
+                    empty.classList.add('d-none');
+                    currentActivityPage = data.currentPage;
+                    totalActivityPages = data.totalPages;
+
+                    countBadge.textContent = `Página ${data.currentPage} de ${data.totalPages} (${data.totalCount} eventos)`;
+
+                    tableBody.innerHTML = data.activities.map(activity => `
+                        <tr>
+                            <td class="border-secondary ps-3">
+                                <span class="badge ${getActivityBadgeClass(activity.activityType)} me-2">
+                                    <i class="bi ${getActivityIcon(activity.activityType)}"></i>
+                                </span>
+                                <span class="text-white">${activity.description}</span>
+                            </td>
+                            <td class="border-secondary text-white-50">${formatDate(activity.activityDate)}</td>
+                            <td class="border-secondary text-white-50"><code class="text-info">${activity.ipAddress || 'N/A'}</code></td>
+                            <td class="border-secondary text-white-50">${activity.deviceInfo || 'N/A'}</td>
+                        </tr>
+                    `).join('');
+
+                    // Mostrar paginación si hay más de 1 página
+                    if (totalActivityPages > 1) {
+                        pagination.classList.remove('d-none');
+                        updatePaginationButtons();
+                    } else {
+                        pagination.classList.add('d-none');
+                    }
+                } else {
+                    // Fallback: mostrar mensaje de que las tablas aún no existen
+                    loading.classList.add('d-none');
+                    empty.classList.remove('d-none');
+                    countBadge.textContent = 'Sin datos';
+                }
+            } catch (error) {
+                console.error('Error cargando historial:', error);
+                loading.classList.add('d-none');
+                empty.classList.remove('d-none');
+                countBadge.textContent = 'Error de conexión';
+            }
+        }
+
+        function updatePaginationButtons() {
+            // Actualizar estado de botones de página
+            for (let i = 1; i <= 3; i++) {
+                const pageEl = document.getElementById(`page${i}`);
+                if (i <= totalActivityPages) {
+                    pageEl.classList.remove('d-none');
+                    const btn = pageEl.querySelector('button');
+                    if (i === currentActivityPage) {
+                        pageEl.classList.add('active');
+                        btn.className = 'page-link bg-primary border-primary';
+                    } else {
+                        pageEl.classList.remove('active');
+                        btn.className = 'page-link bg-dark border-secondary text-white';
+                    }
+                } else {
+                    pageEl.classList.add('d-none');
+                }
+            }
+
+            // Prev/Next
+            document.getElementById('prevPage').classList.toggle('disabled', currentActivityPage <= 1);
+            document.getElementById('nextPage').classList.toggle('disabled', currentActivityPage >= totalActivityPages);
+        }
+
+        function getActivityBadgeClass(type) {
+            switch(type) {
+                case 'LOGIN': return 'bg-success bg-opacity-25 text-success';
+                case 'LOGOUT': return 'bg-secondary bg-opacity-25 text-secondary';
+                case 'LOGIN_FAILED': return 'bg-danger bg-opacity-25 text-danger';
+                case 'PASSWORD_CHANGE': return 'bg-warning bg-opacity-25 text-warning';
+                case 'SETTINGS_CHANGE': return 'bg-info bg-opacity-25 text-info';
+                case 'PAGE_ACCESS': return 'bg-primary bg-opacity-25 text-primary';
+                case 'SUPPORT_REQUEST': return 'bg-purple bg-opacity-25 text-purple';
+                default: return 'bg-secondary bg-opacity-25 text-secondary';
+            }
+        }
+
+        function getActivityIcon(type) {
+            switch(type) {
+                case 'LOGIN': return 'bi-box-arrow-in-right';
+                case 'LOGOUT': return 'bi-box-arrow-right';
+                case 'LOGIN_FAILED': return 'bi-x-circle-fill';
+                case 'PASSWORD_CHANGE': return 'bi-key-fill';
+                case 'SETTINGS_CHANGE': return 'bi-gear-fill';
+                case 'PAGE_ACCESS': return 'bi-eye-fill';
+                case 'SUPPORT_REQUEST': return 'bi-envelope-fill';
+                default: return 'bi-circle-fill';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Hace un momento';
+            if (diff < 3600000) return `Hace ${Math.floor(diff / 60000)} min`;
+            if (diff < 86400000) return `Hace ${Math.floor(diff / 3600000)} h`;
+
+            return date.toLocaleDateString('es-CR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // =====================================================
+        // Navegación suave
+        // =====================================================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    // Actualizar estado activo del menú
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active', 'text-white', 'border-start', 'border-primary', 'border-3', 'bg-primary', 'bg-opacity-10');
+                        link.classList.add('text-white-50');
+                    });
+                    this.classList.add('active', 'text-white', 'border-start', 'border-primary', 'border-3', 'bg-primary', 'bg-opacity-10');
+                    this.classList.remove('text-white-50');
+                }
+            });
+        });
+    </script>
+}

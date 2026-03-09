@@ -3,6 +3,7 @@
 // PROPÓSITO: DbContext para acceder a la base de datos operacional de una compañía
 // DESCRIPCIÓN: Cada compañía tiene su propia BD con el mismo nombre que company_schema
 //              Este contexto permite acceder a datos operacionales como items, inventory, etc.
+//              NOTA: UnitOfMeasure está en la BD central (admin.unit_of_measure)
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-02-19
 // ================================================================================
@@ -38,6 +39,11 @@ namespace CMS.Data
         /// </summary>
         public DbSet<LabelPrintHistory> LabelPrintHistory { get; set; } = null!;
 
+        /// <summary>
+        /// Clasificaciones de artículos (una sola tabla con classification_group 1-6)
+        /// </summary>
+        public DbSet<Classification> Classifications { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -53,7 +59,9 @@ namespace CMS.Data
                 // Índices
                 entity.HasIndex(e => e.Code).IsUnique();
                 entity.HasIndex(e => e.Barcode);
-                entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.IdClassification1);
+                entity.HasIndex(e => e.IdClassification2);
+                entity.HasIndex(e => e.IdUnitOfMeasure);
                 entity.HasIndex(e => e.IsActive);
             });
 
@@ -67,6 +75,17 @@ namespace CMS.Data
                 entity.HasIndex(e => e.ItemCode);
                 entity.HasIndex(e => e.PrintDate);
                 entity.HasIndex(e => e.PrintedBy);
+            });
+
+            // Configurar la tabla Classification (única tabla con classification_group)
+            modelBuilder.Entity<Classification>(entity =>
+            {
+                entity.ToTable("classification", _schema);
+
+                // Índice único compuesto: code + classification_group
+                entity.HasIndex(e => new { e.Code, e.ClassificationGroup }).IsUnique();
+                entity.HasIndex(e => e.ClassificationGroup);
+                entity.HasIndex(e => e.IsActive);
             });
         }
     }

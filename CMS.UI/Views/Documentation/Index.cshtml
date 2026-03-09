@@ -1,0 +1,469 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Documentation/Index.cshtml                               *@
+@* PROPÓSITO: Página de Documentación del Sistema CMS                             *@
+@* DESCRIPCIÓN: Muestra PDFs de ayuda organizados por categoría                   *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                *@
+@* CREADO: 2026-03-08                                                             *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Documentación del Sistema";
+}
+
+<style>
+    /* Estilos específicos para la página de documentación */
+    .documentation-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .documentation-title {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+
+    .documentation-subtitle {
+        color: var(--text-gray);
+        font-size: 1rem;
+    }
+
+    .category-card {
+        background: var(--surface-dark);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+
+    .category-header {
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .category-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+    }
+
+    .category-info h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .category-info span {
+        font-size: 0.85rem;
+        color: var(--text-gray);
+    }
+
+    .document-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    .document-item {
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: background 0.2s ease;
+    }
+
+    .document-item:last-child {
+        border-bottom: none;
+    }
+
+    .document-item:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .document-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .document-icon.no-file {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        opacity: 0.6;
+    }
+
+    .document-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .document-title {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .document-title .version-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        background: rgba(6, 182, 212, 0.2);
+        color: #06b6d4;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .document-description {
+        font-size: 0.85rem;
+        color: var(--text-gray);
+        margin-bottom: 6px;
+        line-height: 1.4;
+    }
+
+    .document-meta {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.4);
+        display: flex;
+        gap: 12px;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .btn-doc {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-view {
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        color: white;
+        border: none;
+    }
+
+    .btn-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        color: white;
+    }
+
+    .btn-download {
+        background: transparent;
+        color: var(--text-gray);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .btn-download:hover {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border-color: rgba(255,255,255,0.3);
+    }
+
+    .btn-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        color: var(--text-gray);
+    }
+
+    .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid rgba(6, 182, 212, 0.2);
+        border-top-color: #06b6d4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-gray);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    .search-box {
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 14px 20px 14px 50px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: var(--surface-dark);
+        color: white;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #06b6d4;
+        box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    }
+
+    .search-box input::placeholder {
+        color: var(--text-gray);
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        font-size: 1.1rem;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #06b6d4;
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 16px;
+        transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+        color: #3b82f6;
+    }
+
+    .module-badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        background: rgba(139, 92, 246, 0.2);
+        color: #a78bfa;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Link para volver -->
+    <a asp-controller="Home" asp-action="Index" class="back-link">
+        <i class="bi bi-arrow-left"></i>
+        Volver al Dashboard
+    </a>
+
+    <!-- Header -->
+    <div class="documentation-header">
+        <h1 class="documentation-title">
+            <i class="bi bi-book me-2"></i>
+            Documentación del Sistema
+        </h1>
+        <p class="documentation-subtitle">
+            Consulta los manuales, guías y tutoriales del Sistema CMS de BITI Solutions
+        </p>
+    </div>
+
+    <!-- Buscador -->
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" placeholder="Buscar documentación..." oninput="filterDocuments()">
+    </div>
+
+    <!-- Contenedor de documentación -->
+    <div id="documentationContainer">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <span>Cargando documentación...</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allCategories = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDocumentation();
+        });
+
+        async function loadDocumentation() {
+            try {
+                const response = await fetch('/Documentation/Api/List');
+                if (!response.ok) throw new Error('Error al cargar documentación');
+                
+                allCategories = await response.json();
+                renderDocumentation(allCategories);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('documentationContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <h5>Error al cargar la documentación</h5>
+                        <p>Por favor, intenta recargar la página</p>
+                        <button class="btn btn-primary mt-3" onclick="loadDocumentation()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Reintentar
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function renderDocumentation(categories) {
+            const container = document.getElementById('documentationContainer');
+            
+            if (!categories || categories.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        <h5>No hay documentación disponible</h5>
+                        <p>La documentación del sistema será agregada próximamente</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            
+            categories.forEach(category => {
+                if (category.documents.length === 0) return;
+                
+                html += `
+                    <div class="category-card" data-category="${category.categoryCode}">
+                        <div class="category-header">
+                            <div class="category-icon">
+                                <i class="bi ${category.icon}"></i>
+                            </div>
+                            <div class="category-info">
+                                <h3>${category.categoryName}</h3>
+                                <span>${category.documentCount} documento${category.documentCount !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                        <ul class="document-list">
+                `;
+                
+                category.documents.forEach(doc => {
+                    const hasFile = doc.hasFile;
+                    const moduleHtml = doc.moduleName ? 
+                        `<span class="module-badge">${doc.moduleName}</span>` : '';
+                    
+                    html += `
+                        <li class="document-item" data-title="${doc.documentTitle.toLowerCase()}" data-description="${(doc.documentDescription || '').toLowerCase()}">
+                            <div class="document-icon ${!hasFile ? 'no-file' : ''}">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </div>
+                            <div class="document-info">
+                                <div class="document-title">
+                                    ${doc.documentTitle}
+                                    <span class="version-badge">v${doc.version}</span>
+                                    ${moduleHtml}
+                                </div>
+                                <div class="document-description">
+                                    ${doc.documentDescription || 'Sin descripción'}
+                                </div>
+                                <div class="document-meta">
+                                    <span><i class="bi bi-file-earmark me-1"></i>${doc.fileName}</span>
+                                    ${hasFile ? `<span><i class="bi bi-hdd me-1"></i>${doc.fileSizeFormatted}</span>` : '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Pendiente de subir</span>'}
+                                </div>
+                            </div>
+                            <div class="document-actions">
+                                ${hasFile ? `
+                                    <a href="/Documentation/View/${doc.id}" target="_blank" class="btn-doc btn-view">
+                                        <i class="bi bi-eye"></i>
+                                        Ver
+                                    </a>
+                                    <a href="/Documentation/Download/${doc.id}" class="btn-doc btn-download">
+                                        <i class="bi bi-download"></i>
+                                        Descargar
+                                    </a>
+                                ` : `
+                                    <span class="btn-doc btn-view btn-disabled">
+                                        <i class="bi bi-eye-slash"></i>
+                                        No disponible
+                                    </span>
+                                `}
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                html += `
+                        </ul>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function filterDocuments() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const documentItems = document.querySelectorAll('.document-item');
+            const categoryCards = document.querySelectorAll('.category-card');
+            
+            documentItems.forEach(item => {
+                const title = item.dataset.title;
+                const description = item.dataset.description;
+                const matches = title.includes(searchTerm) || description.includes(searchTerm);
+                item.style.display = matches ? 'flex' : 'none';
+            });
+            
+            // Ocultar categorías vacías
+            categoryCards.forEach(card => {
+                const visibleItems = card.querySelectorAll('.document-item[style="display: flex"]');
+                const hasVisibleItems = visibleItems.length > 0 || 
+                    Array.from(card.querySelectorAll('.document-item')).some(item => item.style.display !== 'none');
+                card.style.display = hasVisibleItems ? 'block' : 'none';
+            });
+        }
+    </script>
+}

@@ -380,6 +380,8 @@ builder.Services.AddScoped<LocalAuthService>();
 builder.Services.AddScoped<CMS.UI.Services.EmailService>();
 builder.Services.AddScoped<SystemConfigService>();
 builder.Services.AddScoped<UserAuthApiService>();
+builder.Services.AddScoped<DashboardApiService>();
+builder.Services.AddScoped<UserSettingsApiService>();
 
 // ⭐ Servicios que usan HttpClient CON autenticación JWT automática
 builder.Services.AddHttpClient<PermissionsApiService>()

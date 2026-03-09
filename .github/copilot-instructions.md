@@ -65,43 +65,66 @@
 
 2. **Conexión OPERACIONAL (Por compañía)**:
    - **Fuente**: Tabla `admin.company` → campos `connection_string_development` o `connection_string_production`
-   - **Selección**: Se usa `connection_string_development` si `is_production = false`, de lo contrario `connection_string_production`
    - **Base de datos**: Igual al `COMPANY_SCHEMA` de la compañía (ej: `sinai`, `eamr`)
    - **Se usa para**: Items, inventario, ventas, compras, y TODO lo operacional de cada compañía
    - **Se obtiene**: Dinámicamente según la compañía activa del usuario (de JWT o sesión)
    - **IMPORTANTE**: Si `connection_string_*` está vacío, usa fallback basado en appsettings.json cambiando solo el nombre de la BD
 
-3. **Configuración de compañías (admin.company)**:
+3. **⚠️ REGLA DE ORO - Selección de Connection String Operacional**:
+   ```
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │ REGLA DE ORO PARA CONNECTION STRING DE COMPAÑÍA                         │
+   ├─────────────────────────────────────────────────────────────────────────┤
+   │                                                                          │
+   │ Si appsettings.json → "Environment" = "Development"                      │
+   │    → SIEMPRE usar connection_string_development                          │
+   │    → Ignorar el valor de is_production en la BD                          │
+   │    → Esto permite probar localmente con BD de producción sin afectar    │
+   │      a los usuarios que están usando el sistema en producción           │
+   │                                                                          │
+   │ Si appsettings.json → "Environment" = "Production"                       │
+   │    → Usar connection_string según el campo is_production de la compañía │
+   │    → is_production = true  → connection_string_production                │
+   │    → is_production = false → connection_string_development               │
+   │                                                                          │
+   │ RESUMEN:                                                                 │
+   │   useProductionCS = company.is_production && (appEnv != "Development")   │
+   │                                                                          │
+   └─────────────────────────────────────────────────────────────────────────┘
+   ```
+   - **Implementación**: `CMS.Data/Services/CompanyDbContextFactory.cs` → método `CreateDbContextAsync()`
+
+4. **Configuración de compañías (admin.company)**:
    ```sql
    -- Ejemplo de configuración correcta para compañía SINAI
    UPDATE admin.company 
    SET 
        connection_string_development = 'Host=10.0.0.1;Port=5432;Database=sinai;Username=cmssystem;Password=xxx;Pooling=true',
        connection_string_production = 'Host=cms-postgres;Port=5432;Database=sinai;Username=cmssystem;Password=xxx;Pooling=true',
-       is_production = false
+       is_production = true  -- En producción, pero si ejecutas localmente (Environment=Development), usará connection_string_development
    WHERE company_schema = 'sinai';
    ```
 
-4. **Flujo de decisión**:
+5. **Flujo de decisión**:
    ```
    ┌─────────────────────────────────────────────────────────────┐
-   │ Usuario hace login o navega                                │
+   │ Usuario hace login o navega                             │
    ├─────────────────────────────────────────────────────────────┤
    │ ¿Es operación de seguridad/admin?                          │
    │ (login, menús, roles, permisos, usuarios, config)          │
-   │     │                                                       │
+   │  │                                                       │
    │     ├── SÍ → Usar appsettings.json → BD: cms, Schema: admin│
-   │     │                                                       │
-   │     └── NO → Es operación de compañía                      │
-   │              │                                              │
+   │  │                                                       │
+   │     └── NO → Es operación de compañía                   │
+   │           │                                           │
    │              └── Buscar company_schema de compañía activa  │
-   │                  Obtener connection_string de admin.company│
-   │                  Conectar a BD: {company_schema}           │
-   │                  Ejemplo: BD: sinai, Schema: sinai         │
+   │               Aplicar REGLA DE ORO para elegir CS      │
+   │               Conectar a BD: {company_schema}        │
+   │               Ejemplo: BD: sinai, Schema: sinai      │
    └─────────────────────────────────────────────────────────────┘
    ```
 
-4. **Campos críticos en `admin.company`**:
+6. **Campos críticos en `admin.company`**:
    - `company_schema` (VARCHAR 10) - Nombre del schema Y de la BD operacional
    - `connection_string_development` - Connection string para desarrollo
    - `connection_string_production` - Connection string para producción
@@ -110,11 +133,44 @@
 ### Arquitectura de Seguridad (Roles y Permisos por Compañía)
 **IMPORTANTE**: Los roles y permisos son POR COMPAÑÍA, no globales.
 
+### 🔴🔴🔴 REGLA DE ORO #1 - PERMISOS (CRÍTICO) 🔴🔴🔴
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ ⚠️⚠️⚠️ REGLA CRÍTICA - VERIFICACIÓN DE PERMISOS ⚠️⚠️⚠️                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│ Los permisos de un usuario se obtienen ÚNICAMENTE de:                           │
+│                                                                                  │
+│    ✅ admin.user_company_permission (user_id, company_id, permission_id)        │
+│                                                                                  │
+│ NUNCA usar admin.role_permission para VERIFICAR si un usuario tiene permiso.   │
+│                                                                                  │
+│ ❌ INCORRECTO:                                                                   │
+│    1. Obtener roles del usuario                                                  │
+│    2. Obtener permisos de role_permission                                        │
+│    3. Verificar si tiene el permiso                                              │
+│                                                                                  │
+│ ✅ CORRECTO:                                                                     │
+│    1. Consultar user_company_permission WHERE user_id=X AND company_id=Y        │
+│    2. Filtrar por is_allowed=true (permitidos) y is_allowed=false (denegados)   │
+│    3. Permisos efectivos = permitidos - denegados                               │
+│                                                                                  │
+│ USO PERMITIDO de admin.role_permission:                                          │
+│    - SOLO para PRECARGAR permisos cuando se asigna un rol a un usuario          │
+│    - Al asignar rol, COPIAR los permisos del rol a user_company_permission      │
+│                                                                                  │
+│ IMPLEMENTACIÓN:                                                                  │
+│    - PermissionService.GetUserPermissionsForCompanyAsync() → SOLO usa UCP       │
+│    - AuthorizationService.GetEffectivePermissionsAsync() → SOLO usa UCP         │
+│    - AuthorizationService.AssignRoleToUserInCompanyAsync() → COPIA permisos     │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 1. **Tablas de seguridad ACTUALES**:
-   - `admin.user_company_role` - Roles de un usuario EN UNA compañía específica
-   - `admin.user_company_permission` - Permisos directos/denegaciones por usuario-compañía
-   - `admin.role_permission` - Permisos que otorga cada rol (global)
+   - `admin.user_company_role` - Roles de un usuario EN UNA compañía (solo informativo/descriptivo)
+   - `admin.user_company_permission` - **⭐ ÚNICA fuente de permisos efectivos**
+   - `admin.role_permission` - Template de permisos para PRECARGAR al asignar rol (NO para verificación)
    - `admin.company.is_admin_company` - Indica si es la compañía de administración del sistema
 
 2. **Tablas ELIMINADAS (ya no existen)**:
@@ -122,25 +178,35 @@
    - `admin.user_role` - Tabla eliminada
    - `admin.user_permission` - Tabla eliminada
 
-3. **Jerarquía de evaluación de permisos**:
+3. **Jerarquía de evaluación de permisos (ACTUALIZADA)**:
    ```
-   1. Obtener roles del usuario en ESA compañía (user_company_role)
-   2. Obtener permisos de esos roles (role_permission)
-   3. Aplicar permisos directos otorgados (user_company_permission.is_allowed = true)
-   4. Aplicar denegaciones (user_company_permission.is_allowed = false)
-   5. DENEGACIONES SIEMPRE GANAN sobre permisos otorgados
+   1. Consultar admin.user_company_permission para (userId, companyId)
+   2. Separar en: permitidos (is_allowed=true) y denegados (is_allowed=false)
+   3. Permisos efectivos = permitidos - denegados
+   4. DENEGACIONES SIEMPRE GANAN sobre permisos permitidos
+
+   ⚠️ NO consultar admin.role_permission para verificación de permisos
    ```
 
-4. **Servicios de autorización**:
-   - `PermissionService.GetUserPermissionsForCompanyAsync(userId, companyId)` - Obtiene permisos efectivos
-   - `PermissionService.GetUserRolesForCompanyAsync(userId, companyId)` - Obtiene roles en una compañía
-   - `AuthorizationService` - Gestión completa de roles y permisos por compañía
+4. **Flujo al asignar un rol a un usuario**:
+   ```
+   1. Insertar registro en user_company_role (userId, companyId, roleId)
+   2. Consultar role_permission WHERE roleId = X
+   3. Por cada permiso del rol, insertar en user_company_permission:
+      - Si no existe: crear con is_allowed=true
+      - Si ya existe: NO modificar (respetar configuración existente)
+   ```
+
+5. **Servicios de autorización**:
+   - `PermissionService.GetUserPermissionsForCompanyAsync(userId, companyId)` - Obtiene permisos efectivos (SOLO de user_company_permission)
+   - `PermissionService.GetUserRolesForCompanyAsync(userId, companyId)` - Obtiene roles en una compañía (informativo)
+   - `AuthorizationService.GetEffectivePermissionsAsync()` - Permisos efectivos (SOLO de user_company_permission)
+   - `AuthorizationService.AssignRoleToUserInCompanyAsync()` - Asigna rol Y COPIA permisos
    - `CompanyConfigService.GetVisibleCompaniesForUserAsync(userId)` - Obtiene compañías visibles según permisos
 
-5. **JWT**: El token incluye permisos y roles para la compañía activa del usuario.
-   - Tanto Azure AD como login local requieren `CompanyId` para generar el token.
+6. **JWT**: El token incluye permisos y roles para la compañía activa del usuario. Los permisos del JWT están en claims con type "permission" (singular, no "permissions"). Para leer permisos del JWT en la UI, usar `JwtSecurityTokenHandler` para decodificar el token desde la sesión ya que `User.Claims` de la cookie de autenticación NO contiene los permisos del JWT. Tanto Azure AD como login local requieren `CompanyId` para generar el token.
 
-6. **Acceso a Compañías (Multi-tenant)**:
+7. **Acceso a Compañías (Multi-tenant)**:
    - Campo `is_admin_company` en `admin.company` marca la compañía de administración
    - Permiso `System.ViewAllCompanies` permite ver TODAS las compañías del sistema
    - **REGLA**: Solo usuarios con `System.ViewAllCompanies` en una compañía donde `is_admin_company=true` pueden ver todas las compañías
@@ -224,17 +290,20 @@ Los menús principales tienen `id_parent = 0`. Los submenús tienen `id_parent` 
 | 151 | Users | /Admin/Users | 1 | Admin.Users.View |
 | 152 | Roles & Permissions | /Roles | 2 | Admin.Roles.View |
 | 153 | Menu Management | /Menus | 3 | Admin.Menus.Edit |
-| 167 | Permisos | /Permissions | 10 | Admin.Permissions.View |
-| 168 | Menús | /Menus | 11 | Admin.Menus.View |
 | 154 | Audit Trail | /Admin/Audit | 4 | Admin.Audit.View |
 | 155 | System Logs | /Admin/Logs | 5 | Admin.Logs.View |
 | 156 | API Keys | /Admin/APIKeys | 6 | Admin.APIKeys.Edit |
 | 157 | Job Scheduler | /Admin/Jobs | 7 | Admin.Jobs.View |
 | 158 | Backup & Restore | /Admin/Backup | 8 | Admin.Backup.Execute |
 | 159 | Health Check | /Admin/Health | 9 | Admin.Health.View |
+| 167 | Permisos | /Permissions | 10 | Admin.Permissions.View |
+| 168 | Menús | /Menus | 11 | Admin.Menus.View |
+| 173 | System Config | /Admin/System | 12 | System.ViewAllCompanies |
+| 185 | Company Management | /Companies | 13 | Admin.Companies.View |
 
 ### Rutas UI importantes:
 - `/Permissions` - Gestión de permisos (CRUD)
+- `/Companies` - Gestión de compañías (CRUD)
 - `/Menus` - Gestión de menús (CRUD)
 - `/Roles` - Gestión de roles
 - `/Users` - Gestión de usuarios

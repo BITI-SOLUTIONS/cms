@@ -196,19 +196,43 @@ namespace CMS.Entities.Operational
         [Column("barcode")]
         public string? Barcode { get; set; }
 
-        /// <summary>
-        /// Categoría del artículo
-        /// </summary>
-        [MaxLength(100)]
-        [Column("category")]
-        public string? Category { get; set; }
+        // ===== CLASIFICACIONES =====
 
         /// <summary>
-        /// Subcategoría del artículo
+        /// ID de la clasificación 1 (Categoría principal)
         /// </summary>
-        [MaxLength(100)]
-        [Column("subcategory")]
-        public string? Subcategory { get; set; }
+        [Column("id_classification1")]
+        public int? IdClassification1 { get; set; }
+
+        /// <summary>
+        /// ID de la clasificación 2 (Subcategoría)
+        /// </summary>
+        [Column("id_classification2")]
+        public int? IdClassification2 { get; set; }
+
+        /// <summary>
+        /// ID de la clasificación 3 (Familia)
+        /// </summary>
+        [Column("id_classification3")]
+        public int? IdClassification3 { get; set; }
+
+        /// <summary>
+        /// ID de la clasificación 4 (Grupo)
+        /// </summary>
+        [Column("id_classification4")]
+        public int? IdClassification4 { get; set; }
+
+        /// <summary>
+        /// ID de la clasificación 5 (Línea)
+        /// </summary>
+        [Column("id_classification5")]
+        public int? IdClassification5 { get; set; }
+
+        /// <summary>
+        /// ID de la clasificación 6 (Tipo)
+        /// </summary>
+        [Column("id_classification6")]
+        public int? IdClassification6 { get; set; }
 
         /// <summary>
         /// Marca del artículo
@@ -218,11 +242,10 @@ namespace CMS.Entities.Operational
         public string? Brand { get; set; }
 
         /// <summary>
-        /// Unidad de medida (unidad, kg, litro, etc.)
+        /// ID de la unidad de medida (referencia a admin.unit_of_measure en BD central)
         /// </summary>
-        [MaxLength(20)]
-        [Column("unit_of_measure")]
-        public string UnitOfMeasure { get; set; } = "unidad";
+        [Column("id_unit_of_measure")]
+        public int? IdUnitOfMeasure { get; set; }
 
         // ===== PRECIOS =====
 

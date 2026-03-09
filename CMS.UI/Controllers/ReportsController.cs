@@ -173,20 +173,57 @@ namespace CMS.UI.Controllers
                 );
 
                 var response = await client.PostAsync("/api/report/execute", jsonContent);
+                var content = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
+                // Siempre devolver JSON (el API devuelve JSON incluso en errores)
+                if (response.IsSuccessStatusCode || response.Content.Headers.ContentType?.MediaType == "application/json")
                 {
-                    var content = await response.Content.ReadAsStringAsync();
                     return Content(content, "application/json");
                 }
 
+                // Si no es JSON, crear una respuesta de error JSON
                 _logger.LogWarning("Error ejecutando reporte: {Status}", response.StatusCode);
-                return StatusCode((int)response.StatusCode);
+                var errorResponse = JsonSerializer.Serialize(new { 
+                    success = false, 
+                    errorMessage = "Error del servidor. Por favor intente nuevamente." 
+                });
+                return Content(errorResponse, "application/json");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error en proxy de ejecución de reporte");
-                return StatusCode(500, new { error = "Error de conexión con el API" });
+                var errorResponse = JsonSerializer.Serialize(new { 
+                    success = false, 
+                    errorMessage = "Error de conexión con el servidor" 
+                });
+                return Content(errorResponse, "application/json");
+            }
+        }
+
+        // GET: /Reports/Api/FilterOptions/{filterId} - Proxy para obtener opciones dinámicas de un filtro
+        [HttpGet("Reports/Api/FilterOptions/{filterId}")]
+        public async Task<IActionResult> GetFilterOptions(int filterId)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient("cmsapi-authenticated");
+                var response = await client.GetAsync($"/api/report/filter/{filterId}/options");
+                var content = await response.Content.ReadAsStringAsync();
+
+                // Siempre devolver JSON
+                if (response.IsSuccessStatusCode || response.Content.Headers.ContentType?.MediaType == "application/json")
+                {
+                    return Content(content, "application/json");
+                }
+
+                // Si no es JSON, devolver array vacío
+                _logger.LogWarning("Error obteniendo opciones del filtro {FilterId}: {Status}", filterId, response.StatusCode);
+                return Content("[]", "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en proxy de opciones de filtro {FilterId}", filterId);
+                return Content("[]", "application/json");
             }
         }
 
@@ -212,6 +249,46 @@ namespace CMS.UI.Controllers
             {
                 _logger.LogError(ex, "Error en proxy de favorito {Id}", id);
                 return StatusCode(500, new { error = "Error de conexión con el API" });
+            }
+        }
+
+        // POST: /Reports/Api/Export - Proxy para exportar un reporte
+        [HttpPost("Reports/Api/Export")]
+        public async Task<IActionResult> ExportReport([FromBody] object request)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient("cmsapi-authenticated");
+                var jsonContent = new StringContent(
+                    JsonSerializer.Serialize(request),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await client.PostAsync("/api/report/export", jsonContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+                    var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "reporte";
+                    var content = await response.Content.ReadAsByteArrayAsync();
+
+                    return File(content, contentType, fileName);
+                }
+
+                // Si hay error, devolver JSON con el mensaje
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Error exportando reporte: {Status} - {Error}", response.StatusCode, errorContent);
+                return Content(errorContent, "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en proxy de exportación de reporte");
+                var errorResponse = JsonSerializer.Serialize(new { 
+                    success = false, 
+                    message = "Error de conexión con el servidor" 
+                });
+                return Content(errorResponse, "application/json");
             }
         }
 

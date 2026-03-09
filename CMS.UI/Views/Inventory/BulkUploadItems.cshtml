@@ -1,0 +1,500 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Inventory/BulkUploadItems.cshtml                          *@
+@* PROPÓSITO: Vista de carga masiva de artículos desde Excel                       *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                 *@
+@* CREADO: 2026-02-27                                                              *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Carga Masiva de Artículos";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-cloud-upload me-2"></i>
+                Carga Masiva de Artículos
+                <button type="button" class="btn btn-link text-info p-0 ms-2" data-bs-toggle="tooltip" data-bs-placement="right"
+                        title="Cargue múltiples artículos desde un archivo Excel. Los artículos con códigos duplicados serán omitidos. Los errores no detendrán la carga de los demás artículos.">
+                    <i class="bi bi-question-circle fs-5"></i>
+                </button>
+            </h1>
+            <p style="color: #94a3b8;" class="mb-0">Cargue múltiples artículos desde un archivo Excel</p>
+        </div>
+        <div class="page-header-actions d-flex gap-2">
+            <button type="button" class="btn btn-success" onclick="downloadTemplate()">
+                <i class="bi bi-download me-2"></i>Descargar Plantilla
+            </button>
+            <a asp-action="Items" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== INSTRUCCIONES ===== -->
+    <div class="card border-0 mb-4" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%); border-left: 4px solid #3b82f6 !important;">
+        <div class="card-body">
+            <h6 class="text-white mb-3"><i class="bi bi-info-circle me-2 text-info"></i>Instrucciones de Carga</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="mb-0 text-light small">
+                        <li><strong>Paso 1:</strong> Descargue la plantilla de Excel con el botón "Descargar Plantilla"</li>
+                        <li><strong>Paso 2:</strong> Complete los datos de los artículos en la plantilla</li>
+                        <li><strong>Paso 3:</strong> Arrastre el archivo o haga clic en la zona de carga</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="mb-0 text-light small">
+                        <li><strong>Paso 4:</strong> Revise los datos en la vista previa</li>
+                        <li><strong>Paso 5:</strong> Confirme la carga con el botón "Cargar Artículos"</li>
+                        <li><strong>Nota:</strong> Los campos <code>code</code> y <code>name</code> son obligatorios</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ZONA DE CARGA ===== -->
+    <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);" id="uploadZone">
+        <div class="card-body">
+            <div id="dropZone" class="text-center p-5 rounded border-dashed" 
+                 style="border: 2px dashed rgba(6, 182, 212, 0.5); background: rgba(6, 182, 212, 0.05); cursor: pointer; transition: all 0.3s;"
+                 ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-cloud-arrow-up display-1 text-info mb-3"></i>
+                <h4 class="text-white mb-2">Arrastre su archivo Excel aquí</h4>
+                <p style="color: #94a3b8;">o haga clic para seleccionar un archivo</p>
+                <p class="small mb-0" style="color: #94a3b8;">Formatos aceptados: .xlsx, .xls</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+            </div>
+            
+            <div id="fileInfo" class="mt-3 d-none">
+                <div class="d-flex align-items-center justify-content-between p-3 rounded" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark-excel fs-3 text-success me-3"></i>
+                        <div>
+                            <div class="text-white fw-semibold" id="fileName">archivo.xlsx</div>
+                            <small class="text-muted" id="fileSize">0 KB</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearFile()">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== VISTA PREVIA DE DATOS ===== -->
+    <div class="card border-0 mb-4 d-none" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);" id="previewCard">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <h5 class="mb-0 text-white">
+                <i class="bi bi-table me-2 text-info"></i>Vista Previa de Datos
+                <span class="badge bg-info ms-2" id="rowCount">0</span>
+            </h5>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFile()">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success btn-sm" onclick="uploadItems()" id="btnUpload">
+                    <i class="bi bi-cloud-upload me-1"></i>Cargar Artículos
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-dark table-hover mb-0" id="previewTable">
+                    <thead style="position: sticky; top: 0; background: #1e293b; z-index: 1;">
+                        <tr id="previewHeader"></tr>
+                    </thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RESULTADOS DE CARGA ===== -->
+    <div class="card border-0 mb-4 d-none" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);" id="resultsCard">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <h5 class="mb-0 text-white">
+                <i class="bi bi-clipboard-check me-2 text-success"></i>Resultados de la Carga
+            </h5>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-warning btn-sm" onclick="downloadErrors()" id="btnDownloadErrors">
+                    <i class="bi bi-download me-1"></i>Descargar Errores
+                </button>
+                <button type="button" class="btn btn-tech-primary btn-sm" onclick="resetUpload()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Nueva Carga
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Resumen -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="p-3 rounded text-center" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
+                        <div class="fs-2 fw-bold text-success" id="successCount">0</div>
+                        <div class="text-light small">Cargados Exitosamente</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded text-center" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <div class="fs-2 fw-bold text-danger" id="errorCount">0</div>
+                        <div class="text-light small">Con Errores</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded text-center" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <div class="fs-2 fw-bold text-info" id="totalCount">0</div>
+                        <div class="text-light small">Total Procesados</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de Errores -->
+            <div id="errorDetails" class="d-none">
+                <h6 class="text-white mb-3"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Detalle de Errores</h6>
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-dark table-sm mb-0">
+                        <thead style="position: sticky; top: 0; background: #1e293b;">
+                            <tr>
+                                <th style="width: 60px;">Fila</th>
+                                <th style="width: 120px;">Código</th>
+                                <th>Nombre</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="errorTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== LOADING OVERLAY ===== -->
+    <div id="loadingOverlay" class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+         style="background: rgba(0,0,0,0.7); z-index: 9999;">
+        <div class="text-center">
+            <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;"></div>
+            <div class="text-white fs-5">Procesando artículos...</div>
+            <div class="text-muted small" id="loadingProgress">0 de 0</div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script>
+    let parsedData = [];
+    let fileContent = null;
+    let uploadResults = null;
+
+    // Inicializar tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(el) {
+            new bootstrap.Tooltip(el);
+        });
+    });
+
+    // Descargar plantilla de ejemplo
+    function downloadTemplate() {
+        // Columnas actualizadas: se eliminan category y unit_of_measure (texto)
+        // Se agregan: id_unit_of_measure, id_classification1-6 (IDs numéricos)
+        const headers = [
+            'code', 'name', 'description', 'barcode', 'brand',
+            'sale_price', 'cost_price', 'tax_rate',
+            'id_unit_of_measure',
+            'id_classification1', 'id_classification2', 'id_classification3',
+            'id_classification4', 'id_classification5', 'id_classification6',
+            'label_item', 'label_price', 'label_item_barcode', 'is_label_item'
+        ];
+
+        // Ejemplos con IDs de referencia (primer valor válido de cada catálogo)
+        // Nota: Los IDs deben corresponder a registros existentes en la BD
+        const examples = [
+            ['SKU001', 'Producto de Ejemplo 1', 'Descripción del producto 1', '7501234567890', 'MarcaX', '15.99', '10.00', '13', '1', '1', '', '', '', '', '', 'PROD-001', '15.99', '7501234567890', 'true'],
+            ['SKU002', 'Producto de Ejemplo 2', 'Descripción del producto 2', '7501234567891', 'MarcaY', '25.50', '18.00', '13', '1', '1', '', '', '', '', '', 'PROD-002', '25.50', '7501234567891', 'true'],
+            ['SKU003', 'Producto de Ejemplo 3', 'Descripción del producto 3', '7501234567892', '', '8.75', '5.50', '0', '1', '', '', '', '', '', '', '', '', '', 'false']
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...examples]);
+
+        // Ajustar ancho de columnas
+        ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 2, 18) }));
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Artículos');
+        XLSX.writeFile(wb, 'plantilla_carga_articulos.xlsx');
+    }
+
+    // Manejar drag over
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.style.borderColor = '#06b6d4';
+        e.currentTarget.style.background = 'rgba(6, 182, 212, 0.15)';
+    }
+
+    // Manejar drag leave
+    function handleDragLeave(e) {
+        e.preventDefault();
+        e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.5)';
+        e.currentTarget.style.background = 'rgba(6, 182, 212, 0.05)';
+    }
+
+    // Manejar drop
+    function handleDrop(e) {
+        e.preventDefault();
+        handleDragLeave(e);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            processFile(files[0]);
+        }
+    }
+
+    // Manejar selección de archivo
+    function handleFileSelect(e) {
+        const files = e.target.files;
+        if (files.length > 0) {
+            processFile(files[0]);
+        }
+    }
+
+    // Procesar archivo
+    function processFile(file) {
+        if (!file.name.match(/\.(xlsx|xls)$/i)) {
+            alert('Por favor seleccione un archivo Excel (.xlsx o .xls)');
+            return;
+        }
+
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatFileSize(file.size);
+        document.getElementById('fileInfo').classList.remove('d-none');
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                if (jsonData.length < 2) {
+                    alert('El archivo está vacío o solo contiene encabezados');
+                    clearFile();
+                    return;
+                }
+
+                const headers = jsonData[0];
+                parsedData = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
+
+                // Validar que tenga las columnas mínimas
+                if (!headers.includes('code') || !headers.includes('name')) {
+                    alert('El archivo debe contener al menos las columnas "code" y "name"');
+                    clearFile();
+                    return;
+                }
+
+                displayPreview(headers, parsedData);
+                fileContent = { headers, data: parsedData };
+            } catch (error) {
+                console.error('Error procesando archivo:', error);
+                alert('Error al procesar el archivo: ' + error.message);
+                clearFile();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // Mostrar vista previa
+    function displayPreview(headers, data) {
+        const headerRow = document.getElementById('previewHeader');
+        const body = document.getElementById('previewBody');
+
+        headerRow.innerHTML = '<th>#</th>' + headers.map(h => `<th class="text-nowrap">${h}</th>`).join('');
+
+        body.innerHTML = data.map((row, idx) => {
+            const cells = headers.map((_, i) => {
+                const value = row[i] !== undefined ? row[i] : '';
+                return `<td class="text-nowrap">${value}</td>`;
+            }).join('');
+            return `<tr><td class="text-muted">${idx + 1}</td>${cells}</tr>`;
+        }).join('');
+
+        document.getElementById('rowCount').textContent = data.length;
+        document.getElementById('previewCard').classList.remove('d-none');
+        document.getElementById('resultsCard').classList.add('d-none');
+    }
+
+    // Limpiar archivo
+    function clearFile() {
+        document.getElementById('fileInput').value = '';
+        document.getElementById('fileInfo').classList.add('d-none');
+        document.getElementById('previewCard').classList.add('d-none');
+        parsedData = [];
+        fileContent = null;
+
+        // Resetear dropzone
+        const dropZone = document.getElementById('dropZone');
+        dropZone.style.borderColor = 'rgba(6, 182, 212, 0.5)';
+        dropZone.style.background = 'rgba(6, 182, 212, 0.05)';
+    }
+
+    // Función para convertir snake_case a camelCase
+    function snakeToCamel(str) {
+        return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    }
+
+    // Cargar artículos
+    async function uploadItems() {
+        if (!fileContent || fileContent.data.length === 0) {
+            alert('No hay datos para cargar');
+            return;
+        }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const headers = fileContent.headers;
+        const items = fileContent.data.map(row => {
+            const item = {};
+            headers.forEach((h, i) => {
+                let value = row[i];
+                // Convertir booleanos
+                if (h === 'is_label_item') {
+                    value = String(value).toLowerCase() === 'true' || value === '1' || value === 1 || value === true;
+                }
+                // Convertir números
+                if (['sale_price', 'cost_price', 'label_price', 'tax_rate', 'min_stock', 'max_stock', 'current_stock'].includes(h)) {
+                    value = parseFloat(value) || 0;
+                }
+                // Convertir IDs a enteros (pueden ser null/vacío)
+                if (['id_unit_of_measure', 'id_classification1', 'id_classification2', 'id_classification3', 'id_classification4', 'id_classification5', 'id_classification6'].includes(h)) {
+                    const parsed = parseInt(value);
+                    value = !isNaN(parsed) && parsed > 0 ? parsed : null;
+                }
+                // Convertir clave a camelCase para el servidor
+                const camelKey = snakeToCamel(h);
+                item[camelKey] = value;
+            });
+            return item;
+        });
+
+        document.getElementById('loadingOverlay').classList.remove('d-none');
+        document.getElementById('loadingProgress').textContent = `Procesando ${items.length} artículos...`;
+
+        try {
+            const response = await fetch('@Url.Action("BulkUploadItems", "Inventory")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ items })
+            });
+
+            const result = await response.json();
+            uploadResults = result;
+            displayResults(result);
+        } catch (error) {
+            console.error('Error en carga:', error);
+            alert('Error al cargar los artículos: ' + error.message);
+        } finally {
+            document.getElementById('loadingOverlay').classList.add('d-none');
+        }
+    }
+
+    // Mostrar resultados
+    function displayResults(result) {
+        document.getElementById('previewCard').classList.add('d-none');
+        document.getElementById('uploadZone').classList.add('d-none');
+        document.getElementById('resultsCard').classList.remove('d-none');
+
+        document.getElementById('successCount').textContent = result.successCount;
+        document.getElementById('errorCount').textContent = result.errorCount;
+        document.getElementById('totalCount').textContent = result.totalCount;
+
+        if (result.errors && result.errors.length > 0) {
+            document.getElementById('errorDetails').classList.remove('d-none');
+            document.getElementById('btnDownloadErrors').classList.remove('d-none');
+
+            const errorBody = document.getElementById('errorTableBody');
+            errorBody.innerHTML = result.errors.map(err => `
+                <tr>
+                    <td class="text-muted">${err.row}</td>
+                    <td><code class="text-info">${err.code || '-'}</code></td>
+                    <td class="text-white">${err.name || '-'}</td>
+                    <td class="text-danger">${err.error}</td>
+                </tr>
+            `).join('');
+        } else {
+            document.getElementById('errorDetails').classList.add('d-none');
+            document.getElementById('btnDownloadErrors').classList.add('d-none');
+        }
+    }
+
+    // Descargar errores
+    function downloadErrors() {
+        if (!uploadResults || !uploadResults.errors || uploadResults.errors.length === 0) {
+            alert('No hay errores para descargar');
+            return;
+        }
+
+        const headers = [
+            'fila', 'code', 'name', 'description', 'barcode', 'brand',
+            'sale_price', 'cost_price', 'tax_rate',
+            'id_unit_of_measure',
+            'id_classification1', 'id_classification2', 'id_classification3',
+            'id_classification4', 'id_classification5', 'id_classification6',
+            'label_item', 'label_price', 'label_item_barcode', 'is_label_item', 'error'
+        ];
+        const errorData = uploadResults.errors.map(err => [
+            err.row,
+            err.code || '',
+            err.name || '',
+            err.description || '',
+            err.barcode || '',
+            err.brand || '',
+            err.salePrice || '',
+            err.costPrice || '',
+            err.taxRate || '',
+            err.idUnitOfMeasure || '',
+            err.idClassification1 || '',
+            err.idClassification2 || '',
+            err.idClassification3 || '',
+            err.idClassification4 || '',
+            err.idClassification5 || '',
+            err.idClassification6 || '',
+            err.labelItem || '',
+            err.labelPrice || '',
+            err.labelItemBarcode || '',
+            err.isLabelItem || '',
+            err.error
+        ]);
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...errorData]);
+        ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 2, 15) }));
+        XLSX.utils.book_append_sheet(wb, ws, 'Errores');
+        XLSX.writeFile(wb, 'articulos_con_errores.xlsx');
+    }
+
+    // Resetear carga
+    function resetUpload() {
+        clearFile();
+        document.getElementById('uploadZone').classList.remove('d-none');
+        document.getElementById('resultsCard').classList.add('d-none');
+        uploadResults = null;
+    }
+
+    // Formatear tamaño de archivo
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+</script>
+}

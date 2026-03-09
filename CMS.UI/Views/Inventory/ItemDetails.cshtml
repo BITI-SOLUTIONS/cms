@@ -1,0 +1,334 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Inventory/ItemDetails.cshtml                              *@
+@* PROPÓSITO: Vista de detalle de un artículo                                      *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                 *@
+@* CREADO: 2026-02-27                                                              *@
+@* ================================================================================ *@
+
+@model CMS.UI.Controllers.ItemDto
+
+@{
+    ViewData["Title"] = $"Artículo: {Model.Name}";
+}
+
+<div class="content-container">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-box-seam me-2"></i>
+                Detalle del Artículo
+            </h1>
+            <p style="color: #94a3b8;" class="mb-0">
+                <span class="badge bg-info me-2">@Model.Code</span>
+                @Model.Name
+            </p>
+        </div>
+        <div class="page-header-actions d-flex gap-2">
+            <a asp-action="EditItem" asp-route-id="@Model.Id" class="btn btn-tech-primary">
+                <i class="bi bi-pencil me-2"></i>Editar
+            </a>
+            @if (Model.IsLabelItem)
+            {
+                <a asp-action="LabelItems" asp-route-itemId="@Model.Id" asp-route-returnToItemId="@Model.Id" class="btn btn-success">
+                    <i class="bi bi-printer me-2"></i>Imprimir Etiqueta
+                </a>
+            }
+            <a asp-action="Items" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- ===== INFORMACIÓN BÁSICA ===== -->
+        <div class="col-md-8">
+            <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-info-circle me-2 text-info"></i>Información Básica
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Código</label>
+                            <div class="fs-5 text-info fw-bold">@Model.Code</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label text-muted small">Nombre</label>
+                            <div class="fs-5 text-white">@Model.Name</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.Description))
+                        {
+                            <div class="col-12">
+                                <label class="form-label text-muted small">Descripción</label>
+                                <div class="text-light">@Model.Description</div>
+                            </div>
+                        }
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Código de Barras</label>
+                            <div class="text-light">@(Model.Barcode ?? "-")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Clasificación 1</label>
+                            <div class="text-light">@(Model.IdClassification1?.ToString() ?? "-")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Clasificación 2</label>
+                            <div class="text-light">@(Model.IdClassification2?.ToString() ?? "-")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Marca</label>
+                            <div class="text-light">@(Model.Brand ?? "-")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Unidad de Medida</label>
+                            <div class="text-light">@(Model.IdUnitOfMeasure?.ToString() ?? "-")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PRECIOS ===== -->
+            <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-currency-dollar me-2 text-success"></i>Precios
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Precio de Costo</label>
+                            <div class="fs-5 text-warning">₡@Model.CostPrice.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Precio de Venta</label>
+                            <div class="fs-4 text-success fw-bold">₡@Model.SalePrice.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Tasa de Impuesto</label>
+                            <div class="fs-5 text-light">@Model.TaxRate.ToString("N2")%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STOCK ===== -->
+            <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-box-seam me-2 text-warning"></i>Stock
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Stock Mínimo</label>
+                            <div class="fs-5 text-danger">@Model.MinStock.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Stock Máximo</label>
+                            <div class="fs-5 text-success">@Model.MaxStock.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Stock Actual</label>
+                            @{
+                                var stockClass = Model.CurrentStock <= Model.MinStock ? "text-danger" : 
+                                                 Model.CurrentStock >= Model.MaxStock ? "text-warning" : "text-info";
+                            }
+                            <div class="fs-4 fw-bold @stockClass">@Model.CurrentStock.ToString("N2")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== INFORMACIÓN DE ETIQUETA ===== -->
+            @if (Model.IsLabelItem)
+            {
+                <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                    <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                        <h5 class="mb-0 text-white">
+                            <i class="bi bi-tag me-2 text-success"></i>Información de Etiqueta
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small">Texto de Etiqueta</label>
+                                <div class="text-light">@(Model.LabelItem ?? Model.Name)</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small">Precio de Etiqueta</label>
+                                <div class="fs-4 text-success fw-bold">₡@Model.LabelPrice.ToString("N2")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small">Código de Barras</label>
+                                <div class="text-light font-monospace">@(Model.LabelItemBarcode ?? Model.Barcode ?? "-")</div>
+                            </div>
+                        </div>
+                        <hr style="border-color: rgba(255,255,255,0.2);">
+                        <div class="d-flex flex-wrap gap-3">
+                            @if (Model.PrintLabelName)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check me-1"></i>Imprimir Nombre</span>
+                            }
+                            @if (Model.PrintLabelPrice)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check me-1"></i>Imprimir Precio</span>
+                            }
+                            @if (Model.PrintLabelBarcode)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check me-1"></i>Imprimir Código de Barras</span>
+                            }
+                            @if (Model.PrintLabelBorder)
+                            {
+                                <span class="badge bg-info"><i class="bi bi-square me-1"></i>Imprimir Borde</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- ===== ESTADO Y CONFIGURACIÓN ===== -->
+        <div class="col-md-4">
+            <!-- Estado -->
+            <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-toggle-on me-2"></i>Estado
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-light"><i class="bi bi-check-circle me-2"></i>Activo</span>
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">No</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-light"><i class="bi bi-cart me-2"></i>Vendible</span>
+                            @if (Model.IsSellable)
+                            {
+                                <span class="badge bg-success">Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-light"><i class="bi bi-bag me-2"></i>Comprable</span>
+                            @if (Model.IsPurchasable)
+                            {
+                                <span class="badge bg-success">Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </div>
+                        <hr style="border-color: rgba(255,255,255,0.2); margin: 0;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-light"><i class="bi bi-layers me-2"></i>Manejo de Lotes</span>
+                            @if (Model.TrackLots)
+                            {
+                                <span class="badge bg-info">Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-light"><i class="bi bi-123 me-2"></i>Números de Serie</span>
+                            @if (Model.TrackSerialNumbers)
+                            {
+                                <span class="badge bg-info">Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-light"><i class="bi bi-printer me-2"></i>Artículo de Etiqueta</span>
+                            @if (Model.IsLabelItem)
+                            {
+                                <span class="badge bg-success">Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Imagen -->
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                    <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                        <h5 class="mb-0 text-white">
+                            <i class="bi bi-image me-2"></i>Imagen
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded" style="max-height: 200px;">
+                    </div>
+                </div>
+            }
+
+            <!-- Auditoría -->
+            <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);">
+                <div class="card-header" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-clock-history me-2"></i>Auditoría
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-column gap-2">
+                        <div>
+                            <small class="text-muted">Creado:</small>
+                            <div class="text-light small">@Model.CreateDate.ToString("dd/MM/yyyy HH:mm") por @(Model.CreatedBy ?? "Sistema")</div>
+                        </div>
+                        <div>
+                            <small class="text-muted">Última modificación:</small>
+                            <div class="text-light small">@Model.RecordDate.ToString("dd/MM/yyyy HH:mm") por @(Model.UpdatedBy ?? "Sistema")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ACCIONES ===== -->
+    <div class="d-flex gap-3 mt-4">
+        <a asp-action="EditItem" asp-route-id="@Model.Id" class="btn btn-tech-primary btn-lg px-4">
+            <i class="bi bi-pencil me-2"></i>Editar Artículo
+        </a>
+        @if (Model.IsLabelItem)
+        {
+            <a asp-action="LabelItems" class="btn btn-success btn-lg px-4">
+                <i class="bi bi-printer me-2"></i>Ir a Imprimir Etiqueta
+            </a>
+        }
+        <form asp-action="DeleteItem" asp-route-id="@Model.Id" method="post" class="d-inline" 
+              onsubmit="return confirm('¿Está seguro de que desea eliminar este artículo?');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger btn-lg px-4">
+                <i class="bi bi-trash me-2"></i>Eliminar
+            </button>
+        </form>
+    </div>
+</div>

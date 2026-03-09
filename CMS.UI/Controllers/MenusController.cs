@@ -3,8 +3,10 @@
 // PROPÓSITO: Controlador para gestión de Menús en la UI
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-02-16
+// ACTUALIZADO: 2026-03-02 - Agregada verificación de permisos
 // ================================================================================
 
+using CMS.UI.Filters;
 using CMS.UI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace CMS.UI.Controllers
 {
     [Authorize]
+    [RequirePermission("Admin.Menus.Edit")]
     public class MenusController : Controller
     {
         private readonly MenusAdminApiService _menusApi;

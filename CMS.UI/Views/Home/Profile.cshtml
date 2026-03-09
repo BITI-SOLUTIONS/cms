@@ -1,0 +1,425 @@
+@* ================================================================================
+    ARCHIVO: CMS.UI/Views/Home/Profile.cshtml
+    PROPÓSITO: Página de perfil del usuario actual
+    DESCRIPCIÓN: Muestra información del usuario y permite ver sus datos
+    AUTOR: EAMR, BITI SOLUTIONS S.A
+    CREADO: 2026-03-04
+   ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Mi Perfil";
+    var userInfo = ViewData["UserInfo"] as CMS.UI.Controllers.UserProfileInfo ?? new CMS.UI.Controllers.UserProfileInfo();
+    var companyName = ViewData["CompanyName"] as string ?? "Sin compañía";
+    var companySchema = ViewData["CompanySchema"] as string ?? "";
+}
+
+<div class="container-fluid py-4">
+    @* Header de la página *@
+    <div class="d-flex align-items-center mb-4">
+        <div class="rounded-circle bg-gradient d-flex align-items-center justify-content-center me-3"
+             style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <i class="bi bi-person-fill text-white" style="font-size: 2.5rem;"></i>
+        </div>
+        <div>
+            <h1 class="h3 mb-1 text-white">@userInfo.DisplayName</h1>
+            <p class="text-white-50 mb-0">
+                <i class="bi bi-envelope me-1"></i>@userInfo.Email
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @* Información Personal *@
+        <div class="col-lg-8">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-person-vcard me-2 text-primary"></i>
+                        Información Personal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Usuario</label>
+                            <div class="form-control bg-dark border-secondary text-white" readonly>
+                                @userInfo.UserName
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Correo Electrónico</label>
+                            <div class="form-control bg-dark border-secondary text-white" readonly>
+                                @userInfo.Email
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Nombre para Mostrar</label>
+                            <div class="form-control bg-dark border-secondary text-white" readonly>
+                                @userInfo.DisplayName
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">ID de Usuario</label>
+                            <div class="form-control bg-dark border-secondary text-white" readonly>
+                                @userInfo.UserId
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+
+                    @* Compañía Activa *@
+                    <h6 class="text-white mb-3">
+                        <i class="bi bi-building me-2 text-info"></i>
+                        Compañía Activa
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Nombre</label>
+                            <div class="form-control bg-dark border-secondary text-white" readonly>
+                                @companyName
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Código</label>
+                            <div class="form-control bg-dark border-secondary text-white" readonly>
+                                @companySchema.ToUpper()
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+
+                    @* Roles del usuario *@
+                    <h6 class="text-white mb-3">
+                        <i class="bi bi-shield-check me-2 text-success"></i>
+                        Roles Asignados
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        @if (userInfo.Roles.Any())
+                        {
+                            @foreach (var role in userInfo.Roles)
+                            {
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success px-3 py-2">
+                                    <i class="bi bi-person-badge me-1"></i>@role
+                                </span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-white-50">Sin roles asignados en esta compañía</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* Permisos del Usuario *@
+            <div class="card bg-dark border-secondary mt-4">
+                <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-key me-2 text-warning"></i>
+                        Permisos en esta Compañía
+                    </h5>
+                    <span class="badge bg-primary">@userInfo.Permissions.Count permisos</span>
+                </div>
+                <div class="card-body">
+                    @if (userInfo.Permissions.Any())
+                    {
+                        <div class="row g-2">
+                            @foreach (var permission in userInfo.Permissions.OrderBy(p => p))
+                            {
+                                <div class="col-md-4 col-lg-3">
+                                    <div class="bg-dark border border-secondary rounded p-2 small">
+                                        <i class="bi bi-check-circle text-success me-1"></i>
+                                        <span class="text-white">@permission</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="bi bi-shield-x text-white-50" style="font-size: 3rem;"></i>
+                            <p class="text-white-50 mt-2">No tienes permisos asignados en esta compañía.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Panel Lateral *@
+        <div class="col-lg-4">
+            @* Acciones Rápidas *@
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-lightning me-2 text-warning"></i>
+                        Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Settings", "Home")" class="btn btn-outline-primary">
+                            <i class="bi bi-gear me-2"></i>
+                            Configuración
+                        </a>
+                        <a href="@Url.Action("ChangePassword", "Account")" class="btn btn-outline-warning">
+                            <i class="bi bi-key me-2"></i>
+                            Cambiar Contraseña
+                        </a>
+                        <a href="@Url.Action("SelectCompany", "Account")" class="btn btn-outline-info">
+                            <i class="bi bi-building me-2"></i>
+                            Cambiar Compañía
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* Información de Sesión *@
+            <div class="card bg-dark border-secondary mt-4">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-info-circle me-2 text-info"></i>
+                        Información de Sesión
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small mb-1">Compañía ID</label>
+                        <p class="text-white mb-0">@userInfo.CompanyId</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small mb-1">Tipo de Autenticación</label>
+                        <p class="text-white mb-0">
+                            <i class="bi bi-shield-lock text-success me-1"></i>
+                            Local (Email/Password)
+                        </p>
+                    </div>
+                    <div>
+                        <label class="form-label text-white-50 small mb-1">Última actividad</label>
+                        <p class="text-white mb-0">
+                            <i class="bi bi-clock text-white-50 me-1"></i>
+                            @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            @* Soporte *@
+            <div class="card bg-gradient mt-4" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 1px solid #0f3460;">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-headset text-primary mb-3" style="font-size: 2.5rem;"></i>
+                    <h6 class="text-white">¿Necesitas ayuda?</h6>
+                    <p class="text-white-50 small mb-3">Contacta a soporte técnico si tienes problemas con tu cuenta.</p>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnOpenSupport" onclick="openSupportModal()">
+                        <i class="bi bi-envelope me-1"></i>
+                        Contactar Soporte
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal de Contactar Soporte *@
+<div class="modal fade" id="supportModal" tabindex="-1" aria-labelledby="supportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white" id="supportModalLabel">
+                    <i class="bi bi-headset text-primary me-2"></i>
+                    Contactar Soporte Técnico
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-white">Asunto</label>
+                    <select class="form-select bg-dark border-secondary text-white" id="supportSubject">
+                        <option value="problema_cuenta">Problema con mi cuenta</option>
+                        <option value="problema_acceso">No puedo acceder al sistema</option>
+                        <option value="error_sistema">Error en el sistema</option>
+                        <option value="solicitud_permiso">Solicitud de permisos</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-white">Descripción del problema</label>
+                    <textarea class="form-control bg-dark border-secondary text-white" id="supportMessage" rows="4"
+                              placeholder="Describe tu problema o consulta en detalle..."></textarea>
+                </div>
+                <div class="alert alert-info bg-info bg-opacity-10 border-info small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Tu solicitud será enviada al equipo de soporte de BITI Solutions. 
+                    Te responderemos a tu correo: <strong>@userInfo.Email</strong>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSendSupport" onclick="sendSupportRequest()">
+                    <i class="bi bi-send me-1"></i>Enviar Solicitud
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Variables globales para el modal
+        let supportModalInstance = null;
+
+        // Mover el modal al body para evitar problemas de z-index con el layout
+        document.addEventListener('DOMContentLoaded', function() {
+            const supportModalEl = document.getElementById('supportModal');
+            if (supportModalEl) {
+                // Mover el modal al final del body para evitar problemas con el layout
+                document.body.appendChild(supportModalEl);
+
+                // Configurar el modal con estilos inline críticos
+                supportModalEl.style.position = 'fixed';
+                supportModalEl.style.top = '0';
+                supportModalEl.style.left = '0';
+                supportModalEl.style.width = '100%';
+                supportModalEl.style.height = '100%';
+                supportModalEl.style.zIndex = '99999';
+                supportModalEl.style.pointerEvents = 'auto';
+
+                // Inicializar el modal manualmente
+                supportModalInstance = new bootstrap.Modal(supportModalEl, {
+                    backdrop: 'static', // Backdrop estático para evitar problemas
+                    keyboard: true,
+                    focus: true
+                });
+
+                // Cuando el modal se muestra, asegurar que sea interactivo
+                supportModalEl.addEventListener('shown.bs.modal', function() {
+                    // Forzar estilos en el modal abierto
+                    supportModalEl.style.zIndex = '99999';
+                    supportModalEl.style.pointerEvents = 'auto';
+
+                    // Asegurar que el dialog sea interactivo
+                    const dialog = supportModalEl.querySelector('.modal-dialog');
+                    if (dialog) {
+                        dialog.style.pointerEvents = 'auto';
+                        dialog.style.position = 'relative';
+                    }
+
+                    // Asegurar que el contenido sea interactivo
+                    const content = supportModalEl.querySelector('.modal-content');
+                    if (content) {
+                        content.style.pointerEvents = 'auto';
+                    }
+
+                    // Configurar el backdrop
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.style.zIndex = '99998';
+                    }
+
+                    // Enfocar el primer campo
+                    setTimeout(() => {
+                        const selectEl = document.getElementById('supportSubject');
+                        if (selectEl) {
+                            selectEl.focus();
+                            selectEl.click(); // Forzar que el elemento esté activo
+                        }
+                    }, 200);
+                });
+            }
+        });
+
+        // Función para abrir el modal de soporte
+        function openSupportModal() {
+            if (supportModalInstance) {
+                supportModalInstance.show();
+            } else {
+                // Fallback: intentar crear una nueva instancia
+                const modalEl = document.getElementById('supportModal');
+                if (modalEl) {
+                    const newInstance = new bootstrap.Modal(modalEl);
+                    newInstance.show();
+                }
+            }
+        }
+
+        async function sendSupportRequest() {
+            const subject = document.getElementById('supportSubject').value;
+            const message = document.getElementById('supportMessage').value;
+            const btn = document.getElementById('btnSendSupport');
+
+            if (!message.trim()) {
+                showToast('warning', 'Por favor, describe tu problema o consulta.');
+                return;
+            }
+
+            // Deshabilitar botón mientras se envía
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+
+            try {
+                const response = await fetch('/api/support/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        subject: subject,
+                        message: message,
+                        userEmail: '@userInfo.Email',
+                        userName: '@userInfo.DisplayName',
+                        companyName: '@companyName'
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('success', '¡Solicitud enviada correctamente! Pronto recibirás una respuesta.');
+
+                    // Cerrar modal y limpiar
+                    if (supportModalInstance) {
+                        supportModalInstance.hide();
+                    }
+                    document.getElementById('supportMessage').value = '';
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    showToast('danger', errorData.message || 'Error al enviar la solicitud. Intenta de nuevo.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('danger', 'Error de conexión. Por favor, intenta más tarde.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send me-1"></i>Enviar Solicitud';
+            }
+        }
+
+        function showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed top-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+
+            const bgClass = type === 'success' ? 'bg-success' : (type === 'warning' ? 'bg-warning' : 'bg-danger');
+            const textClass = type === 'warning' ? 'text-dark' : 'text-white';
+            const icon = type === 'success' ? 'bi-check-circle' : (type === 'warning' ? 'bi-exclamation-triangle' : 'bi-x-circle');
+
+            toast.innerHTML = `
+                <div class="toast show ${bgClass} ${textClass} border-0" role="alert">
+                    <div class="toast-body d-flex align-items-center">
+                        <i class="bi ${icon} me-2 fs-5"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+    </script>
+}

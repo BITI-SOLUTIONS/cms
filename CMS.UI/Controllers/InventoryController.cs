@@ -26,6 +26,12 @@ namespace CMS.UI.Controllers
             PropertyNameCaseInsensitive = true
         };
 
+        private static readonly JsonSerializerOptions JsonCamelCaseOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
+
         public InventoryController(
             HttpClient httpClient,
             IHttpContextAccessor httpContextAccessor,
@@ -70,13 +76,21 @@ namespace CMS.UI.Controllers
         /// Pantalla de impresión de etiquetas
         /// GET: /Inventory/LabelItems
         /// </summary>
-        public async Task<IActionResult> LabelItems(string? search = null, int page = 1)
+        /// <remarks>
+        /// Limitado a máximo 100 artículos (10 páginas x 10 artículos por página)
+        /// para mejorar el rendimiento de la UI
+        /// </remarks>
+        public async Task<IActionResult> LabelItems(string? search = null, int page = 1, int? itemId = null, int? returnToItemId = null)
         {
             try
             {
                 ConfigureAuthHeader();
 
-                var url = $"{GetApiBaseUrl()}/api/item/labels?page={page}&pageSize=20";
+                // Limitar a 10 artículos por página, máximo 10 páginas (100 artículos total)
+                const int pageSize = 10;
+                const int maxPages = 10;
+
+                var url = $"{GetApiBaseUrl()}/api/item/labels?page={page}&pageSize={pageSize}";
                 if (!string.IsNullOrEmpty(search))
                     url += $"&search={Uri.EscapeDataString(search)}";
 
@@ -85,7 +99,9 @@ namespace CMS.UI.Controllers
                 var viewModel = new LabelItemsViewModel
                 {
                     Search = search,
-                    CurrentPage = page
+                    CurrentPage = page,
+                    SelectedItemId = itemId,
+                    ReturnToItemId = returnToItemId ?? itemId
                 };
 
                 if (response.IsSuccessStatusCode)
@@ -96,8 +112,9 @@ namespace CMS.UI.Controllers
                     if (result != null)
                     {
                         viewModel.Items = result.Items;
-                        viewModel.TotalCount = result.TotalCount;
-                        viewModel.TotalPages = result.TotalPages;
+                        // Limitar a 100 items máximo (10 páginas x 10 items)
+                        viewModel.TotalCount = Math.Min(result.TotalCount, maxPages * pageSize);
+                        viewModel.TotalPages = Math.Min(result.TotalPages, maxPages);
                     }
                 }
                 else
@@ -139,7 +156,9 @@ namespace CMS.UI.Controllers
                 var json = await response.Content.ReadAsStringAsync();
                 var item = JsonSerializer.Deserialize<ItemDto>(json, JsonOptions);
 
-                return Json(new { success = true, item });
+                // Serialize using camelCase for JavaScript compatibility
+                var resultJson = JsonSerializer.Serialize(new { success = true, item }, JsonCamelCaseOptions);
+                return Content(resultJson, "application/json");
             }
             catch (Exception ex)
             {
@@ -192,7 +211,9 @@ namespace CMS.UI.Controllers
                     // Devolver también el item actualizado para refrescar la lista
                     var json = await response.Content.ReadAsStringAsync();
                     var updatedItem = JsonSerializer.Deserialize<ItemDto>(json, JsonOptions);
-                    return Json(new { success = true, message = "Etiqueta guardada exitosamente", item = updatedItem });
+                    // Serialize using camelCase for JavaScript compatibility
+                    var resultJson = JsonSerializer.Serialize(new { success = true, message = "Etiqueta guardada exitosamente", item = updatedItem }, JsonCamelCaseOptions);
+                    return Content(resultJson, "application/json");
                 }
 
                 var error = await response.Content.ReadAsStringAsync();
@@ -272,24 +293,63 @@ namespace CMS.UI.Controllers
         /// Lista de artículos (Mantenimiento)
         /// GET: /Inventory/Items
         /// </summary>
-        public async Task<IActionResult> Items(string? search = null, string? category = null, int page = 1)
+        /// <remarks>
+        /// Limitado a máximo 100 artículos (10 páginas x 10 artículos por página)
+        /// para mejorar el rendimiento de la UI
+        /// </remarks>
+        public async Task<IActionResult> Items(
+            string? search = null, 
+            int? classificationGroup = null, 
+            int? classificationId = null, 
+            bool? isActive = null,
+            DateTime? dateFrom = null,
+            DateTime? dateTo = null,
+            int page = 1)
         {
             try
             {
                 ConfigureAuthHeader();
 
-                var url = $"{GetApiBaseUrl()}/api/item?page={page}&pageSize=20";
+                // Limitar a 10 artículos por página, máximo 10 páginas (100 artículos total)
+                const int pageSize = 10;
+                const int maxPages = 10;
+
+                var url = $"{GetApiBaseUrl()}/api/item?page={page}&pageSize={pageSize}";
                 if (!string.IsNullOrEmpty(search))
                     url += $"&search={Uri.EscapeDataString(search)}";
-                if (!string.IsNullOrEmpty(category))
-                    url += $"&category={Uri.EscapeDataString(category)}";
+
+                // Filtrar por clasificación si se seleccionó
+                if (classificationGroup.HasValue && classificationId.HasValue)
+                {
+                    url += $"&classificationGroup={classificationGroup}&classificationId={classificationId}";
+                }
+
+                // Filtrar por estado si se seleccionó
+                if (isActive.HasValue)
+                {
+                    url += $"&isActive={isActive.Value.ToString().ToLower()}";
+                }
+
+                // Filtrar por fechas
+                if (dateFrom.HasValue)
+                {
+                    url += $"&dateFrom={dateFrom.Value:yyyy-MM-dd}";
+                }
+                if (dateTo.HasValue)
+                {
+                    url += $"&dateTo={dateTo.Value:yyyy-MM-dd}";
+                }
 
                 var response = await _httpClient.GetAsync(url);
 
                 var viewModel = new ItemListViewModel
                 {
                     Search = search,
-                    Category = category,
+                    ClassificationGroup = classificationGroup,
+                    ClassificationId = classificationId,
+                    IsActive = isActive,
+                    DateFrom = dateFrom,
+                    DateTo = dateTo,
                     CurrentPage = page
                 };
 
@@ -298,11 +358,13 @@ namespace CMS.UI.Controllers
                     var json = await response.Content.ReadAsStringAsync();
                     var result = JsonSerializer.Deserialize<ItemListResponse>(json, JsonOptions);
 
+
                     if (result != null)
                     {
                         viewModel.Items = result.Items;
-                        viewModel.TotalCount = result.TotalCount;
-                        viewModel.TotalPages = result.TotalPages;
+                        // Limitar a 100 items máximo (10 páginas x 10 items)
+                        viewModel.TotalCount = Math.Min(result.TotalCount, maxPages * pageSize);
+                        viewModel.TotalPages = Math.Min(result.TotalPages, maxPages);
                     }
                 }
                 else
@@ -313,17 +375,30 @@ namespace CMS.UI.Controllers
                     TempData["Error"] = "Error al cargar los artículos. Verifique que la base de datos de la compañía existe.";
                 }
 
-                // Obtener categorías para el filtro
+                // Cargar clasificaciones para los filtros
                 try
                 {
-                    var categoriesResponse = await _httpClient.GetAsync($"{GetApiBaseUrl()}/api/item/categories");
-                    if (categoriesResponse.IsSuccessStatusCode)
+                    var classificationsResponse = await _httpClient.GetAsync($"{GetApiBaseUrl()}/api/item/all-classifications");
+                    if (classificationsResponse.IsSuccessStatusCode)
                     {
-                        var categoriesJson = await categoriesResponse.Content.ReadAsStringAsync();
-                        viewModel.Categories = JsonSerializer.Deserialize<List<string>>(categoriesJson, JsonOptions) ?? new();
+                        var classificationsJson = await classificationsResponse.Content.ReadAsStringAsync();
+                        var classifications = JsonSerializer.Deserialize<AllClassificationsResponse>(classificationsJson, JsonOptions);
+
+                        if (classifications != null)
+                        {
+                            viewModel.Classifications1 = classifications.Classifications1 ?? new();
+                            viewModel.Classifications2 = classifications.Classifications2 ?? new();
+                            viewModel.Classifications3 = classifications.Classifications3 ?? new();
+                            viewModel.Classifications4 = classifications.Classifications4 ?? new();
+                            viewModel.Classifications5 = classifications.Classifications5 ?? new();
+                            viewModel.Classifications6 = classifications.Classifications6 ?? new();
+                        }
                     }
                 }
-                catch { /* Ignorar error de categorías */ }
+                catch (Exception ex) 
+                { 
+                    _logger.LogWarning(ex, "Error cargando clasificaciones para filtros");
+                }
 
                 return View(viewModel);
             }
@@ -372,9 +447,15 @@ namespace CMS.UI.Controllers
         /// GET: /Inventory/Items/Create
         /// </summary>
         [HttpGet("Inventory/Items/Create")]
-        public IActionResult CreateItem()
+        public async Task<IActionResult> CreateItem()
         {
-            return View("CreateItem", new CreateItemViewModel());
+            ConfigureAuthHeader();
+            var model = new CreateItemViewModel();
+
+            // Cargar las listas de clasificaciones y unidades de medida
+            await LoadClassificationsAsync(model);
+
+            return View("CreateItem", model);
         }
 
         /// <summary>
@@ -387,6 +468,9 @@ namespace CMS.UI.Controllers
         {
             if (!ModelState.IsValid)
             {
+                // Recargar listas en caso de error de validación
+                ConfigureAuthHeader();
+                await LoadClassificationsAsync(model);
                 return View("CreateItem", model);
             }
 
@@ -407,12 +491,18 @@ namespace CMS.UI.Controllers
 
                 var error = await response.Content.ReadAsStringAsync();
                 TempData["Error"] = $"Error al crear artículo: {error}";
+
+                // Recargar listas en caso de error
+                await LoadClassificationsAsync(model);
                 return View("CreateItem", model);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creando artículo");
                 TempData["Error"] = "Error al crear el artículo";
+
+                // Recargar listas en caso de error
+                await LoadClassificationsAsync(model);
                 return View("CreateItem", model);
             }
         }
@@ -439,6 +529,12 @@ namespace CMS.UI.Controllers
                 var json = await response.Content.ReadAsStringAsync();
                 var item = JsonSerializer.Deserialize<EditItemViewModel>(json, JsonOptions);
 
+                // Cargar las listas de clasificaciones y unidades de medida
+                if (item != null)
+                {
+                    await LoadClassificationsAsync(item);
+                }
+
                 return View("EditItem", item);
             }
             catch (Exception ex)
@@ -446,6 +542,37 @@ namespace CMS.UI.Controllers
                 _logger.LogError(ex, "Error obteniendo artículo para editar {Id}", id);
                 TempData["Error"] = "Error al cargar el artículo";
                 return RedirectToAction(nameof(Items));
+            }
+        }
+
+        /// <summary>
+        /// Carga las listas de clasificaciones y unidades de medida desde el API
+        /// </summary>
+        private async Task LoadClassificationsAsync(CreateItemViewModel model)
+        {
+            try
+            {
+                var classificationsResponse = await _httpClient.GetAsync($"{GetApiBaseUrl()}/api/item/all-classifications");
+                if (classificationsResponse.IsSuccessStatusCode)
+                {
+                    var json = await classificationsResponse.Content.ReadAsStringAsync();
+                    var classifications = JsonSerializer.Deserialize<AllClassificationsResponse>(json, JsonOptions);
+
+                    if (classifications != null)
+                    {
+                        model.UnitsOfMeasure = classifications.UnitsOfMeasure ?? new();
+                        model.Classifications1 = classifications.Classifications1 ?? new();
+                        model.Classifications2 = classifications.Classifications2 ?? new();
+                        model.Classifications3 = classifications.Classifications3 ?? new();
+                        model.Classifications4 = classifications.Classifications4 ?? new();
+                        model.Classifications5 = classifications.Classifications5 ?? new();
+                        model.Classifications6 = classifications.Classifications6 ?? new();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error cargando clasificaciones para edición de artículo");
             }
         }
 
@@ -521,6 +648,181 @@ namespace CMS.UI.Controllers
             return RedirectToAction(nameof(Items));
         }
 
+        /// <summary>
+        /// Vista de carga masiva de artículos
+        /// GET: /Inventory/Items/BulkUpload
+        /// </summary>
+        [HttpGet("Inventory/Items/BulkUpload")]
+        public IActionResult BulkUploadItems()
+        {
+            return View("BulkUploadItems");
+        }
+
+        /// <summary>
+        /// Procesar carga masiva de artículos
+        /// POST: /Inventory/Items/BulkUpload
+        /// </summary>
+        [HttpPost("Inventory/Items/BulkUpload")]
+        public async Task<IActionResult> BulkUploadItems([FromBody] BulkUploadRequest request)
+        {
+            var results = new BulkUploadResult
+            {
+                TotalCount = request.Items?.Count ?? 0,
+                SuccessCount = 0,
+                ErrorCount = 0,
+                Errors = new List<BulkUploadError>()
+            };
+
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return Json(results);
+            }
+
+            try
+            {
+                ConfigureAuthHeader();
+                var rowNumber = 1;
+
+                foreach (var item in request.Items)
+                {
+                    rowNumber++;
+                    try
+                    {
+                        // Validar campos requeridos
+                        if (string.IsNullOrWhiteSpace(item.Code))
+                        {
+                            results.Errors.Add(new BulkUploadError
+                            {
+                                Row = rowNumber,
+                                Code = item.Code,
+                                Name = item.Name,
+                                Error = "El código es obligatorio"
+                            });
+                            results.ErrorCount++;
+                            continue;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(item.Name))
+                        {
+                            results.Errors.Add(new BulkUploadError
+                            {
+                                Row = rowNumber,
+                                Code = item.Code,
+                                Name = item.Name,
+                                Error = "El nombre es obligatorio"
+                            });
+                            results.ErrorCount++;
+                            continue;
+                        }
+
+                        // Crear el artículo vía API
+                        _logger.LogInformation(
+                            "Carga masiva - Artículo: Code={Code}, Name={Name}, IsLabelItem={IsLabelItem}, SalePrice={SalePrice}, CostPrice={CostPrice}",
+                            item.Code, item.Name, item.IsLabelItem, item.SalePrice, item.CostPrice);
+
+                        var payload = System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            code = item.Code?.Trim(),
+                            name = item.Name?.Trim(),
+                            description = item.Description?.Trim(),
+                            barcode = item.Barcode?.Trim(),
+                            brand = item.Brand?.Trim(),
+                            salePrice = item.SalePrice,
+                            costPrice = item.CostPrice,
+                            taxRate = item.TaxRate,
+                            idUnitOfMeasure = item.IdUnitOfMeasure,
+                            idClassification1 = item.IdClassification1,
+                            idClassification2 = item.IdClassification2,
+                            idClassification3 = item.IdClassification3,
+                            idClassification4 = item.IdClassification4,
+                            idClassification5 = item.IdClassification5,
+                            idClassification6 = item.IdClassification6,
+                            labelItem = item.LabelItem?.Trim(),
+                            labelPrice = item.LabelPrice,
+                            labelItemBarcode = item.LabelItemBarcode?.Trim(),
+                            isLabelItem = item.IsLabelItem,
+                            isActive = true,
+                            isSellable = true,
+                            isPurchasable = true
+                        });
+
+                        var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+                        var response = await _httpClient.PostAsync($"{GetApiBaseUrl()}/api/item", content);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            results.SuccessCount++;
+                        }
+                        else
+                        {
+                            var errorContent = await response.Content.ReadAsStringAsync();
+                            var errorMessage = "Error al crear artículo";
+
+                            // Intentar extraer mensaje de error
+                            try
+                            {
+                                var errorObj = System.Text.Json.JsonDocument.Parse(errorContent);
+                                if (errorObj.RootElement.TryGetProperty("message", out var msgProp))
+                                {
+                                    errorMessage = msgProp.GetString() ?? errorMessage;
+                                }
+                            }
+                            catch { }
+
+                            results.Errors.Add(new BulkUploadError
+                            {
+                                Row = rowNumber,
+                                Code = item.Code,
+                                Name = item.Name,
+                                Description = item.Description,
+                                Barcode = item.Barcode,
+                                Brand = item.Brand,
+                                SalePrice = item.SalePrice,
+                                CostPrice = item.CostPrice,
+                                TaxRate = item.TaxRate,
+                                IdUnitOfMeasure = item.IdUnitOfMeasure,
+                                IdClassification1 = item.IdClassification1,
+                                IdClassification2 = item.IdClassification2,
+                                IdClassification3 = item.IdClassification3,
+                                IdClassification4 = item.IdClassification4,
+                                IdClassification5 = item.IdClassification5,
+                                IdClassification6 = item.IdClassification6,
+                                LabelItem = item.LabelItem,
+                                LabelPrice = item.LabelPrice,
+                                LabelItemBarcode = item.LabelItemBarcode,
+                                IsLabelItem = item.IsLabelItem,
+                                Error = errorMessage
+                            });
+                            results.ErrorCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error procesando artículo en fila {Row}", rowNumber);
+                        results.Errors.Add(new BulkUploadError
+                        {
+                            Row = rowNumber,
+                            Code = item.Code,
+                            Name = item.Name,
+                            Error = $"Error interno: {ex.Message}"
+                        });
+                        results.ErrorCount++;
+                    }
+                }
+
+                _logger.LogInformation(
+                    "Carga masiva completada: {Success} exitosos, {Errors} errores de {Total} total",
+                    results.SuccessCount, results.ErrorCount, results.TotalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en carga masiva de artículos");
+                return Json(new { success = false, message = $"Error general: {ex.Message}" });
+            }
+
+            return Json(results);
+        }
+
         #endregion
     }
 
@@ -533,7 +835,30 @@ namespace CMS.UI.Controllers
         public int CurrentPage { get; set; } = 1;
         public int TotalPages { get; set; } = 1;
         public string? Search { get; set; }
+
+        // Filtro de clasificación: número de grupo (1-6) y ID de clasificación seleccionada
+        public int? ClassificationGroup { get; set; }
+        public int? ClassificationId { get; set; }
+
+        // Filtro de estado
+        public bool? IsActive { get; set; }
+
+        // Filtro de fechas
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+
+        // Listas para los dropdowns de filtro
+        public List<ClassificationDto> Classifications1 { get; set; } = new();
+        public List<ClassificationDto> Classifications2 { get; set; } = new();
+        public List<ClassificationDto> Classifications3 { get; set; } = new();
+        public List<ClassificationDto> Classifications4 { get; set; } = new();
+        public List<ClassificationDto> Classifications5 { get; set; } = new();
+        public List<ClassificationDto> Classifications6 { get; set; } = new();
+
+        // Compatibilidad con código existente (deprecated)
+        [Obsolete("Usar ClassificationGroup + ClassificationId")]
         public string? Category { get; set; }
+        [Obsolete("Usar Classifications1-6")]
         public List<string> Categories { get; set; } = new();
     }
 
@@ -553,10 +878,14 @@ namespace CMS.UI.Controllers
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Barcode { get; set; }
-        public string? Category { get; set; }
-        public string? Subcategory { get; set; }
+        public int? IdClassification1 { get; set; }
+        public int? IdClassification2 { get; set; }
+        public int? IdClassification3 { get; set; }
+        public int? IdClassification4 { get; set; }
+        public int? IdClassification5 { get; set; }
+        public int? IdClassification6 { get; set; }
         public string? Brand { get; set; }
-        public string UnitOfMeasure { get; set; } = "unidad";
+        public int? IdUnitOfMeasure { get; set; }
         public decimal CostPrice { get; set; }
         public decimal SalePrice { get; set; }
         public decimal TaxRate { get; set; }
@@ -611,10 +940,14 @@ namespace CMS.UI.Controllers
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Barcode { get; set; }
-        public string? Category { get; set; }
-        public string? Subcategory { get; set; }
+        public int? IdClassification1 { get; set; }
+        public int? IdClassification2 { get; set; }
+        public int? IdClassification3 { get; set; }
+        public int? IdClassification4 { get; set; }
+        public int? IdClassification5 { get; set; }
+        public int? IdClassification6 { get; set; }
         public string? Brand { get; set; }
-        public string UnitOfMeasure { get; set; } = "unidad";
+        public int? IdUnitOfMeasure { get; set; }
         public decimal CostPrice { get; set; }
         public decimal SalePrice { get; set; }
         public decimal TaxRate { get; set; }
@@ -636,11 +969,49 @@ namespace CMS.UI.Controllers
         public bool PrintLabelName { get; set; } = true;
         public bool PrintLabelPrice { get; set; } = true;
         public bool PrintLabelBarcode { get; set; } = true;
+
+        // Listas para dropdowns (no se envían al API)
+        public List<UnitOfMeasureDto> UnitsOfMeasure { get; set; } = new();
+        public List<ClassificationDto> Classifications1 { get; set; } = new();
+        public List<ClassificationDto> Classifications2 { get; set; } = new();
+        public List<ClassificationDto> Classifications3 { get; set; } = new();
+        public List<ClassificationDto> Classifications4 { get; set; } = new();
+        public List<ClassificationDto> Classifications5 { get; set; } = new();
+        public List<ClassificationDto> Classifications6 { get; set; } = new();
     }
 
     public class EditItemViewModel : CreateItemViewModel
     {
         public int Id { get; set; }
+    }
+
+    public class UnitOfMeasureDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Symbol { get; set; }
+        public bool AllowsDecimals { get; set; }
+        public bool IsDefault { get; set; }
+    }
+
+    public class ClassificationDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class AllClassificationsResponse
+    {
+        public List<UnitOfMeasureDto> UnitsOfMeasure { get; set; } = new();
+        public List<ClassificationDto> Classifications1 { get; set; } = new();
+        public List<ClassificationDto> Classifications2 { get; set; } = new();
+        public List<ClassificationDto> Classifications3 { get; set; } = new();
+        public List<ClassificationDto> Classifications4 { get; set; } = new();
+        public List<ClassificationDto> Classifications5 { get; set; } = new();
+        public List<ClassificationDto> Classifications6 { get; set; } = new();
     }
 
     // ===== LABEL ITEMS VIEW MODELS =====
@@ -653,6 +1024,16 @@ namespace CMS.UI.Controllers
         public int TotalPages { get; set; } = 1;
         public string? Search { get; set; }
         public ItemDto? SelectedItem { get; set; }
+
+        /// <summary>
+        /// ID del artículo preseleccionado (viene desde ItemDetails)
+        /// </summary>
+        public int? SelectedItemId { get; set; }
+
+        /// <summary>
+        /// ID del artículo al que regresar (para el botón Volver)
+        /// </summary>
+        public int? ReturnToItemId { get; set; }
     }
 
     public class SaveLabelRequest
@@ -723,5 +1104,68 @@ namespace CMS.UI.Controllers
         public int QuantityPrinted { get; set; } = 1;
         public string? PrinterName { get; set; }
         public string? PrintNotes { get; set; }
+    }
+
+    // ===== BULK UPLOAD VIEW MODELS =====
+
+    public class BulkUploadRequest
+    {
+        public List<BulkUploadItemDto>? Items { get; set; }
+    }
+
+    public class BulkUploadItemDto
+    {
+        public string? Code { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Barcode { get; set; }
+        public string? Brand { get; set; }
+        public decimal SalePrice { get; set; }
+        public decimal CostPrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public int? IdUnitOfMeasure { get; set; }
+        public int? IdClassification1 { get; set; }
+        public int? IdClassification2 { get; set; }
+        public int? IdClassification3 { get; set; }
+        public int? IdClassification4 { get; set; }
+        public int? IdClassification5 { get; set; }
+        public int? IdClassification6 { get; set; }
+        public string? LabelItem { get; set; }
+        public decimal LabelPrice { get; set; }
+        public string? LabelItemBarcode { get; set; }
+        public bool IsLabelItem { get; set; }
+    }
+
+    public class BulkUploadResult
+    {
+        public int TotalCount { get; set; }
+        public int SuccessCount { get; set; }
+        public int ErrorCount { get; set; }
+        public List<BulkUploadError> Errors { get; set; } = new();
+    }
+
+    public class BulkUploadError
+    {
+        public int Row { get; set; }
+        public string? Code { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Barcode { get; set; }
+        public string? Brand { get; set; }
+        public decimal SalePrice { get; set; }
+        public decimal CostPrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public int? IdUnitOfMeasure { get; set; }
+        public int? IdClassification1 { get; set; }
+        public int? IdClassification2 { get; set; }
+        public int? IdClassification3 { get; set; }
+        public int? IdClassification4 { get; set; }
+        public int? IdClassification5 { get; set; }
+        public int? IdClassification6 { get; set; }
+        public string? LabelItem { get; set; }
+        public decimal LabelPrice { get; set; }
+        public string? LabelItemBarcode { get; set; }
+        public bool IsLabelItem { get; set; }
+        public string? Error { get; set; }
     }
 }

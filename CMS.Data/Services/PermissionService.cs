@@ -94,10 +94,10 @@ namespace CMS.Data.Services
         /// <param name="userId">ID del usuario (campo ID_USER de tabla [ADMIN].[USER])</param>
         /// <returns>HashSet con todos los PermissionKey que el usuario tiene</returns>
         /// <remarks>
-        /// Orden de evaluación:
-        /// 1. Permisos heredados por roles (tabla [ADMIN].[ROLE_PERMISSION])
-        /// 2. Permisos asignados directamente (tabla [ADMIN].[USER_PERMISSION])
-        /// 3. Si tiene "System.FullAccess", devuelve TODOS los permisos del sistema
+        /// ⚠️ MÉTODO LEGACY: Redirige a GetUserPermissionsForCompanyAsync usando la primera compañía.
+        /// Se recomienda usar GetUserPermissionsForCompanyAsync(userId, companyId) directamente.
+        /// 
+        /// Los permisos se obtienen de admin.user_company_permission (REGLA DE ORO).
         /// </remarks>
         public async Task<HashSet<string>> GetUserPermissionsAsync(int userId)
         {
@@ -122,16 +122,20 @@ namespace CMS.Data.Services
         }
 
         // =====================================================================
-        // ⭐ NUEVO: PERMISOS POR COMPAÑÍA
+        // ⭐ PERMISOS POR COMPAÑÍA - REGLA DE ORO
         // =====================================================================
         /// <summary>
         /// Calcula permisos efectivos de un usuario EN UNA COMPAÑÍA ESPECÍFICA.
-        /// Esta es la nueva forma recomendada de obtener permisos.
         /// 
-        /// Jerarquía:
-        /// 1. Permisos de roles del usuario en ESA compañía (user_company_role)
-        /// 2. Permisos directos del usuario en ESA compañía (user_company_permission)
-        /// 3. Denegaciones siempre tienen prioridad
+        /// ⚠️ REGLA DE ORO - PERMISOS:
+        /// Los permisos se obtienen ÚNICAMENTE de admin.user_company_permission.
+        /// La tabla admin.role_permission SOLO se usa para precargar permisos 
+        /// cuando se asigna un rol a un usuario (copia inicial).
+        /// 
+        /// Lógica:
+        /// 1. Obtener permisos de user_company_permission para (userId, companyId)
+        /// 2. Separar en permitidos (is_allowed=true) y denegados (is_allowed=false)
+        /// 3. Denegaciones siempre ganan sobre permisos permitidos
         /// </summary>
         public async Task<HashSet<string>> GetUserPermissionsForCompanyAsync(int userId, int companyId)
         {
@@ -139,30 +143,8 @@ namespace CMS.Data.Services
             var denied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // =====================================================================
-            // 1️⃣ PERMISOS DE ROLES EN ESTA COMPAÑÍA
-            // =====================================================================
-            var rolesInCompany = await _db.UserCompanyRoles
-                .Where(ucr => ucr.ID_USER == userId && ucr.ID_COMPANY == companyId && ucr.IS_ACTIVE)
-                .Select(ucr => ucr.ID_ROLE)
-                .ToListAsync();
-
-            if (rolesInCompany.Any())
-            {
-                var rolePermissions = await (
-                    from rp in _db.RolePermissions
-                    join p in _db.Permissions on rp.PermissionId equals p.ID_PERMISSION
-                    where rolesInCompany.Contains(rp.RoleId) && rp.IsAllowed && p.IS_ACTIVE
-                    select p.PERMISSION_KEY
-                ).ToListAsync();
-
-                foreach (var perm in rolePermissions)
-                {
-                    allowed.Add(perm);
-                }
-            }
-
-            // =====================================================================
-            // 2️⃣ PERMISOS DIRECTOS EN ESTA COMPAÑÍA
+            // ⭐ ÚNICA FUENTE: user_company_permission
+            // NO usar role_permission para verificación de permisos
             // =====================================================================
             var directPermissions = await (
                 from ucp in _db.UserCompanyPermissions
@@ -184,7 +166,7 @@ namespace CMS.Data.Services
             }
 
             // =====================================================================
-            // 3️⃣ APLICAR DENEGACIONES (siempre ganan)
+            // APLICAR DENEGACIONES (siempre ganan)
             // =====================================================================
             var effective = new HashSet<string>(
                 allowed.Except(denied),
@@ -192,7 +174,7 @@ namespace CMS.Data.Services
             );
 
             // =====================================================================
-            // 4️⃣ PERMISO MAESTRO "System.FullAccess"
+            // PERMISO MAESTRO "System.FullAccess"
             // =====================================================================
             if (effective.Contains("System.FullAccess"))
             {

@@ -101,9 +101,12 @@ namespace CMS.Application.DTOs
         public string? GroupName { get; set; }
         public bool IsActive { get; set; }
         public bool IsVisible { get; set; }
-        
-        // Para SELECT/MULTISELECT - opciones parseadas
+
+        // Para SELECT/MULTISELECT/DROPDOWN - opciones parseadas
         public List<SelectOption>? Options { get; set; }
+
+        // Indica si las opciones deben cargarse dinámicamente (DROPDOWN_SQL)
+        public bool RequiresDynamicLoad { get; set; }
     }
 
     public class SelectOption

@@ -901,17 +901,41 @@ body {
 }
 
 /* ===== FIX PARA MODALES DE BOOTSTRAP ===== */
-/* Asegurar que los modales estén por encima del sidebar (z-index: 1000) */
+/* Asegurar que los modales estén por encima de TODO (sidebar, layout, etc.) */
 .modal {
-    z-index: 1100 !important;
+    z-index: 9999 !important;
+    position: fixed !important;
 }
 
 .modal-backdrop {
-    z-index: 1090 !important;
+    z-index: 9998 !important;
 }
 
 .modal-dialog {
-    z-index: 1110 !important;
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+
+/* Fix CRÍTICO: Asegurar que el contenido del modal sea interactivo */
+.modal-content {
+    pointer-events: auto !important;
+    position: relative !important;
+}
+
+.modal-body,
+.modal-header,
+.modal-footer {
+    pointer-events: auto !important;
+    position: relative !important;
+}
+
+.modal .form-control,
+.modal .form-select,
+.modal .btn,
+.modal textarea,
+.modal input {
+    pointer-events: auto !important;
+    position: relative !important;
 }
 
 /* Estilos oscuros para modales */

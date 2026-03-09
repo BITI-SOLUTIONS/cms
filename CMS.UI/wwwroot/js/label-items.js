@@ -8,54 +8,75 @@
 var originalData = {};
 var selectedElement = null;
 
+// Helper function to get attribute value from element or data object
+function getAttr(element, attrName, datasetName) {
+    // If element is a DOM element, use getAttribute
+    if (element && typeof element.getAttribute === 'function') {
+        return element.getAttribute(attrName);
+    }
+    // If element is an object with dataset property (virtual item)
+    if (element && element.dataset && datasetName) {
+        return element.dataset[datasetName];
+    }
+    return null;
+}
+
 function selectItem(element) {
     console.log('selectItem called');
 
-    var itemId = element.getAttribute('data-item-id');
-    var itemCode = element.getAttribute('data-item-code');
-    var itemName = element.getAttribute('data-item-name');
-    var labelItem = element.getAttribute('data-item-label') || itemName;
-    var labelPrice = parseFloat(element.getAttribute('data-item-price')) || 0;
-    var labelBarcode = element.getAttribute('data-item-barcode') || '';
-    var printName = element.getAttribute('data-print-name') !== 'false';
-    var printPrice = element.getAttribute('data-print-price') !== 'false';
-    var printBarcode = element.getAttribute('data-print-barcode') !== 'false';
+    var itemId = getAttr(element, 'data-item-id', 'itemId');
+    var itemCode = getAttr(element, 'data-item-code', 'itemCode');
+    var itemName = getAttr(element, 'data-item-name', 'itemName');
+    var labelItem = getAttr(element, 'data-item-label', 'itemLabel') || itemName;
+    var labelPrice = parseFloat(getAttr(element, 'data-item-price', 'itemPrice')) || 0;
+    var labelBarcode = getAttr(element, 'data-item-barcode', 'itemBarcode') || '';
+    var printName = getAttr(element, 'data-print-name', 'printName') !== 'false';
+    var printPrice = getAttr(element, 'data-print-price', 'printPrice') !== 'false';
+    var printBarcode = getAttr(element, 'data-print-barcode', 'printBarcode') !== 'false';
 
     // Campos de tamaño y colores
-    var labelWidth = parseFloat(element.getAttribute('data-label-width')) || 4;
-    var labelHeight = parseFloat(element.getAttribute('data-label-height')) || 2;
-    var labelOrientation = element.getAttribute('data-label-orientation') || 'horizontal';
-    var printBorder = element.getAttribute('data-print-border') !== 'false';
-    var borderColor = element.getAttribute('data-border-color') || '#000000';
-    var nameColor = element.getAttribute('data-name-color') || '#000000';
-    var priceColor = element.getAttribute('data-price-color') || '#16a34a';
-    var barcodeColor = element.getAttribute('data-barcode-color') || '#000000';
+    var labelWidth = parseFloat(getAttr(element, 'data-label-width', 'labelWidth')) || 4;
+    var labelHeight = parseFloat(getAttr(element, 'data-label-height', 'labelHeight')) || 2;
+    var labelOrientation = getAttr(element, 'data-label-orientation', 'labelOrientation') || 'horizontal';
+    var printBorder = getAttr(element, 'data-print-border', 'printBorder') !== 'false';
+    var borderColor = getAttr(element, 'data-border-color', 'borderColor') || '#000000';
+    var nameColor = getAttr(element, 'data-name-color', 'nameColor') || '#000000';
+    var priceColor = getAttr(element, 'data-price-color', 'priceColor') || '#16a34a';
+    var barcodeColor = getAttr(element, 'data-barcode-color', 'barcodeColor') || '#000000';
 
     // Campos de fuente y formato de precio
-    var fontSize = parseFloat(element.getAttribute('data-font-size')) || 14;
-    var fontFamily = element.getAttribute('data-font-family') || 'Arial';
-    var priceDecimalsAttr = element.getAttribute('data-price-decimals');
+    var fontSize = parseFloat(getAttr(element, 'data-font-size', 'fontSize')) || 14;
+    var fontFamily = getAttr(element, 'data-font-family', 'fontFamily') || 'Arial';
+    var priceDecimalsAttr = getAttr(element, 'data-price-decimals', 'priceDecimals');
     var priceDecimals = (priceDecimalsAttr !== null && priceDecimalsAttr !== '') ? parseInt(priceDecimalsAttr) : 2;
-    var thousandSeparator = element.getAttribute('data-thousand-separator') || ',';
-    var currencySymbol = element.getAttribute('data-currency-symbol') || '₡';
-    var printCurrency = element.getAttribute('data-print-currency') !== 'false';
+    var thousandSeparator = getAttr(element, 'data-thousand-separator', 'thousandSeparator') || ',';
+    var currencySymbol = getAttr(element, 'data-currency-symbol', 'currencySymbol') || '₡';
+    var printCurrency = getAttr(element, 'data-print-currency', 'printCurrency') !== 'false';
 
     console.log('Item selected:', itemId, itemCode, itemName);
 
-    // Guardar referencia al elemento seleccionado
-    selectedElement = element;
+    // Guardar referencia al elemento seleccionado (solo si es un elemento DOM real)
+    if (element && typeof element.getAttribute === 'function') {
+        selectedElement = element;
 
-    // Resaltar el item seleccionado
-    var rows = document.querySelectorAll('.item-row');
-    for (var i = 0; i < rows.length; i++) {
-        rows[i].style.background = 'rgba(0,0,0,0.2)';
-        rows[i].style.borderLeft = 'none';
+        // Resaltar el item seleccionado
+        var rows = document.querySelectorAll('.item-row');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].style.background = 'rgba(0,0,0,0.2)';
+            rows[i].style.borderLeft = 'none';
+        }
+        element.style.background = 'rgba(6, 182, 212, 0.2)';
+        element.style.borderLeft = '4px solid #06b6d4';
+    } else {
+        // Virtual item - no hay elemento DOM para resaltar
+        selectedElement = null;
     }
-    element.style.background = 'rgba(6, 182, 212, 0.2)';
-    element.style.borderLeft = '4px solid #06b6d4';
 
-    // Guardar datos originales
+    // Guardar datos originales (incluyendo itemId para items virtuales)
     originalData = {
+        itemId: itemId,
+        itemCode: itemCode,
+        itemName: itemName,
         labelItem: labelItem,
         labelPrice: labelPrice,
         labelBarcode: labelBarcode,

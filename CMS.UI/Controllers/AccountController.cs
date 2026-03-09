@@ -625,5 +625,107 @@ namespace CMS.UI.Controllers
         }
 
         #endregion
+
+        #region Change Password (Usuario logueado)
+
+        /// <summary>
+        /// Muestra formulario para cambiar contraseña
+        /// </summary>
+        [HttpGet]
+        [Authorize]
+        public IActionResult ChangePassword()
+        {
+            // Verificar que hay sesión válida
+            var token = HttpContext.Session.GetString("ApiToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                return RedirectToAction(nameof(SelectCompany), new { forceLogout = true });
+            }
+
+            return View(new ChangePasswordViewModel());
+        }
+
+        /// <summary>
+        /// Procesa el cambio de contraseña
+        /// </summary>
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // Obtener userId del JWT en sesión
+            var token = HttpContext.Session.GetString("ApiToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                return RedirectToAction(nameof(SelectCompany), new { forceLogout = true });
+            }
+
+            var userId = GetUserIdFromJwt(token);
+            if (userId == 0)
+            {
+                model.ErrorMessage = "Error de sesión. Por favor inicie sesión nuevamente.";
+                return View(model);
+            }
+
+            // Validar que las contraseñas coinciden
+            if (model.NewPassword != model.ConfirmPassword)
+            {
+                model.ErrorMessage = "Las contraseñas no coinciden.";
+                return View(model);
+            }
+
+            var (success, message) = await _localAuthService.ChangePasswordAsync(
+                userId, model.CurrentPassword, model.NewPassword);
+
+            if (success)
+            {
+                model.SuccessMessage = message;
+                model.CurrentPassword = string.Empty;
+                model.NewPassword = string.Empty;
+                model.ConfirmPassword = string.Empty;
+                _logger.LogInformation("✅ Contraseña cambiada para usuario: {UserId}", userId);
+            }
+            else
+            {
+                model.ErrorMessage = message;
+                _logger.LogWarning("❌ Error cambiando contraseña para usuario {UserId}: {Message}", userId, message);
+            }
+
+            return View(model);
+        }
+
+        /// <summary>
+        /// Extrae el userId del JWT
+        /// </summary>
+        private int GetUserIdFromJwt(string token)
+        {
+            try
+            {
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                if (handler.CanReadToken(token))
+                {
+                    var jwtToken = handler.ReadJwtToken(token);
+                    var userIdClaim = jwtToken.Claims
+                        .FirstOrDefault(c => c.Type == "sub" || c.Type == "nameid" || c.Type == "userId");
+
+                    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+                    {
+                        return userId;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error decodificando JWT");
+            }
+            return 0;
+        }
+
+        #endregion
     }
 }

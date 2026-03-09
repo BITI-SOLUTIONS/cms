@@ -238,6 +238,9 @@ namespace CMS.API.Controllers
                 _logger.LogInformation("✅ Token generado exitosamente para: {UserName} ({UserId})",
                     user.USER_NAME, user.ID_USER);
 
+                // ⭐ Registrar actividad de login exitoso (Azure AD)
+                await LogLoginActivityAsync(user.ID_USER, request.CompanyId, true, "Login Azure AD exitoso");
+
                 return Ok(new TokenResponseDto
                 {
                     Success = true,
@@ -344,6 +347,9 @@ namespace CMS.API.Controllers
                 _logger.LogInformation("✅ Token local generado para: {UserName} ({UserId}) en compañía {CompanyId}",
                     user.USER_NAME, user.ID_USER, request.CompanyId);
 
+                // ⭐ Registrar actividad de login exitoso
+                await LogLoginActivityAsync(user.ID_USER, request.CompanyId, true, "Login local exitoso");
+
                 return Ok(new TokenResponseDto
                 {
                     Success = true,
@@ -364,6 +370,49 @@ namespace CMS.API.Controllers
                     Message = "Error interno del servidor"
                 });
             }
+        }
+
+        /// <summary>
+        /// Registra la actividad de login en la tabla user_activity_log
+        /// </summary>
+        private async Task LogLoginActivityAsync(int userId, int companyId, bool isSuccess, string description)
+        {
+            try
+            {
+                var activityLog = new UserActivityLog
+                {
+                    ID_USER = userId,
+                    ID_COMPANY = companyId,
+                    ACTIVITY_TYPE = isSuccess ? "LOGIN" : "LOGIN_FAILED",
+                    ACTIVITY_DESCRIPTION = description,
+                    IP_ADDRESS = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    USER_AGENT = Request.Headers.UserAgent.ToString(),
+                    DEVICE_INFO = GetDeviceInfo(Request.Headers.UserAgent.ToString()),
+                    IS_SUCCESS = isSuccess,
+                    ACTIVITY_DATE = DateTime.UtcNow
+                };
+
+                _db.UserActivityLogs.Add(activityLog);
+                await _db.SaveChangesAsync();
+
+                _logger.LogDebug("📝 Actividad de login registrada para usuario {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                // No fallar el login si no se puede registrar la actividad
+                _logger.LogWarning(ex, "⚠️ No se pudo registrar la actividad de login");
+            }
+        }
+
+        private string GetDeviceInfo(string userAgent)
+        {
+            if (string.IsNullOrEmpty(userAgent)) return "Desconocido";
+            if (userAgent.Contains("Windows")) return "Windows PC";
+            if (userAgent.Contains("Mac")) return "Mac";
+            if (userAgent.Contains("iPhone")) return "iPhone";
+            if (userAgent.Contains("Android")) return "Android";
+            if (userAgent.Contains("Linux")) return "Linux";
+            return "Navegador Web";
         }
     }
 

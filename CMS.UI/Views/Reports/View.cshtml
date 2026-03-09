@@ -276,14 +276,29 @@
                 break;
 
             case 'SELECT':
-                let options = '<option value="">-- Seleccionar --</option>';
-                if (filter.options) {
+            case 'DROPDOWN':
+                let dropdownOptions = '';
+                // Solo agregar "-- Seleccionar --" si NO hay una opción con valor vacío en los datos
+                const hasEmptyOption = filter.options && filter.options.some(opt => opt.value === '' || opt.value === '0' || opt.value === 0);
+                if (!hasEmptyOption) {
+                    dropdownOptions = '<option value="">-- Seleccionar --</option>';
+                }
+                if (filter.options && filter.options.length > 0) {
                     filter.options.forEach(opt => {
                         const selected = opt.value === filter.defaultValue ? 'selected' : '';
-                        options += `<option value="${opt.value}" ${selected}>${opt.text}</option>`;
+                        dropdownOptions += `<option value="${opt.value}" ${selected}>${opt.text}</option>`;
                     });
                 }
-                control = `<select class="form-select" id="${id}" name="${filter.filterKey}" ${required}>${options}</select>`;
+                control = `<select class="form-select" id="${id}" name="${filter.filterKey}" ${required}>${dropdownOptions}</select>`;
+                break;
+
+            case 'DROPDOWN_SQL':
+                // Para DROPDOWN_SQL, mostrar un select vacío que se cargará dinámicamente
+                control = `<select class="form-select" id="${id}" name="${filter.filterKey}" ${required} data-dynamic="true" data-filter-id="${filter.id}">
+                           <option value="">Cargando...</option>
+                           </select>`;
+                // Programar la carga dinámica (no bloquea el renderizado)
+                setTimeout(() => loadDynamicFilterOptions(filter.id, id), 100);
                 break;
 
             case 'MULTISELECT':
@@ -355,6 +370,12 @@
                 })
             });
 
+            // Verificar si la respuesta es JSON antes de parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Error de servidor. Por favor intente nuevamente.');
+            }
+
             const result = await response.json();
 
             if (!result.success) {
@@ -364,7 +385,7 @@
             renderResults(result);
         } catch (error) {
             console.error('Error:', error);
-            showResultError(error.message);
+            showResultError(error.message || 'Error ejecutando reporte');
         } finally {
             document.getElementById('loadingResults').style.display = 'none';
         }
@@ -452,7 +473,32 @@
 
     function formatDate(value, format) {
         if (!value) return '-';
-        const date = new Date(value);
+
+        // Si ya viene como string formateado (DD/MM/YYYY o YYYY-MM-DD), parsearlo correctamente
+        let date;
+        if (typeof value === 'string') {
+            // Si viene en formato DD/MM/YYYY
+            if (value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const parts = value.split('/');
+                date = new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            // Si viene en formato YYYY-MM-DD (ISO)
+            else if (value.match(/^\d{4}-\d{2}-\d{2}/)) {
+                date = new Date(value);
+            }
+            // Intentar parseo directo
+            else {
+                date = new Date(value);
+            }
+        } else {
+            date = new Date(value);
+        }
+
+        // Verificar si la fecha es válida
+        if (isNaN(date.getTime())) {
+            return value; // Retornar el valor original si no se puede parsear
+        }
+
         return date.toLocaleDateString('es-CR');
     }
 
@@ -551,9 +597,105 @@
         executeReport();
     }
 
-    function exportReport(type) {
-        // TODO: Implementar exportación
-        alert('Exportación a ' + type + ' próximamente');
+    async function exportReport(type) {
+        // Validar que haya datos para exportar
+        const resultCount = document.getElementById('resultCount').textContent;
+        if (resultCount === '0' || resultCount === '') {
+            alert('No hay datos para exportar. Ejecute el reporte primero.');
+            return;
+        }
+
+        // Mostrar loading
+        const btn = document.getElementById('btnExport' + type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Exportando...';
+
+        try {
+            // Recopilar los filtros actuales
+            const filters = {};
+            document.querySelectorAll('#filtersForm [name]').forEach(input => {
+                let value = input.value;
+                if (value !== '' && value !== null) {
+                    const key = input.name;
+                    filters[key] = value;
+                }
+            });
+
+            const requestBody = {
+                reportId: reportId,
+                filters: filters,
+                page: 1,
+                pageSize: 100000, // Todos los datos
+                sortColumn: sortColumn,
+                sortDirection: sortDirection,
+                exportType: type.toUpperCase()
+            };
+
+            const response = await fetch('/Reports/Api/Export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                // Intentar leer el mensaje de error
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al exportar');
+                } catch (e) {
+                    throw new Error('Error al exportar el reporte');
+                }
+            }
+
+            // Obtener el nombre del archivo del header o generar uno
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = `reporte_${type.toLowerCase()}_${new Date().toISOString().slice(0,10)}`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            // Obtener el tipo de contenido
+            const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+            // Descargar el archivo
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Para PDF (que en realidad es HTML), abrir en nueva pestaña para imprimir
+            if (type.toUpperCase() === 'PDF') {
+                const htmlBlob = new Blob([await blob.text()], { type: 'text/html' });
+                const htmlUrl = window.URL.createObjectURL(htmlBlob);
+                const pdfWindow = window.open(htmlUrl, '_blank');
+                if (pdfWindow) {
+                    pdfWindow.onload = function() {
+                        setTimeout(() => {
+                            pdfWindow.print();
+                        }, 500);
+                    };
+                }
+            }
+
+        } catch (error) {
+            console.error('Error exportando:', error);
+            alert('Error al exportar: ' + error.message);
+        } finally {
+            // Restaurar botón
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 
     function goBack() {
@@ -573,10 +715,51 @@
     function showResultError(message) {
         document.getElementById('noResults').innerHTML = `
             <i class="bi bi-exclamation-triangle display-1 text-danger"></i>
-            <h5 class="mt-3 text-danger">Error</h5>
-            <p class="text-muted">${message}</p>
+            <h5 class="mt-3 text-danger">Error al ejecutar el reporte</h5>
+            <p class="text-muted mb-3">${message}</p>
+            <button class="btn btn-outline-primary btn-sm" onclick="executeReport()">
+                <i class="bi bi-arrow-clockwise me-1"></i>Reintentar
+            </button>
         `;
         document.getElementById('noResults').style.display = 'block';
+    }
+
+    // Cargar opciones dinámicas para filtros DROPDOWN_SQL
+    async function loadDynamicFilterOptions(filterId, selectElementId) {
+        const selectElement = document.getElementById(selectElementId);
+        if (!selectElement) return;
+
+        try {
+            const response = await fetch(`/Reports/Api/FilterOptions/${filterId}`);
+
+            if (!response.ok) {
+                console.warn('No se pudieron cargar opciones del filtro', filterId);
+                selectElement.innerHTML = '<option value="">-- Sin opciones --</option>';
+                return;
+            }
+
+            const options = await response.json();
+            let html = '';
+
+            // Solo agregar "-- Seleccionar --" si NO hay una opción con valor vacío o 0 en los datos
+            const hasEmptyOption = options && options.some(opt => opt.value === '' || opt.value === '0' || opt.value === 0 || opt.value === null);
+            if (!hasEmptyOption) {
+                html = '<option value="">-- Seleccionar --</option>';
+            }
+
+            if (options && options.length > 0) {
+                options.forEach(opt => {
+                    html += `<option value="${opt.value}">${opt.text}</option>`;
+                });
+            } else {
+                html = '<option value="">-- Sin opciones --</option>';
+            }
+
+            selectElement.innerHTML = html;
+        } catch (error) {
+            console.warn('Error cargando opciones del filtro', filterId, error);
+            selectElement.innerHTML = '<option value="">-- Sin opciones --</option>';
+        }
     }
 </script>
 }

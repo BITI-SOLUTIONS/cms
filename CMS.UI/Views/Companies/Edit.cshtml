@@ -1,0 +1,175 @@
+@* ================================================================================
+   ARCHIVO: CMS.UI/Views/Companies/Edit.cshtml
+   PROPÓSITO: Formulario para editar una compañía
+   AUTOR: EAMR, BITI SOLUTIONS S.A
+   CREADO: 2026-02-27
+   ================================================================================ *@
+
+@model CMS.UI.Controllers.CompaniesController.CompanyEditViewModel
+@{
+    ViewData["Title"] = "Editar Compañía";
+    ViewData["PageTitle"] = "Editar Compañía";
+    ViewData["PageSubtitle"] = Model.CompanyName;
+    ViewData["PageIcon"] = "bi-building";
+    var countries = ViewBag.Countries as List<CMS.UI.Controllers.CompaniesController.CatalogItem> ?? new List<CMS.UI.Controllers.CompaniesController.CatalogItem>();
+}
+
+<div class="container-fluid">
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="mb-0 text-light">
+                        <i class="bi bi-pencil me-2"></i>Editar Compañía: @Model.CompanyName
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="CompanySchema" />
+
+                        @* ========== INFORMACIÓN BÁSICA ========== *@
+                        <h6 class="text-light mb-3">
+                            <i class="bi bi-info-circle me-2"></i>Información Básica
+                        </h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CompanyName" class="form-label text-light">Nombre de la Compañía *</label>
+                                <input asp-for="CompanyName" class="form-control bg-dark text-light border-secondary" required />
+                                <span asp-validation-for="CompanyName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-light">Schema</label>
+                                <input value="@Model.CompanySchema" class="form-control bg-dark text-light border-secondary" 
+                                       readonly disabled />
+                                <small class="text-muted">El schema no se puede modificar</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CompanyTaxId" class="form-label text-light">Identificación Fiscal</label>
+                                <input asp-for="CompanyTaxId" class="form-control bg-dark text-light border-secondary" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Industry" class="form-label text-light">Industria</label>
+                                <select asp-for="Industry" class="form-select bg-dark text-light border-secondary">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Tecnología">Tecnología</option>
+                                    <option value="Comercio">Comercio</option>
+                                    <option value="Servicios">Servicios</option>
+                                    <option value="Manufactura">Manufactura</option>
+                                    <option value="Salud">Salud</option>
+                                    <option value="Educación">Educación</option>
+                                    <option value="Finanzas">Finanzas</option>
+                                    <option value="Construcción">Construcción</option>
+                                    <option value="Transporte">Transporte</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Description" class="form-label text-light">Descripción</label>
+                                <textarea asp-for="Description" class="form-control bg-dark text-light border-secondary" 
+                                          rows="3" maxlength="500"></textarea>
+                            </div>
+                        </div>
+
+                        @* ========== CONTACTO ========== *@
+                        <h6 class="text-light mb-3">
+                            <i class="bi bi-person-lines-fill me-2"></i>Información de Contacto
+                        </h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ManagerName" class="form-label text-light">Gerente / Responsable</label>
+                                <input asp-for="ManagerName" class="form-control bg-dark text-light border-secondary" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ContactEmail" class="form-label text-light">Correo Electrónico</label>
+                                <input asp-for="ContactEmail" type="email" class="form-control bg-dark text-light border-secondary" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ContactPhone" class="form-label text-light">Teléfono</label>
+                                <input asp-for="ContactPhone" class="form-control bg-dark text-light border-secondary" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Website" class="form-label text-light">Sitio Web</label>
+                                <input asp-for="Website" type="url" class="form-control bg-dark text-light border-secondary" 
+                                       placeholder="https://..." />
+                            </div>
+                        </div>
+
+                        @* ========== UBICACIÓN ========== *@
+                        <h6 class="text-light mb-3">
+                            <i class="bi bi-geo-alt me-2"></i>Ubicación
+                        </h6>
+                        <div class="row mb-4">
+                            <div class="col-md-8 mb-3">
+                                <label asp-for="Address" class="form-label text-light">Dirección</label>
+                                <input asp-for="Address" class="form-control bg-dark text-light border-secondary" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="City" class="form-label text-light">Ciudad</label>
+                                <input asp-for="City" class="form-control bg-dark text-light border-secondary" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CountryId" class="form-label text-light">País</label>
+                                <select asp-for="CountryId" class="form-select bg-dark text-light border-secondary">
+                                    <option value="">Seleccionar país...</option>
+                                    @foreach (var country in countries)
+                                    {
+                                        <option value="@country.Id">@country.Name (@country.Code)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LogoUrl" class="form-label text-light">URL del Logo</label>
+                                <input asp-for="LogoUrl" type="url" class="form-control bg-dark text-light border-secondary" 
+                                       placeholder="https://..." />
+                            </div>
+                        </div>
+
+                        @* ========== CONFIGURACIÓN ========== *@
+                        <h6 class="text-light mb-3">
+                            <i class="bi bi-gear me-2"></i>Configuración
+                        </h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="MaxFailedLoginAttempts" class="form-label text-light">Intentos de Login Fallidos</label>
+                                <input asp-for="MaxFailedLoginAttempts" type="number" min="1" max="10" 
+                                       class="form-control bg-dark text-light border-secondary" />
+                                <small class="text-muted">Número de intentos antes de bloquear la cuenta</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LockoutDurationMinutes" class="form-label text-light">Duración de Bloqueo (minutos)</label>
+                                <input asp-for="LockoutDurationMinutes" type="number" min="1" max="60" 
+                                       class="form-control bg-dark text-light border-secondary" />
+                                <small class="text-muted">Tiempo que la cuenta permanece bloqueada</small>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="DashboardWelcomeMessage" class="form-label text-light">Mensaje de Bienvenida del Dashboard</label>
+                                <textarea asp-for="DashboardWelcomeMessage" class="form-control bg-dark text-light border-secondary" 
+                                          rows="2" maxlength="200" placeholder="Ej: Bienvenido al sistema de gestión empresarial"></textarea>
+                            </div>
+                        </div>
+
+                        @* ========== BOTONES ========== *@
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

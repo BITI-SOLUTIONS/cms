@@ -25,16 +25,19 @@ namespace CMS.UI.Controllers
     public class HomeController : Controller
     {
         private readonly MenuApiService _api;
+        private readonly DashboardApiService _dashboardApi;
         private readonly ILogger<HomeController> _logger;
 
         /// <summary>
         /// Constructor con inyección de dependencias.
         /// </summary>
-        /// <param name="api">Servicio para obtener los menús desde la API REST</param>
-        /// <param name="logger">Logger para registrar eventos y errores</param>
-        public HomeController(MenuApiService api, ILogger<HomeController> logger)
+        public HomeController(
+            MenuApiService api, 
+            DashboardApiService dashboardApi,
+            ILogger<HomeController> logger)
         {
             _api = api;
+            _dashboardApi = dashboardApi;
             _logger = logger;
         }
 
@@ -83,9 +86,37 @@ namespace CMS.UI.Controllers
                 // Obtener menús desde la API (con JWT en el header via AuthenticatedApiMessageHandler)
                 var menus = await _api.GetMenusAsync();
 
+                // ⭐ Obtener estadísticas del Dashboard
+                var dashboardStats = await _dashboardApi.GetDashboardStatsAsync();
+
                 // Pasar datos a la vista
                 ViewData["UserName"] = displayName;
                 ViewData["UserEmail"] = userEmail;
+                ViewData["DashboardStats"] = dashboardStats;
+
+                // ⭐ Verificar permisos para accesos rápidos
+                // Los permisos vienen del JWT que está en sesión, NO del User.Claims de la cookie
+                var permissions = GetPermissionsFromJwt(token);
+                ViewData["HasUsersPermission"] = permissions.Contains("Admin.Users.View");
+                ViewData["HasRolesPermission"] = permissions.Contains("Admin.Roles.View");
+                // Admin.Menus.Edit es el permiso correcto (no Admin.Menus.View que no existe)
+                ViewData["HasMenusPermission"] = permissions.Contains("Admin.Menus.Edit");
+                ViewData["HasCompaniesPermission"] = permissions.Contains("System.ViewAllCompanies");
+
+                // ⭐ Datos para el link de "Roles y Permisos"
+                // Obtener userId del JWT
+                var userIdFromJwt = GetUserIdFromJwt(token);
+                ViewData["CurrentUserId"] = userIdFromJwt;
+                ViewData["CurrentCompanyId"] = companyId;
+                // Usar roleId = 1 (Admin) como default para ManagePermissions
+                ViewData["DefaultRoleId"] = 1;
+
+                _logger.LogInformation("🔐 Permisos del usuario: {PermissionCount} ({HasUsers}/{HasRoles}/{HasMenus}/{HasCompanies})",
+                    permissions.Count,
+                    ViewData["HasUsersPermission"],
+                    ViewData["HasRolesPermission"],
+                    ViewData["HasMenusPermission"],
+                    ViewData["HasCompaniesPermission"]);
 
                 // Log informativo para debugging
                 _logger.LogInformation(
@@ -182,5 +213,208 @@ namespace CMS.UI.Controllers
             // Retornar vista de error con el modelo
             return View(model);
         }
+
+        /// <summary>
+        /// Extrae los permisos del JWT almacenado en sesión
+        /// </summary>
+        private List<string> GetPermissionsFromJwt(string token)
+        {
+            var permissions = new List<string>();
+
+            try
+            {
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+
+                if (handler.CanReadToken(token))
+                {
+                    var jwtToken = handler.ReadJwtToken(token);
+
+                    // Los permisos están en claims con tipo "permission" (singular)
+                    permissions = jwtToken.Claims
+                        .Where(c => c.Type == "permission")
+                        .Select(c => c.Value)
+                        .ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error decodificando JWT para extraer permisos");
+            }
+
+            return permissions;
+        }
+
+        /// <summary>
+        /// Extrae el userId del JWT almacenado en sesión
+        /// </summary>
+        private int GetUserIdFromJwt(string token)
+        {
+            try
+            {
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+
+                if (handler.CanReadToken(token))
+                {
+                    var jwtToken = handler.ReadJwtToken(token);
+
+                    // El userId puede estar en "sub", "nameid" o "userId"
+                    var userIdClaim = jwtToken.Claims
+                        .FirstOrDefault(c => c.Type == "sub" || c.Type == "nameid" || c.Type == "userId");
+
+                    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+                    {
+                        return userId;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error decodificando JWT para extraer userId");
+            }
+
+            return 1; // Default al usuario 1 si no se puede obtener
+        }
+
+        /// <summary>
+        /// Página de acceso denegado cuando el usuario no tiene permisos suficientes.
+        /// </summary>
+        [AllowAnonymous]
+        [SkipSessionValidation]
+        public IActionResult AccessDenied(string? permission = null, string? returnUrl = null)
+        {
+            _logger.LogWarning(
+                "🔒 Acceso denegado para usuario {User}. Permiso requerido: {Permission}. URL: {ReturnUrl}",
+                User.Identity?.Name ?? "Anónimo",
+                permission ?? "desconocido",
+                returnUrl ?? Request.Headers["Referer"].FirstOrDefault() ?? "desconocido");
+
+            // Mapear permisos a nombres amigables
+            var permissionNames = new Dictionary<string, string>
+            {
+                { "Admin.Users.View", "Gestión de Usuarios" },
+                { "Admin.Users.Edit", "Edición de Usuarios" },
+                { "Admin.Users.Create", "Creación de Usuarios" },
+                { "Admin.Users.Delete", "Eliminación de Usuarios" },
+                { "Admin.Roles.View", "Gestión de Roles" },
+                { "Admin.Roles.Edit", "Edición de Roles" },
+                { "Admin.Menus.View", "Gestión de Menús" },
+                { "Admin.Menus.Edit", "Edición de Menús" },
+                { "Admin.Permissions.View", "Gestión de Permisos" },
+                { "Admin.Permissions.Edit", "Edición de Permisos" },
+                { "Admin.Companies.View", "Gestión de Compañías" },
+                { "Admin.Dashboard.View", "Dashboard de Administración" },
+                { "Admin.Audit.View", "Registro de Auditoría" },
+                { "Admin.Logs.View", "Logs del Sistema" },
+                { "Admin.APIKeys.Edit", "Gestión de API Keys" },
+                { "Admin.Jobs.View", "Programador de Tareas" },
+                { "Admin.Backup.Execute", "Backup y Restauración" },
+                { "Admin.Health.View", "Estado del Sistema" },
+                { "System.ViewAllCompanies", "Ver Todas las Compañías" }
+            };
+
+            var permissionDisplayName = permission != null && permissionNames.TryGetValue(permission, out var name)
+                ? name
+                : permission ?? "esta funcionalidad";
+
+            ViewData["Permission"] = permission;
+            ViewData["PermissionDisplayName"] = permissionDisplayName;
+            ViewData["ReturnUrl"] = returnUrl ?? "/Home";
+
+            return View();
+        }
+
+        #region Profile & Settings
+
+        /// <summary>
+        /// Página de perfil del usuario actual.
+        /// Muestra información personal y permite editar datos básicos.
+        /// </summary>
+        public IActionResult Profile()
+        {
+            var token = HttpContext.Session.GetString("ApiToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                return RedirectToAction("SelectCompany", "Account", new { forceLogout = true });
+            }
+
+            // Obtener información del usuario desde claims y JWT
+            var userInfo = GetUserInfoFromJwt(token);
+
+            ViewData["Title"] = "Mi Perfil";
+            ViewData["UserInfo"] = userInfo;
+            ViewData["CompanyName"] = HttpContext.Session.GetString("SelectedCompanyName") ?? "Sin compañía";
+            ViewData["CompanySchema"] = HttpContext.Session.GetString("SelectedCompanySchema") ?? "";
+
+            return View();
+        }
+
+        /// <summary>
+        /// Página de configuración personal del usuario.
+        /// Permite ajustar preferencias como tema, idioma, notificaciones, etc.
+        /// </summary>
+        public IActionResult Settings()
+        {
+            var token = HttpContext.Session.GetString("ApiToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                return RedirectToAction("SelectCompany", "Account", new { forceLogout = true });
+            }
+
+            var userInfo = GetUserInfoFromJwt(token);
+
+            ViewData["Title"] = "Configuración";
+            ViewData["UserInfo"] = userInfo;
+            ViewData["CompanyName"] = HttpContext.Session.GetString("SelectedCompanyName") ?? "Sin compañía";
+
+            return View();
+        }
+
+        /// <summary>
+        /// Extrae información del usuario desde el JWT
+        /// </summary>
+        private UserProfileInfo GetUserInfoFromJwt(string token)
+        {
+            var info = new UserProfileInfo();
+
+            try
+            {
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+
+                if (handler.CanReadToken(token))
+                {
+                    var jwtToken = handler.ReadJwtToken(token);
+
+                    info.UserId = int.TryParse(jwtToken.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "nameid" || c.Type == "userId")?.Value, out var uid) ? uid : 0;
+                    info.UserName = jwtToken.Claims.FirstOrDefault(c => c.Type == "unique_name" || c.Type == "name")?.Value ?? "";
+                    info.Email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "";
+                    info.DisplayName = jwtToken.Claims.FirstOrDefault(c => c.Type == "display_name" || c.Type == "name")?.Value ?? info.UserName;
+                    info.Roles = jwtToken.Claims.Where(c => c.Type == "role").Select(c => c.Value).ToList();
+                    info.Permissions = jwtToken.Claims.Where(c => c.Type == "permission").Select(c => c.Value).ToList();
+                    info.CompanyId = int.TryParse(jwtToken.Claims.FirstOrDefault(c => c.Type == "companyId")?.Value, out var cid) ? cid : 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error extrayendo información del JWT");
+            }
+
+            return info;
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Información del perfil del usuario extraída del JWT
+    /// </summary>
+    public class UserProfileInfo
+    {
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
+        public List<string> Roles { get; set; } = new();
+        public List<string> Permissions { get; set; } = new();
     }
 }

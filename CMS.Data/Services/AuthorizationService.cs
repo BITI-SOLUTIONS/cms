@@ -75,7 +75,12 @@ namespace CMS.Data.Services
         #region Métodos Públicos
 
         /// <summary>
-        /// Obtiene los permisos efectivos de un usuario en una compañía específica
+        /// Obtiene los permisos efectivos de un usuario en una compañía específica.
+        /// 
+        /// ⚠️ REGLA DE ORO - PERMISOS:
+        /// Los permisos se obtienen ÚNICAMENTE de admin.user_company_permission.
+        /// La tabla admin.role_permission SOLO se usa para precargar permisos 
+        /// cuando se asigna un rol a un usuario (copia inicial).
         /// </summary>
         public async Task<EffectivePermissionsResult> GetEffectivePermissionsAsync(int userId, int companyId)
         {
@@ -87,7 +92,7 @@ namespace CMS.Data.Services
                 CompanyId = companyId
             };
 
-            // 1. Obtener roles del usuario en esta compañía
+            // 1. Obtener roles del usuario en esta compañía (solo para info, NO para permisos)
             var userRoles = await _context.UserCompanyRoles
                 .AsNoTracking()
                 .Where(ucr => ucr.ID_USER == userId && ucr.ID_COMPANY == companyId && ucr.IS_ACTIVE)
@@ -101,27 +106,10 @@ namespace CMS.Data.Services
 
             _logger.LogDebug("📋 Roles encontrados: {Roles}", string.Join(", ", result.Roles));
 
-            // 2. Obtener permisos de todos los roles
-            var roleIds = userRoles.Select(r => r.ID_ROLE).ToList();
-            
-            var rolePermissions = await _context.RolePermissions
-                .AsNoTracking()
-                .Where(rp => roleIds.Contains(rp.RoleId) && rp.IsAllowed)
-                .Join(_context.Permissions.Where(p => p.IS_ACTIVE),
-                    rp => rp.PermissionId,
-                    p => p.ID_PERMISSION,
-                    (rp, p) => p.PERMISSION_KEY)
-                .Distinct()
-                .ToListAsync();
-
-            foreach (var perm in rolePermissions)
-            {
-                result.AllowedPermissions.Add(perm);
-            }
-
-            _logger.LogDebug("📋 Permisos de roles: {Count}", result.AllowedPermissions.Count);
-
-            // 3. Obtener permisos directos del usuario en esta compañía
+            // =====================================================================
+            // ⭐ ÚNICA FUENTE DE PERMISOS: user_company_permission
+            // NO usar role_permission para verificación de permisos
+            // =====================================================================
             var directPermissions = await _context.UserCompanyPermissions
                 .AsNoTracking()
                 .Where(ucp => ucp.ID_USER == userId && ucp.ID_COMPANY == companyId)
@@ -137,7 +125,7 @@ namespace CMS.Data.Services
                 if (dp.IS_ALLOWED)
                 {
                     result.AllowedPermissions.Add(dp.PERMISSION_KEY);
-                    _logger.LogDebug("➕ Permiso directo añadido: {Permission}", dp.PERMISSION_KEY);
+                    _logger.LogDebug("➕ Permiso permitido: {Permission}", dp.PERMISSION_KEY);
                 }
                 else
                 {
@@ -146,7 +134,7 @@ namespace CMS.Data.Services
                 }
             }
 
-            // 4. Calcular permisos efectivos (permitidos - denegados)
+            // Calcular permisos efectivos (permitidos - denegados)
             result.EffectivePermissions = new HashSet<string>(
                 result.AllowedPermissions.Except(result.DeniedPermissions)
             );
@@ -274,10 +262,47 @@ namespace CMS.Data.Services
                 };
 
                 _context.UserCompanyRoles.Add(newRole);
+
+                // =====================================================================
+                // ⭐ PRECARGAR PERMISOS DEL ROL a user_company_permission
+                // Esta es la única forma de que el usuario tenga permisos efectivos
+                // =====================================================================
+                var rolePermissions = await _context.RolePermissions
+                    .Where(rp => rp.RoleId == roleId && rp.IsAllowed)
+                    .Select(rp => rp.PermissionId)
+                    .ToListAsync();
+
+                foreach (var permissionId in rolePermissions)
+                {
+                    // Verificar si ya existe ese permiso para este usuario-compañía
+                    var existingPerm = await _context.UserCompanyPermissions
+                        .FirstOrDefaultAsync(ucp => 
+                            ucp.ID_USER == userId && 
+                            ucp.ID_COMPANY == companyId && 
+                            ucp.ID_PERMISSION == permissionId);
+
+                    if (existingPerm == null)
+                    {
+                        _context.UserCompanyPermissions.Add(new UserCompanyPermission
+                        {
+                            ID_USER = userId,
+                            ID_COMPANY = companyId,
+                            ID_PERMISSION = permissionId,
+                            IS_ALLOWED = true,
+                            RowPointer = Guid.NewGuid(),
+                            CreateDate = DateTime.UtcNow,
+                            RecordDate = DateTime.UtcNow,
+                            CreatedBy = createdBy,
+                            UpdatedBy = createdBy
+                        });
+                    }
+                    // Si ya existe, no lo modificamos (respetamos configuración existente)
+                }
+
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Rol {RoleId} asignado a usuario {UserId} en compañía {CompanyId}",
-                    roleId, userId, companyId);
+                _logger.LogInformation("✅ Rol {RoleId} asignado a usuario {UserId} en compañía {CompanyId} con {PermCount} permisos precargados",
+                    roleId, userId, companyId, rolePermissions.Count);
 
                 return true;
             }

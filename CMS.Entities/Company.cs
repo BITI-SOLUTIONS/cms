@@ -232,6 +232,14 @@ namespace CMS.Entities
         [MaxLength(500)]
         public string? DESCRIPTION { get; set; }
 
+        /// <summary>
+        /// Mensaje de bienvenida que se muestra en el Dashboard de la compañía.
+        /// Si está vacío, usa un mensaje por defecto.
+        /// </summary>
+        [Column("dashboard_welcome_message")]
+        [MaxLength(500)]
+        public string? DASHBOARD_WELCOME_MESSAGE { get; set; }
+
         [Column("id_country")]
         public int? IdCountry { get; set; }
 
@@ -258,6 +266,14 @@ namespace CMS.Entities
         [Column("logo_url")]
         [MaxLength(255)]
         public string? LOGO_URL { get; set; }
+
+        /// <summary>
+        /// Logo de la compañía almacenado como Data URI (base64).
+        /// Formato: data:image/png;base64,{base64data}
+        /// Se usa cuando LOGO_URL está vacío o no existe.
+        /// </summary>
+        [Column("logo_data")]
+        public string? LOGO_DATA { get; set; }
 
         [Column("industry")]
         [MaxLength(100)]

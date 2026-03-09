@@ -1,0 +1,283 @@
+@* ================================================================================
+   ARCHIVO: CMS.UI/Views/Companies/Details.cshtml
+   PROPÓSITO: Detalle de una compañía
+   AUTOR: EAMR, BITI SOLUTIONS S.A
+   CREADO: 2026-02-27
+   ================================================================================ *@
+
+@model CMS.UI.Controllers.CompaniesController.CompanyDetailViewModel
+@{
+    ViewData["Title"] = Model.CompanyName;
+    ViewData["PageTitle"] = "Detalle de Compañía";
+    ViewData["PageSubtitle"] = Model.CompanyName;
+    ViewData["PageIcon"] = "bi-building";
+}
+
+<div class="container-fluid">
+    @* ========== HEADER ========== *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            @{
+                var logoSource = Model.GetLogoSource();
+            }
+            @if (!string.IsNullOrEmpty(logoSource))
+            {
+                <img src="@logoSource" alt="Logo" class="rounded me-3"
+                     style="width: 64px; height: 64px; object-fit: contain; background: white; padding: 4px;">
+            }
+            else
+            {
+                <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                     style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
+                    <i class="bi bi-building text-white fs-2"></i>
+                </div>
+            }
+            <div>
+                <h4 class="mb-0 text-light">@Model.CompanyName</h4>
+                <span class="text-muted">@Model.CompanySchema</span>
+                @if (Model.IsAdminCompany)
+                {
+                    <span class="badge bg-warning text-dark ms-2">
+                        <i class="bi bi-shield-check me-1"></i>Admin
+                    </span>
+                }
+                @if (Model.IsActive)
+                {
+                    <span class="badge bg-success ms-2">Activa</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary ms-2">Inactiva</span>
+                }
+            </div>
+        </div>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="bi bi-pencil me-2"></i>Editar
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        @* ========== INFORMACIÓN GENERAL ========== *@
+        <div class="col-lg-8">
+            <div class="card mb-4" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="mb-0 text-light">
+                        <i class="bi bi-info-circle me-2"></i>Información General
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Nombre de la Compañía</label>
+                            <p class="text-light mb-0">@Model.CompanyName</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Schema</label>
+                            <p class="text-light mb-0">
+                                <code class="bg-dark px-2 py-1 rounded">@Model.CompanySchema</code>
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Identificación Fiscal</label>
+                            <p class="text-light mb-0">@(Model.CompanyTaxId ?? "No especificado")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Industria</label>
+                            <p class="text-light mb-0">@(Model.Industry ?? "No especificada")</p>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="text-muted small">Descripción</label>
+                            <p class="text-light mb-0">@(Model.Description ?? "Sin descripción")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ========== CONTACTO ========== *@
+            <div class="card mb-4" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="mb-0 text-light">
+                        <i class="bi bi-person-lines-fill me-2"></i>Información de Contacto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Gerente / Responsable</label>
+                            <p class="text-light mb-0">@(Model.ManagerName ?? "No especificado")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Correo Electrónico</label>
+                            <p class="text-light mb-0">
+                                @if (!string.IsNullOrEmpty(Model.ContactEmail))
+                                {
+                                    <a href="mailto:@Model.ContactEmail" class="text-info">@Model.ContactEmail</a>
+                                }
+                                else
+                                {
+                                    <span>No especificado</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Teléfono</label>
+                            <p class="text-light mb-0">@(Model.ContactPhone ?? "No especificado")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Sitio Web</label>
+                            <p class="text-light mb-0">
+                                @if (!string.IsNullOrEmpty(Model.Website))
+                                {
+                                    <a href="@Model.Website" target="_blank" class="text-info">
+                                        @Model.Website <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span>No especificado</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Dirección</label>
+                            <p class="text-light mb-0">@(Model.Address ?? "No especificada")</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Ciudad / País</label>
+                            <p class="text-light mb-0">
+                                @(Model.City ?? "")
+                                @if (!string.IsNullOrEmpty(Model.CountryName))
+                                {
+                                    if (!string.IsNullOrEmpty(Model.City)) { <text>, </text> }
+                                    @Model.CountryName
+                                }
+                                @if (string.IsNullOrEmpty(Model.City) && string.IsNullOrEmpty(Model.CountryName))
+                                {
+                                    <text>No especificado</text>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ========== CONFIGURACIÓN Y ESTADÍSTICAS ========== *@
+        <div class="col-lg-4">
+            <div class="card mb-4" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="mb-0 text-light">
+                        <i class="bi bi-bar-chart me-2"></i>Estadísticas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded" style="background: rgba(59, 130, 246, 0.1);">
+                        <div>
+                            <span class="text-muted small d-block">Usuarios</span>
+                            <span class="text-light fs-4 fw-bold">@Model.UserCount</span>
+                        </div>
+                        <i class="bi bi-people fs-2 text-primary"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="mb-0 text-light">
+                        <i class="bi bi-gear me-2"></i>Configuración
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Intentos de login fallidos</label>
+                        <p class="text-light mb-0">@Model.MaxFailedLoginAttempts intentos</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Duración de bloqueo</label>
+                        <p class="text-light mb-0">@Model.LockoutDurationMinutes minutos</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Ambiente</label>
+                        <p class="mb-0">
+                            @if (Model.IsProduction)
+                            {
+                                <span class="badge bg-danger">Producción</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info">Desarrollo</span>
+                            }
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Azure AD</label>
+                        <p class="mb-0">
+                            @if (Model.UsesAzureAd)
+                            {
+                                <span class="badge bg-primary">Habilitado</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Deshabilitado</span>
+                            }
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-muted small">Tipo</label>
+                        <p class="mb-0">
+                            @if (Model.IsTenant)
+                            {
+                                <span class="badge bg-primary">Tenant</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No Tenant</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.DashboardWelcomeMessage))
+            {
+                <div class="card mb-4" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                    <div class="card-header bg-transparent border-bottom border-secondary">
+                        <h5 class="mb-0 text-light">
+                            <i class="bi bi-chat-quote me-2"></i>Mensaje de Bienvenida
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-light mb-0 fst-italic">"@Model.DashboardWelcomeMessage"</p>
+                    </div>
+                </div>
+            }
+
+            <div class="card" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="mb-0 text-light">
+                        <i class="bi bi-clock-history me-2"></i>Fechas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="text-muted small">Fecha de Creación</label>
+                        <p class="text-light mb-0">
+                            @(Model.CreateDate?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible")
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-muted small">Última Modificación</label>
+                        <p class="text-light mb-0">
+                            @(Model.RecordDate?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible")
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

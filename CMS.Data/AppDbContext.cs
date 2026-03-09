@@ -1,4 +1,5 @@
 ﻿using CMS.Entities;
+using CMS.Entities.Admin;
 using CMS.Entities.Reports;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,12 @@ namespace CMS.Data
         // ===== TABLAS NUEVAS: CONFIGURACIÓN GLOBAL =====
         public DbSet<SystemConfig> SystemConfigs { get; set; }
 
+        // ===== TABLAS CENTRALES: CATÁLOGOS COMPARTIDOS =====
+        /// <summary>
+        /// Unidades de medida - Tabla CENTRAL compartida por todas las compañías
+        /// </summary>
+        public DbSet<UnitOfMeasure> UnitsOfMeasure { get; set; }
+
         // ===== TABLAS NUEVAS: SISTEMA DE REPORTES =====
         public DbSet<ReportCategory> ReportCategories { get; set; }
         public DbSet<ReportDefinition> ReportDefinitions { get; set; }
@@ -68,6 +75,18 @@ namespace CMS.Data
         public DbSet<ReportColumn> ReportColumns { get; set; }
         public DbSet<ReportExecutionLog> ReportExecutionLogs { get; set; }
         public DbSet<ReportFavorite> ReportFavorites { get; set; }
+        public DbSet<UserCompanyReport> UserCompanyReports { get; set; }
+
+        // ===== TABLAS NUEVAS: SISTEMA DE AUDITORÍA =====
+        public DbSet<AuditTableConfig> AuditTableConfigs { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+
+        // ===== TABLAS NUEVAS: ACTIVIDAD Y CONFIGURACIÓN DE USUARIO =====
+        public DbSet<UserActivityLog> UserActivityLogs { get; set; }
+        public DbSet<UserSettings> UserSettings { get; set; }
+
+        // ===== TABLAS NUEVAS: DOCUMENTACIÓN DEL SISTEMA =====
+        public DbSet<SystemDocumentation> SystemDocumentations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -555,6 +574,36 @@ namespace CMS.Data
                 entity.HasIndex(e => new { e.CONFIG_CATEGORY, e.CONFIG_KEY }).IsUnique();
                 entity.HasIndex(e => e.CONFIG_CATEGORY);
                 entity.HasIndex(e => e.IS_ACTIVE);
+            });
+
+            // ⭐ CONFIGURACIÓN DE UserCompanyReport (Clave compuesta)
+            modelBuilder.Entity<UserCompanyReport>(entity =>
+            {
+                // Clave primaria compuesta (no tiene id serial)
+                entity.HasKey(e => new { e.UserId, e.CompanyId, e.ReportDefinitionId });
+
+                entity.Property(e => e.IsAllowed).HasDefaultValue(true);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.CompanyId);
+                entity.HasIndex(e => e.ReportDefinitionId);
+                entity.HasIndex(e => new { e.UserId, e.CompanyId });
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Company)
+                    .WithMany()
+                    .HasForeignKey(e => e.CompanyId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.ReportDefinition)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReportDefinitionId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Ajustar defaults audit PostgreSQL

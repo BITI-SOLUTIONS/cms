@@ -10,6 +10,7 @@ using CMS.Data.Services;
 using CMS.Entities.Operational;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace CMS.API.Controllers
@@ -50,19 +51,41 @@ namespace CMS.API.Controllers
         /// </summary>
         private string? GetCurrentUser()
         {
-            return User.FindFirst(ClaimTypes.Name)?.Value ?? 
-                   User.FindFirst("preferred_username")?.Value;
+            // El JWT local usa JwtRegisteredClaimNames.Name que se mapea como "name"
+            // También verificar ClaimTypes.Name para compatibilidad con otros esquemas
+            return User.FindFirst(JwtRegisteredClaimNames.Name)?.Value ??
+                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                   User.FindFirst("preferred_username")?.Value ??
+                   User.FindFirst("name")?.Value;
+        }
+
+        /// <summary>
+        /// Obtiene el ID del usuario actual del token JWT
+        /// </summary>
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value 
+                           ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                           ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                return userId;
+            }
+            return null;
         }
 
         /// <summary>
         /// Lista artículos con filtros y paginación
-        /// GET: api/item?search=xxx&category=xxx&isActive=true&page=1&pageSize=20
+        /// GET: api/item?search=xxx&classificationGroup=1&classificationId=5&isActive=true&dateFrom=2024-01-01&dateTo=2024-12-31&page=1&pageSize=20
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<ItemListResponse>> GetItems(
             [FromQuery] string? search = null,
-            [FromQuery] string? category = null,
+            [FromQuery] int? classificationGroup = null,
+            [FromQuery] int? classificationId = null,
             [FromQuery] bool? isActive = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
@@ -70,7 +93,7 @@ namespace CMS.API.Controllers
             {
                 var companyId = GetCurrentCompanyId();
                 var (items, totalCount) = await _itemService.GetItemsAsync(
-                    companyId, search, category, isActive, page, pageSize);
+                    companyId, search, classificationGroup, classificationId, isActive, dateFrom, dateTo, page, pageSize);
 
                 return Ok(new ItemListResponse
                 {
@@ -131,6 +154,7 @@ namespace CMS.API.Controllers
             {
                 var companyId = GetCurrentCompanyId();
                 var user = GetCurrentUser();
+                var userId = GetCurrentUserId();
 
                 var updated = await _itemService.UpdateLabelInfoAsync(
                     companyId, id, 
@@ -154,7 +178,8 @@ namespace CMS.API.Controllers
                     request.LabelThousandSeparator,
                     request.LabelCurrencySymbol,
                     request.PrintCurrencySymbol,
-                    user);
+                    user,
+                    userId);
 
                 if (updated == null)
                 {
@@ -247,10 +272,14 @@ namespace CMS.API.Controllers
                     Name = request.Name,
                     Description = request.Description,
                     Barcode = request.Barcode,
-                    Category = request.Category,
-                    Subcategory = request.Subcategory,
+                    IdClassification1 = request.IdClassification1,
+                    IdClassification2 = request.IdClassification2,
+                    IdClassification3 = request.IdClassification3,
+                    IdClassification4 = request.IdClassification4,
+                    IdClassification5 = request.IdClassification5,
+                    IdClassification6 = request.IdClassification6,
                     Brand = request.Brand,
-                    UnitOfMeasure = request.UnitOfMeasure ?? "unidad",
+                    IdUnitOfMeasure = request.IdUnitOfMeasure,
                     CostPrice = request.CostPrice,
                     SalePrice = request.SalePrice,
                     TaxRate = request.TaxRate,
@@ -293,6 +322,7 @@ namespace CMS.API.Controllers
             {
                 var companyId = GetCurrentCompanyId();
                 var user = GetCurrentUser();
+                var userId = GetCurrentUserId();
 
                 var item = new Item
                 {
@@ -301,10 +331,14 @@ namespace CMS.API.Controllers
                     Name = request.Name,
                     Description = request.Description,
                     Barcode = request.Barcode,
-                    Category = request.Category,
-                    Subcategory = request.Subcategory,
+                    IdClassification1 = request.IdClassification1,
+                    IdClassification2 = request.IdClassification2,
+                    IdClassification3 = request.IdClassification3,
+                    IdClassification4 = request.IdClassification4,
+                    IdClassification5 = request.IdClassification5,
+                    IdClassification6 = request.IdClassification6,
                     Brand = request.Brand,
-                    UnitOfMeasure = request.UnitOfMeasure ?? "unidad",
+                    IdUnitOfMeasure = request.IdUnitOfMeasure,
                     CostPrice = request.CostPrice,
                     SalePrice = request.SalePrice,
                     TaxRate = request.TaxRate,
@@ -325,7 +359,7 @@ namespace CMS.API.Controllers
                     IsLabelItem = request.IsLabelItem
                 };
 
-                var updated = await _itemService.UpdateItemAsync(companyId, item, user);
+                var updated = await _itemService.UpdateItemAsync(companyId, item, user, userId);
 
                 if (updated == null)
                 {
@@ -352,8 +386,9 @@ namespace CMS.API.Controllers
             {
                 var companyId = GetCurrentCompanyId();
                 var user = GetCurrentUser();
+                var userId = GetCurrentUserId();
 
-                var result = await _itemService.DeleteItemAsync(companyId, id, user);
+                var result = await _itemService.DeleteItemAsync(companyId, id, user, userId);
 
                 if (!result)
                 {
@@ -370,21 +405,135 @@ namespace CMS.API.Controllers
         }
 
         /// <summary>
-        /// Obtiene las categorías disponibles
-        /// GET: api/item/categories
+        /// Obtiene las unidades de medida disponibles
+        /// GET: api/item/units-of-measure
         /// </summary>
-        [HttpGet("categories")]
-        public async Task<ActionResult<List<string>>> GetCategories()
+        [HttpGet("units-of-measure")]
+        public async Task<ActionResult<List<UnitOfMeasureDto>>> GetUnitsOfMeasure()
         {
             try
             {
                 var companyId = GetCurrentCompanyId();
-                var categories = await _itemService.GetCategoriesAsync(companyId);
-                return Ok(categories);
+                var units = await _itemService.GetUnitsOfMeasureAsync(companyId);
+                var dtos = units.Select(u => new UnitOfMeasureDto
+                {
+                    Id = u.Id,
+                    Code = u.Code,
+                    Name = u.Name,
+                    Symbol = u.Symbol,
+                    AllowsDecimals = u.AllowsDecimals,
+                    IsDefault = u.IsDefault
+                }).ToList();
+                return Ok(dtos);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error obteniendo categorías");
+                _logger.LogError(ex, "Error obteniendo unidades de medida");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene las clasificaciones 1 disponibles (Categoría principal)
+        /// GET: api/item/classifications/1
+        /// </summary>
+        [HttpGet("classifications/{level}")]
+        public async Task<ActionResult<List<ClassificationDto>>> GetClassifications(int level)
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+                var classifications = await _itemService.GetClassificationsAsync(companyId, level);
+                return Ok(classifications);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo clasificaciones nivel {Level}", level);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las clasificaciones (1-6) en una sola llamada
+        /// GET: api/item/all-classifications
+        /// </summary>
+        [HttpGet("all-classifications")]
+        public async Task<ActionResult<AllClassificationsResponse>> GetAllClassifications()
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+
+                // GetUnitsOfMeasureAsync ahora retorna UnitOfMeasureDto directamente
+                var unitsOfMeasure = await _itemService.GetUnitsOfMeasureAsync(companyId);
+
+                // GetClassificationsAsync ahora usa una sola tabla con classification_group
+                var classifications1 = await _itemService.GetClassificationsAsync(companyId, 1);
+                var classifications2 = await _itemService.GetClassificationsAsync(companyId, 2);
+                var classifications3 = await _itemService.GetClassificationsAsync(companyId, 3);
+                var classifications4 = await _itemService.GetClassificationsAsync(companyId, 4);
+                var classifications5 = await _itemService.GetClassificationsAsync(companyId, 5);
+                var classifications6 = await _itemService.GetClassificationsAsync(companyId, 6);
+
+                var response = new AllClassificationsResponse
+                {
+                    UnitsOfMeasure = unitsOfMeasure.Select(u => new UnitOfMeasureDto 
+                    { 
+                        Id = u.Id, 
+                        Code = u.Code, 
+                        Name = u.Name, 
+                        Symbol = u.Symbol, 
+                        AllowsDecimals = u.AllowsDecimals, 
+                        IsDefault = u.IsDefault 
+                    }).ToList(),
+                    Classifications1 = classifications1.Select(c => new ClassificationDto 
+                    { 
+                        Id = c.Id, 
+                        Code = c.Code, 
+                        Name = c.Name, 
+                        Description = c.Description 
+                    }).ToList(),
+                    Classifications2 = classifications2.Select(c => new ClassificationDto 
+                    { 
+                        Id = c.Id, 
+                        Code = c.Code, 
+                        Name = c.Name, 
+                        Description = c.Description 
+                    }).ToList(),
+                    Classifications3 = classifications3.Select(c => new ClassificationDto 
+                    { 
+                        Id = c.Id, 
+                        Code = c.Code, 
+                        Name = c.Name, 
+                        Description = c.Description 
+                    }).ToList(),
+                    Classifications4 = classifications4.Select(c => new ClassificationDto 
+                    { 
+                        Id = c.Id, 
+                        Code = c.Code, 
+                        Name = c.Name, 
+                        Description = c.Description 
+                    }).ToList(),
+                    Classifications5 = classifications5.Select(c => new ClassificationDto 
+                    { 
+                        Id = c.Id, 
+                        Code = c.Code, 
+                        Name = c.Name, 
+                        Description = c.Description 
+                    }).ToList(),
+                    Classifications6 = classifications6.Select(c => new ClassificationDto 
+                    { 
+                        Id = c.Id, 
+                        Code = c.Code, 
+                        Name = c.Name, 
+                        Description = c.Description 
+                    }).ToList()
+                };
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo todas las clasificaciones");
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
@@ -505,179 +654,195 @@ namespace CMS.API.Controllers
 
         // ===== MAPPERS Y DTOS =====
 
-        private static ItemDto MapToDto(Item item) => new()
-            {
-                Id = item.Id,
-                Code = item.Code,
-                Name = item.Name,
-                Description = item.Description,
-                Barcode = item.Barcode,
-                Category = item.Category,
-                Subcategory = item.Subcategory,
-                Brand = item.Brand,
-                UnitOfMeasure = item.UnitOfMeasure,
-                CostPrice = item.CostPrice,
-                SalePrice = item.SalePrice,
-                TaxRate = item.TaxRate,
-                MinStock = item.MinStock,
-                MaxStock = item.MaxStock,
-                CurrentStock = item.CurrentStock,
-                ImageUrl = item.ImageUrl,
-                IsActive = item.IsActive,
-                IsSellable = item.IsSellable,
-                IsPurchasable = item.IsPurchasable,
-                TrackLots = item.TrackLots,
-                TrackSerialNumbers = item.TrackSerialNumbers,
+            private static ItemDto MapToDto(Item item) => new()
+                {
+                    Id = item.Id,
+                    Code = item.Code,
+                    Name = item.Name,
+                    Description = item.Description,
+                    Barcode = item.Barcode,
+                    IdClassification1 = item.IdClassification1,
+                    IdClassification2 = item.IdClassification2,
+                    IdClassification3 = item.IdClassification3,
+                    IdClassification4 = item.IdClassification4,
+                    IdClassification5 = item.IdClassification5,
+                    IdClassification6 = item.IdClassification6,
+                    Brand = item.Brand,
+                    IdUnitOfMeasure = item.IdUnitOfMeasure,
+                    CostPrice = item.CostPrice,
+                    SalePrice = item.SalePrice,
+                    TaxRate = item.TaxRate,
+                    MinStock = item.MinStock,
+                    MaxStock = item.MaxStock,
+                    CurrentStock = item.CurrentStock,
+                    ImageUrl = item.ImageUrl,
+                    IsActive = item.IsActive,
+                    IsSellable = item.IsSellable,
+                    IsPurchasable = item.IsPurchasable,
+                    TrackLots = item.TrackLots,
+                    TrackSerialNumbers = item.TrackSerialNumbers,
 
-                // Label Item fields
-                LabelItem = item.LabelItem,
-                LabelPrice = item.LabelPrice,
-                LabelItemBarcode = item.LabelItemBarcode,
-                IsLabelItem = item.IsLabelItem,
-                PrintLabelName = item.PrintLabelName,
-                PrintLabelPrice = item.PrintLabelPrice,
-                PrintLabelBarcode = item.PrintLabelBarcode,
+                    // Label Item fields
+                    LabelItem = item.LabelItem,
+                    LabelPrice = item.LabelPrice,
+                    LabelItemBarcode = item.LabelItemBarcode,
+                    IsLabelItem = item.IsLabelItem,
+                    PrintLabelName = item.PrintLabelName,
+                    PrintLabelPrice = item.PrintLabelPrice,
+                    PrintLabelBarcode = item.PrintLabelBarcode,
 
-                // Label size and format
-                LabelWidthCm = item.LabelWidthCm,
-                LabelHeightCm = item.LabelHeightCm,
-                LabelOrientation = item.LabelOrientation,
-                PrintLabelBorder = item.PrintLabelBorder,
-                LabelBorderColor = item.LabelBorderColor,
-                LabelNameColor = item.LabelNameColor,
-                LabelPriceColor = item.LabelPriceColor,
-                LabelBarcodeColor = item.LabelBarcodeColor,
+                    // Label size and format
+                    LabelWidthCm = item.LabelWidthCm,
+                    LabelHeightCm = item.LabelHeightCm,
+                    LabelOrientation = item.LabelOrientation,
+                    PrintLabelBorder = item.PrintLabelBorder,
+                    LabelBorderColor = item.LabelBorderColor,
+                    LabelNameColor = item.LabelNameColor,
+                    LabelPriceColor = item.LabelPriceColor,
+                    LabelBarcodeColor = item.LabelBarcodeColor,
 
-                // Label font and price format
-                LabelFontSize = item.LabelFontSize,
-                LabelFontFamily = item.LabelFontFamily,
-                LabelPriceDecimals = item.LabelPriceDecimals,
-                LabelThousandSeparator = item.LabelThousandSeparator,
-                LabelCurrencySymbol = item.LabelCurrencySymbol,
-                PrintCurrencySymbol = item.PrintCurrencySymbol,
+                    // Label font and price format
+                    LabelFontSize = item.LabelFontSize,
+                    LabelFontFamily = item.LabelFontFamily,
+                    LabelPriceDecimals = item.LabelPriceDecimals,
+                    LabelThousandSeparator = item.LabelThousandSeparator,
+                    LabelCurrencySymbol = item.LabelCurrencySymbol,
+                    PrintCurrencySymbol = item.PrintCurrencySymbol,
 
-                // Auditoría
-                CreateDate = item.CreateDate,
-                RecordDate = item.RecordDate,
-                CreatedBy = item.CreatedBy,
-                UpdatedBy = item.UpdatedBy,
-                RowPointer = item.RowPointer
-            };
-    }
+                    // Auditoría
+                    CreateDate = item.CreateDate,
+                    RecordDate = item.RecordDate,
+                    CreatedBy = item.CreatedBy,
+                    UpdatedBy = item.UpdatedBy,
+                    RowPointer = item.RowPointer
+                };
+        }
 
-    // ===== REQUEST/RESPONSE DTOS =====
+        // ===== REQUEST/RESPONSE DTOS =====
 
-    public class ItemListResponse
-    {
-        public List<ItemDto> Items { get; set; } = new();
-        public int TotalCount { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalPages { get; set; }
-    }
+        public class ItemListResponse
+        {
+            public List<ItemDto> Items { get; set; } = new();
+            public int TotalCount { get; set; }
+            public int Page { get; set; }
+            public int PageSize { get; set; }
+            public int TotalPages { get; set; }
+        }
 
-    public class ItemDto
-    {
-        public int Id { get; set; }
-        public string Code { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Barcode { get; set; }
-        public string? Category { get; set; }
-        public string? Subcategory { get; set; }
-        public string? Brand { get; set; }
-        public string UnitOfMeasure { get; set; } = "unidad";
-        public decimal CostPrice { get; set; }
-        public decimal SalePrice { get; set; }
-        public decimal TaxRate { get; set; }
-        public decimal MinStock { get; set; }
-        public decimal MaxStock { get; set; }
-        public decimal CurrentStock { get; set; }
-        public string? ImageUrl { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsSellable { get; set; }
-        public bool IsPurchasable { get; set; }
-        public bool TrackLots { get; set; }
-        public bool TrackSerialNumbers { get; set; }
+        public class ItemDto
+        {
+            public int Id { get; set; }
+            public string Code { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public string? Barcode { get; set; }
+            public int? IdClassification1 { get; set; }
+            public int? IdClassification2 { get; set; }
+            public int? IdClassification3 { get; set; }
+            public int? IdClassification4 { get; set; }
+            public int? IdClassification5 { get; set; }
+            public int? IdClassification6 { get; set; }
+            public string? Brand { get; set; }
+            public int? IdUnitOfMeasure { get; set; }
+            public decimal CostPrice { get; set; }
+            public decimal SalePrice { get; set; }
+            public decimal TaxRate { get; set; }
+            public decimal MinStock { get; set; }
+            public decimal MaxStock { get; set; }
+            public decimal CurrentStock { get; set; }
+            public string? ImageUrl { get; set; }
+            public bool IsActive { get; set; }
+            public bool IsSellable { get; set; }
+            public bool IsPurchasable { get; set; }
+            public bool TrackLots { get; set; }
+            public bool TrackSerialNumbers { get; set; }
 
-        // Label Item fields
-        public string? LabelItem { get; set; }
-        public decimal LabelPrice { get; set; }
-        public string? LabelItemBarcode { get; set; }
-        public bool IsLabelItem { get; set; }
-        public bool PrintLabelName { get; set; }
-        public bool PrintLabelPrice { get; set; }
-        public bool PrintLabelBarcode { get; set; }
+            // Label Item fields
+            public string? LabelItem { get; set; }
+            public decimal LabelPrice { get; set; }
+            public string? LabelItemBarcode { get; set; }
+            public bool IsLabelItem { get; set; }
+            public bool PrintLabelName { get; set; }
+            public bool PrintLabelPrice { get; set; }
+            public bool PrintLabelBarcode { get; set; }
 
-        // Label size and format
-        public decimal LabelWidthCm { get; set; }
-        public decimal LabelHeightCm { get; set; }
-        public string LabelOrientation { get; set; } = "horizontal";
-        public bool PrintLabelBorder { get; set; }
-        public string LabelBorderColor { get; set; } = "#000000";
-        public string LabelNameColor { get; set; } = "#000000";
-        public string LabelPriceColor { get; set; } = "#16a34a";
-        public string LabelBarcodeColor { get; set; } = "#000000";
+            // Label size and format
+            public decimal LabelWidthCm { get; set; }
+            public decimal LabelHeightCm { get; set; }
+            public string LabelOrientation { get; set; } = "horizontal";
+            public bool PrintLabelBorder { get; set; }
+            public string LabelBorderColor { get; set; } = "#000000";
+            public string LabelNameColor { get; set; } = "#000000";
+            public string LabelPriceColor { get; set; } = "#16a34a";
+            public string LabelBarcodeColor { get; set; } = "#000000";
 
-        // Label font and price format
-        public decimal LabelFontSize { get; set; } = 14.0m;
-        public string LabelFontFamily { get; set; } = "Arial";
-        public int LabelPriceDecimals { get; set; } = 2;
-        public string LabelThousandSeparator { get; set; } = ",";
-        public string LabelCurrencySymbol { get; set; } = "₡";
-        public bool PrintCurrencySymbol { get; set; } = true;
+            // Label font and price format
+            public decimal LabelFontSize { get; set; } = 14.0m;
+            public string LabelFontFamily { get; set; } = "Arial";
+            public int LabelPriceDecimals { get; set; } = 2;
+            public string LabelThousandSeparator { get; set; } = ",";
+            public string LabelCurrencySymbol { get; set; } = "₡";
+            public bool PrintCurrencySymbol { get; set; } = true;
 
-        // Auditoría
-        public DateTime CreateDate { get; set; }
-        public DateTime RecordDate { get; set; }
-        public string CreatedBy { get; set; } = string.Empty;
-        public string UpdatedBy { get; set; } = string.Empty;
-        public Guid RowPointer { get; set; }
-    }
+            // Auditoría
+            public DateTime CreateDate { get; set; }
+            public DateTime RecordDate { get; set; }
+            public string CreatedBy { get; set; } = string.Empty;
+            public string UpdatedBy { get; set; } = string.Empty;
+            public Guid RowPointer { get; set; }
+        }
 
-    public class CreateItemRequest
-    {
-        public string Code { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Barcode { get; set; }
-        public string? Category { get; set; }
-        public string? Subcategory { get; set; }
-        public string? Brand { get; set; }
-        public string? UnitOfMeasure { get; set; }
-        public decimal CostPrice { get; set; }
-        public decimal SalePrice { get; set; }
-        public decimal TaxRate { get; set; }
-        public decimal MinStock { get; set; }
-        public decimal MaxStock { get; set; }
-        public decimal CurrentStock { get; set; }
-        public string? ImageUrl { get; set; }
-        public bool? IsActive { get; set; }
-        public bool? IsSellable { get; set; }
-        public bool? IsPurchasable { get; set; }
-        public bool? TrackLots { get; set; }
-        public bool? TrackSerialNumbers { get; set; }
+        public class CreateItemRequest
+        {
+            public string Code { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public string? Barcode { get; set; }
+            public int? IdClassification1 { get; set; }
+            public int? IdClassification2 { get; set; }
+            public int? IdClassification3 { get; set; }
+            public int? IdClassification4 { get; set; }
+            public int? IdClassification5 { get; set; }
+            public int? IdClassification6 { get; set; }
+            public string? Brand { get; set; }
+            public int? IdUnitOfMeasure { get; set; }
+            public decimal CostPrice { get; set; }
+            public decimal SalePrice { get; set; }
+            public decimal TaxRate { get; set; }
+            public decimal MinStock { get; set; }
+            public decimal MaxStock { get; set; }
+            public decimal CurrentStock { get; set; }
+            public string? ImageUrl { get; set; }
+            public bool? IsActive { get; set; }
+            public bool? IsSellable { get; set; }
+            public bool? IsPurchasable { get; set; }
+            public bool? TrackLots { get; set; }
+            public bool? TrackSerialNumbers { get; set; }
 
-        // Label Item fields
-        public string? LabelItem { get; set; }
-        public decimal LabelPrice { get; set; }
-        public string? LabelItemBarcode { get; set; }
-        public bool IsLabelItem { get; set; }
-        public bool PrintLabelName { get; set; } = true;
-        public bool PrintLabelPrice { get; set; } = true;
-        public bool PrintLabelBarcode { get; set; } = true;
-    }
+            // Label Item fields
+            public string? LabelItem { get; set; }
+            public decimal LabelPrice { get; set; }
+            public string? LabelItemBarcode { get; set; }
+            public bool IsLabelItem { get; set; }
+            public bool PrintLabelName { get; set; } = true;
+            public bool PrintLabelPrice { get; set; } = true;
+            public bool PrintLabelBarcode { get; set; } = true;
+        }
 
-    public class UpdateItemRequest
-    {
-        public string Code { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Barcode { get; set; }
-        public string? Category { get; set; }
-        public string? Subcategory { get; set; }
-        public string? Brand { get; set; }
-        public string? UnitOfMeasure { get; set; }
+        public class UpdateItemRequest
+        {
+            public string Code { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public string? Barcode { get; set; }
+            public int? IdClassification1 { get; set; }
+            public int? IdClassification2 { get; set; }
+            public int? IdClassification3 { get; set; }
+            public int? IdClassification4 { get; set; }
+            public int? IdClassification5 { get; set; }
+            public int? IdClassification6 { get; set; }
+            public string? Brand { get; set; }
+            public int? IdUnitOfMeasure { get; set; }
         public decimal CostPrice { get; set; }
         public decimal SalePrice { get; set; }
         public decimal TaxRate { get; set; }
@@ -806,5 +971,43 @@ namespace CMS.API.Controllers
         public int QuantityPrinted { get; set; }
         public DateTime PrintDate { get; set; }
         public string? PrintedBy { get; set; }
+    }
+
+    /// <summary>
+    /// DTO para unidad de medida
+    /// </summary>
+    public class UnitOfMeasureDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Symbol { get; set; }
+        public bool AllowsDecimals { get; set; }
+        public bool IsDefault { get; set; }
+    }
+
+    /// <summary>
+    /// DTO para clasificación
+    /// </summary>
+    public class ClassificationDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    /// <summary>
+    /// Respuesta con todas las clasificaciones
+    /// </summary>
+    public class AllClassificationsResponse
+    {
+        public List<UnitOfMeasureDto> UnitsOfMeasure { get; set; } = new();
+        public List<ClassificationDto> Classifications1 { get; set; } = new();
+        public List<ClassificationDto> Classifications2 { get; set; } = new();
+        public List<ClassificationDto> Classifications3 { get; set; } = new();
+        public List<ClassificationDto> Classifications4 { get; set; } = new();
+        public List<ClassificationDto> Classifications5 { get; set; } = new();
+        public List<ClassificationDto> Classifications6 { get; set; } = new();
     }
 }

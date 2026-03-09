@@ -1,1 +1,63 @@
-[]
+[
+  {
+    "ContainingType": "CMS.UI.Controllers.ApiProxyController",
+    "Method": "SendSupportRequest",
+    "RelativePath": "api/support/request",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.UI.Controllers.ApiProxyController",
+    "Method": "GetUserSettings",
+    "RelativePath": "api/usersettings",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.UI.Controllers.ApiProxyController",
+    "Method": "UpdateUserSettings",
+    "RelativePath": "api/usersettings",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.UI.Controllers.ApiProxyController",
+    "Method": "GetActivityLog",
+    "RelativePath": "api/usersettings/activity",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.UI.Controllers.ApiProxyController",
+    "Method": "LogActivity",
+    "RelativePath": "api/usersettings/activity",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]

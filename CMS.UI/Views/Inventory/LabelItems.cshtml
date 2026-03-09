@@ -22,6 +22,14 @@
             </h1>
             <p style="color: #94a3b8;" class="mb-0">Seleccione un artículo para imprimir su etiqueta</p>
         </div>
+        @if (Model.ReturnToItemId.HasValue)
+        {
+            <div class="page-header-actions">
+                <a asp-controller="Inventory" asp-action="ItemDetails" asp-route-id="@Model.ReturnToItemId" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Volver al Artículo
+                </a>
+            </div>
+        }
     </div>
 
     @if (TempData["Success"] != null)
@@ -53,7 +61,7 @@
                     <form asp-action="LabelItems" method="get" class="mb-3">
                         <div class="input-group">
                             <input type="text" name="search" class="form-control" 
-                                   placeholder="Buscar por código, nombre..."
+                                   placeholder="Buscar por código, nombre, precio..."
                                    value="@Model.Search"
                                    style="background-color: #1e293b; color: #f0f0f0; border-color: #06b6d4;">
                             <button type="submit" class="btn btn-outline-info">
@@ -144,9 +152,6 @@
                     <h5 class="mb-0 text-white">
                         <i class="bi bi-tag me-2"></i>Datos de la Etiqueta
                     </h5>
-                    <button type="button" class="btn btn-success" id="btnPrint" disabled onclick="printLabel()">
-                        <i class="bi bi-printer me-2"></i>Imprimir Etiqueta
-                    </button>
                 </div>
                 <div class="card-body">
                     <div id="noItemSelected" class="text-center py-5">
@@ -157,8 +162,9 @@
 
                     <div id="labelForm" style="display: none;">
                         <input type="hidden" id="selectedItemId" />
-                        
-                        <div class="row mb-4">
+
+                        <!-- Código y Nombre Original -->
+                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label" style="color: #22d3ee;">Código</label>
                                 <div class="fs-5" id="itemCode" style="color: #22d3ee;">-</div>
@@ -166,6 +172,40 @@
                             <div class="col-md-6">
                                 <label class="form-label" style="color: #22d3ee;">Nombre Original</label>
                                 <div class="fs-5 text-white" id="itemName">-</div>
+                            </div>
+                        </div>
+
+                        <!-- 1. Botón Imprimir Etiqueta - PRIMERO, GRANDE Y ANCHO COMPLETO -->
+                        <div class="mb-4">
+                            <button type="button" class="btn btn-success btn-lg py-3 fs-4 w-100" id="btnPrint" disabled onclick="printLabel()">
+                                <i class="bi bi-printer-fill me-2 fs-3"></i>Imprimir Etiqueta
+                            </button>
+                        </div>
+
+                        <!-- 2. Precio de Etiqueta - DESTACADO Y GRANDE -->
+                        <div class="mb-4 p-4 rounded" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.2) 100%); border: 2px solid rgba(34, 197, 94, 0.3);">
+                            <label class="form-label text-white fs-5 mb-3">
+                                <i class="bi bi-currency-dollar me-2 text-success fs-4" id="priceLabelIcon"></i><span id="priceLabelText">Precio de Etiqueta</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text fs-3 px-4" id="priceInputSymbol" style="background-color: #16a34a; border-color: #16a34a; color: white;">₡</span>
+                                <input type="number" id="labelPrice" class="form-control form-control-lg fs-2 text-center fw-bold" step="0.01" min="0"
+                                       placeholder="0.00"
+                                       style="background-color: #1e293b; color: #22c55e; border-color: #16a34a; height: 80px;">
+                            </div>
+                        </div>
+
+                        <!-- 3. Vista Previa de Etiqueta -->
+                        <div class="mb-4 p-4 rounded" style="background: white; color: black;">
+                            <h6 class="text-muted mb-3">
+                                <i class="bi bi-eye me-2"></i>Vista Previa de Etiqueta:
+                            </h6>
+                            <div class="d-flex justify-content-center">
+                                <div class="text-center p-3" id="labelPreview" style="min-height: 75px; border: 2px solid #000000;">
+                                    <div id="previewName" class="fw-bold" style="font-size: 14px;">Nombre del Producto</div>
+                                    <div id="previewPrice" class="fw-bold" style="font-size: 20px; color: #16a34a;">₡0.00</div>
+                                    <div id="previewBarcode" class="font-monospace" style="font-size: 10px;">||||||||||||||||</div>
+                                </div>
                             </div>
                         </div>
 
@@ -182,19 +222,7 @@
                                 <small style="color: #94a3b8;">Este texto se imprimirá como nombre del producto</small>
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label text-white">
-                                    <i class="bi bi-currency-dollar me-1 text-success" id="priceLabelIcon"></i><span id="priceLabelText">Precio de Etiqueta</span>
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text" id="priceInputSymbol" style="background-color: #334155; border-color: rgba(6, 182, 212, 0.5); color: #06b6d4;">₡</span>
-                                    <input type="number" id="labelPrice" class="form-control form-control-lg" step="0.01" min="0"
-                                           placeholder="0.00"
-                                           style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <label class="form-label text-white">
                                     <i class="bi bi-upc me-1 text-warning"></i>Código de Barras
                                 </label>
@@ -420,17 +448,6 @@
                                 <i class="bi bi-arrow-counterclockwise me-2"></i>Restaurar
                             </button>
                         </div>
-
-                        <div class="mt-4 p-4 rounded" style="background: white; color: black;">
-                            <h6 class="text-muted mb-3">Vista Previa de Etiqueta:</h6>
-                            <div class="d-flex justify-content-center">
-                                <div class="text-center p-3" id="labelPreview" style="min-height: 75px; border: 2px solid #000000;">
-                                    <div id="previewName" class="fw-bold" style="font-size: 14px;">Nombre del Producto</div>
-                                    <div id="previewPrice" class="fw-bold" style="font-size: 20px; color: #16a34a;">₡0.00</div>
-                                    <div id="previewBarcode" class="font-monospace" style="font-size: 10px;">||||||||||||||||</div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -518,5 +535,121 @@
 </style>
 
 @section Scripts {
-    <script src="~/js/label-items.js"></script>
+    <script src="~/js/label-items.js?v=@DateTime.UtcNow.Ticks"></script>
+    @if (Model.SelectedItemId.HasValue)
+    {
+        <script>
+            // Preseleccionar el artículo cuando viene desde ItemDetails
+            // Usar setTimeout para asegurar que label-items.js esté completamente cargado
+            (function() {
+                function preselectItem() {
+                    console.log('LabelItems: Attempting to preselect item...');
+
+                    // Verificar que selectItem esté disponible
+                    if (typeof selectItem !== 'function') {
+                        console.log('LabelItems: selectItem not available yet, retrying in 200ms...');
+                        setTimeout(preselectItem, 200);
+                        return;
+                    }
+
+                    const itemId = @Model.SelectedItemId.Value;
+                    console.log('LabelItems: Preselecting item ID:', itemId);
+
+                    const itemRow = document.querySelector('[data-item-id="' + itemId + '"]');
+                    if (itemRow) {
+                        console.log('LabelItems: Item found in list, clicking...');
+                        itemRow.click();
+                        itemRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        console.log('LabelItems: Item not in list, loading via AJAX...');
+                        loadItemViaAjax(itemId);
+                    }
+                }
+
+                function loadItemViaAjax(itemId) {
+                    fetch('/Inventory/LabelItems/GetItem/' + itemId)
+                        .then(function(response) {
+                            console.log('LabelItems: AJAX response status:', response.status);
+                            if (!response.ok) {
+                                throw new Error('HTTP error! status: ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .then(function(data) {
+                            console.log('LabelItems: AJAX response:', data);
+
+                            // Handle both camelCase and PascalCase responses
+                            var item = data.item || data.Item;
+                            var success = data.success || data.Success;
+
+                            console.log('LabelItems: success=', success, 'item=', item);
+
+                            if (success && item) {
+                                console.log('LabelItems: Processing item:', item.id || item.Id);
+
+                                // Helper to get property with fallback
+                                var getProp = function(obj, camel, pascal, def) {
+                                    var v = obj[camel];
+                                    if (v === undefined) v = obj[pascal];
+                                    return (v !== undefined && v !== null) ? v : def;
+                                };
+
+                                // Crear un elemento virtual para simular el clic
+                                var virtualItem = {
+                                    dataset: {
+                                        itemId: String(getProp(item, 'id', 'Id', 0)),
+                                        itemCode: String(getProp(item, 'code', 'Code', '')),
+                                        itemName: String(getProp(item, 'name', 'Name', '')),
+                                        itemLabel: String(getProp(item, 'labelItem', 'LabelItem', '') || getProp(item, 'name', 'Name', '')),
+                                        itemPrice: String(getProp(item, 'labelPrice', 'LabelPrice', 0)),
+                                        itemBarcode: String(getProp(item, 'labelItemBarcode', 'LabelItemBarcode', '') || getProp(item, 'barcode', 'Barcode', '')),
+                                        printName: String(getProp(item, 'printLabelName', 'PrintLabelName', true)).toLowerCase(),
+                                        printPrice: String(getProp(item, 'printLabelPrice', 'PrintLabelPrice', true)).toLowerCase(),
+                                        printBarcode: String(getProp(item, 'printLabelBarcode', 'PrintLabelBarcode', true)).toLowerCase(),
+                                        labelWidth: String(getProp(item, 'labelWidthCm', 'LabelWidthCm', 4)),
+                                        labelHeight: String(getProp(item, 'labelHeightCm', 'LabelHeightCm', 2)),
+                                        labelOrientation: String(getProp(item, 'labelOrientation', 'LabelOrientation', 'horizontal')),
+                                        printBorder: String(getProp(item, 'printLabelBorder', 'PrintLabelBorder', true)).toLowerCase(),
+                                        borderColor: String(getProp(item, 'labelBorderColor', 'LabelBorderColor', '#000000')),
+                                        nameColor: String(getProp(item, 'labelNameColor', 'LabelNameColor', '#000000')),
+                                        priceColor: String(getProp(item, 'labelPriceColor', 'LabelPriceColor', '#16a34a')),
+                                        barcodeColor: String(getProp(item, 'labelBarcodeColor', 'LabelBarcodeColor', '#000000')),
+                                        fontSize: String(getProp(item, 'labelFontSize', 'LabelFontSize', 14)),
+                                        fontFamily: String(getProp(item, 'labelFontFamily', 'LabelFontFamily', 'Arial')),
+                                        priceDecimals: String(getProp(item, 'labelPriceDecimals', 'LabelPriceDecimals', 2)),
+                                        thousandSeparator: String(getProp(item, 'labelThousandSeparator', 'LabelThousandSeparator', ',')),
+                                        currencySymbol: String(getProp(item, 'labelCurrencySymbol', 'LabelCurrencySymbol', '₡')),
+                                        printCurrency: String(getProp(item, 'printCurrencySymbol', 'PrintCurrencySymbol', true)).toLowerCase()
+                                    }
+                                };
+
+                                console.log('LabelItems: Virtual item dataset:', JSON.stringify(virtualItem.dataset));
+                                console.log('LabelItems: Calling selectItem...');
+
+                                try {
+                                    selectItem(virtualItem);
+                                    console.log('LabelItems: selectItem completed successfully');
+                                } catch (e) {
+                                    console.error('LabelItems: Error in selectItem:', e);
+                                }
+                            } else {
+                                console.error('LabelItems: Invalid response - success:', success, 'item:', item);
+                            }
+                        })
+                        .catch(function(err) {
+                            console.error('LabelItems: Error loading item:', err);
+                        });
+                }
+
+                // Iniciar después de que la página haya cargado completamente
+                if (document.readyState === 'complete') {
+                    setTimeout(preselectItem, 100);
+                } else {
+                    window.addEventListener('load', function() {
+                        setTimeout(preselectItem, 100);
+                    });
+                }
+            })();
+        </script>
+    }
 }

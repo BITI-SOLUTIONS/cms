@@ -4,8 +4,10 @@
 // DESCRIPCIÓN: Maneja Audit Trail, System Logs, API Keys, Jobs, Backup, Health Check
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-02-14
+// ACTUALIZADO: 2026-03-02 - Agregada verificación de permisos por acción
 // ================================================================================
 
+using CMS.UI.Filters;
 using CMS.UI.Models.Admin;
 using CMS.UI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +35,7 @@ namespace CMS.UI.Controllers
         /// Vista principal de Audit Trail
         /// GET: /Admin/Audit
         /// </summary>
+        [RequirePermission("Admin.Audit.View")]
         public async Task<IActionResult> Audit(string? search = null, string? action = null, 
             DateTime? from = null, DateTime? to = null, int page = 1)
         {
@@ -48,6 +51,7 @@ namespace CMS.UI.Controllers
         /// Vista de System Logs
         /// GET: /Admin/Logs
         /// </summary>
+        [RequirePermission("Admin.Logs.View")]
         public async Task<IActionResult> Logs(string? level = null, string? source = null, 
             DateTime? from = null, DateTime? to = null, int page = 1)
         {
@@ -63,6 +67,7 @@ namespace CMS.UI.Controllers
         /// Vista de gestión de API Keys
         /// GET: /Admin/APIKeys
         /// </summary>
+        [RequirePermission("Admin.APIKeys.Edit")]
         public async Task<IActionResult> APIKeys()
         {
             var model = await _adminApiService.GetApiKeysAsync();
@@ -75,6 +80,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.APIKeys.Edit")]
         public async Task<IActionResult> CreateApiKey(CreateApiKeyViewModel model)
         {
             if (!ModelState.IsValid)
@@ -104,6 +110,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.APIKeys.Edit")]
         public async Task<IActionResult> RevokeApiKey(int id)
         {
             var success = await _adminApiService.RevokeApiKeyAsync(id);
@@ -124,6 +131,7 @@ namespace CMS.UI.Controllers
         /// Vista de Job Scheduler
         /// GET: /Admin/Jobs
         /// </summary>
+        [RequirePermission("Admin.Jobs.View")]
         public async Task<IActionResult> Jobs()
         {
             var model = await _adminApiService.GetJobsAsync();
@@ -136,6 +144,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.Jobs.View")]
         public async Task<IActionResult> RunJob(int id)
         {
             var success = await _adminApiService.RunJobAsync(id);
@@ -154,6 +163,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.Jobs.View")]
         public async Task<IActionResult> ToggleJob(int id)
         {
             var success = await _adminApiService.ToggleJobAsync(id);
@@ -174,6 +184,7 @@ namespace CMS.UI.Controllers
         /// Vista de Backup & Restore
         /// GET: /Admin/Backup
         /// </summary>
+        [RequirePermission("Admin.Backup.Execute")]
         public async Task<IActionResult> Backup()
         {
             var model = await _adminApiService.GetBackupsAsync();
@@ -186,6 +197,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.Backup.Execute")]
         public async Task<IActionResult> CreateBackup(string type = "full")
         {
             var success = await _adminApiService.CreateBackupAsync(type);
@@ -204,6 +216,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.Backup.Execute")]
         public async Task<IActionResult> RestoreBackup(int id)
         {
             var success = await _adminApiService.RestoreBackupAsync(id);
@@ -220,6 +233,7 @@ namespace CMS.UI.Controllers
         /// Descargar backup
         /// GET: /Admin/Backup/Download/{id}
         /// </summary>
+        [RequirePermission("Admin.Backup.Execute")]
         public async Task<IActionResult> DownloadBackup(int id)
         {
             // TODO: Implementar descarga real
@@ -235,6 +249,7 @@ namespace CMS.UI.Controllers
         /// Vista de Health Check
         /// GET: /Admin/Health
         /// </summary>
+        [RequirePermission("Admin.Health.View")]
         public async Task<IActionResult> Health()
         {
             var model = await _adminApiService.GetHealthCheckAsync();
@@ -247,6 +262,7 @@ namespace CMS.UI.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission("Admin.Health.View")]
         public async Task<IActionResult> RunHealthCheck()
         {
             TempData["Success"] = "Health check completado";
@@ -261,6 +277,7 @@ namespace CMS.UI.Controllers
         /// Dashboard de administración con resumen del sistema
         /// GET: /Admin/Dashboard
         /// </summary>
+        [RequirePermission("Admin.Dashboard.View")]
         public async Task<IActionResult> Dashboard()
         {
             try

@@ -722,5 +722,64 @@ namespace CMS.UI.Services
         }
 
         #endregion
+
+        #region Change Password (Usuario logueado)
+
+        /// <summary>
+        /// Cambia la contraseña de un usuario autenticado
+        /// Verifica la contraseña actual antes de permitir el cambio
+        /// </summary>
+        public async Task<(bool Success, string Message)> ChangePasswordAsync(
+            int userId, string currentPassword, string newPassword)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.ID_USER == userId && u.IS_ACTIVE);
+
+                if (user == null)
+                {
+                    return (false, "Usuario no encontrado.");
+                }
+
+                // Verificar contraseña actual
+                if (string.IsNullOrEmpty(user.PASSWORD_HASH) || 
+                    !VerifyPassword(currentPassword, user.PASSWORD_HASH))
+                {
+                    _logger.LogWarning("❌ Contraseña actual incorrecta para usuario: {UserId}", userId);
+                    return (false, "La contraseña actual es incorrecta.");
+                }
+
+                // Validar nueva contraseña
+                if (newPassword.Length < 8)
+                {
+                    return (false, "La nueva contraseña debe tener al menos 8 caracteres.");
+                }
+
+                // No permitir contraseña igual a la actual
+                if (VerifyPassword(newPassword, user.PASSWORD_HASH))
+                {
+                    return (false, "La nueva contraseña debe ser diferente a la actual.");
+                }
+
+                // Actualizar contraseña
+                user.PASSWORD_HASH = HashPassword(newPassword);
+                user.LAST_PASSWORD_CHANGE = DateTime.UtcNow;
+                user.UpdatedBy = user.USER_NAME;
+                user.RecordDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Contraseña cambiada exitosamente para usuario: {UserId}", userId);
+                return (true, "¡Contraseña actualizada exitosamente!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error cambiando contraseña para usuario: {UserId}", userId);
+                return (false, "Error interno al cambiar la contraseña.");
+            }
+        }
+
+        #endregion
     }
 }

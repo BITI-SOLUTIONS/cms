@@ -1,0 +1,169 @@
+@* ================================================================================
+   ARCHIVO: CMS.UI/Views/Companies/Index.cshtml
+   PROPÓSITO: Lista de compañías del sistema
+   AUTOR: EAMR, BITI SOLUTIONS S.A
+   CREADO: 2026-02-27
+   ================================================================================ *@
+
+@model List<CMS.UI.Controllers.CompaniesController.CompanyListViewModel>
+@{
+    ViewData["Title"] = "Compañías";
+    ViewData["PageTitle"] = "Compañías";
+    ViewData["PageSubtitle"] = "Gestión de compañías del sistema";
+    ViewData["PageIcon"] = "bi-building";
+}
+
+<div class="container-fluid">
+    @* ========== ALERTAS ========== *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* ========== HEADER CON ACCIONES ========== *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 text-light">
+                <i class="bi bi-building me-2"></i>Compañías
+            </h4>
+            <small class="text-muted">@Model.Count compañía(s) registrada(s)</small>
+        </div>
+        <div>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nueva Compañía
+            </a>
+        </div>
+    </div>
+
+    @* ========== GRID DE COMPAÑÍAS ========== *@
+    <div class="row">
+        @if (Model.Any())
+        {
+            @foreach (var company in Model)
+            {
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 @(company.IsActive ? "" : "border-secondary")" 
+                         style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 12px;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="d-flex align-items-center">
+                                    @{
+                                        var logoSource = company.GetLogoSource();
+                                    }
+                                    @if (!string.IsNullOrEmpty(logoSource))
+                                    {
+                                        <img src="@logoSource" alt="Logo" class="rounded me-3" 
+                                             style="width: 48px; height: 48px; object-fit: contain; background: white; padding: 4px;">
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded me-3 d-flex align-items-center justify-content-center" 
+                                             style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
+                                            <i class="bi bi-building text-white fs-4"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <h5 class="mb-0 text-light">@company.CompanyName</h5>
+                                        <small class="text-muted">@company.CompanySchema</small>
+                                    </div>
+                                </div>
+                                <div>
+                                    @if (company.IsAdminCompany)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-shield-check me-1"></i>Admin
+                                        </span>
+                                    }
+                                    @if (company.IsActive)
+                                    {
+                                        <span class="badge bg-success">Activa</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactiva</span>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(company.Description))
+                            {
+                                <p class="card-text text-light small mb-3">
+                                    @(company.Description.Length > 100 ? company.Description.Substring(0, 100) + "..." : company.Description)
+                                </p>
+                            }
+
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @if (!string.IsNullOrEmpty(company.ContactEmail))
+                                {
+                                    <span class="badge bg-dark text-light">
+                                        <i class="bi bi-envelope me-1"></i>@company.ContactEmail
+                                    </span>
+                                }
+                                @if (!string.IsNullOrEmpty(company.ContactPhone))
+                                {
+                                    <span class="badge bg-dark text-light">
+                                        <i class="bi bi-telephone me-1"></i>@company.ContactPhone
+                                    </span>
+                                }
+                            </div>
+
+                            @if (company.CreateDate.HasValue)
+                            {
+                                <small class="text-muted d-block mb-3">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    Creada: @company.CreateDate.Value.ToString("dd/MM/yyyy")
+                                </small>
+                            }
+                        </div>
+                        <div class="card-footer bg-transparent border-top border-secondary">
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="Details" asp-route-id="@company.Id" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-eye me-1"></i>Ver
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@company.Id" class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-pencil me-1"></i>Editar
+                                </a>
+                                @if (!company.IsAdminCompany)
+                                {
+                                    <form asp-action="ToggleActive" asp-route-id="@company.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm @(company.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                onclick="return confirm('@(company.IsActive ? "¿Desactivar esta compañía?" : "¿Activar esta compañía?")')">
+                                            <i class="bi @(company.IsActive ? "bi-x-circle" : "bi-check-circle") me-1"></i>
+                                            @(company.IsActive ? "Desactivar" : "Activar")
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="card" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-building fs-1 text-muted mb-3"></i>
+                        <h5 class="text-light">No hay compañías registradas</h5>
+                        <p class="text-muted">Crea la primera compañía para comenzar</p>
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Nueva Compañía
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

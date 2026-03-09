@@ -38,6 +38,10 @@ namespace CMS.Data.Services
         /// <summary>
         /// Crea un DbContext para la base de datos de una compañía específica.
         /// El connection string se obtiene de admin.company.connection_string_development/production
+        /// 
+        /// REGLA DE ORO: Si Environment = "Development" en appsettings.json, SIEMPRE se usa
+        /// connection_string_development sin importar el valor de is_production en la BD.
+        /// Esto permite hacer pruebas locales con datos de producción sin afectar a los usuarios.
         /// </summary>
         /// <param name="companyId">ID de la compañía</param>
         /// <returns>CompanyDbContext configurado para esa compañía</returns>
@@ -53,29 +57,37 @@ namespace CMS.Data.Services
                 throw new InvalidOperationException($"Compañía con ID {companyId} no encontrada");
             }
 
-            // Obtener el connection string correcto según el ambiente
-            var connectionString = company.IS_PRODUCTION 
+            // REGLA DE ORO: Determinar si usar connection string de desarrollo
+            // Si Environment = "Development" en appsettings.json, SIEMPRE usar connection_string_development
+            // independientemente del valor de is_production en la BD
+            var appEnvironment = _configuration["Environment"] ?? "Development";
+            var isAppInDevelopment = appEnvironment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+
+            // Determinar qué connection string usar
+            bool useProductionConnectionString = company.IS_PRODUCTION && !isAppInDevelopment;
+
+            var connectionString = useProductionConnectionString 
                 ? company.CONNECTION_STRING_PRODUCTION 
                 : company.CONNECTION_STRING_DEVELOPMENT;
 
             _logger.LogInformation(
-                "🔗 Compañía {CompanyId} ({Schema}): IS_PRODUCTION={IsProduction}, ConnectionString={HasCS}",
-                companyId, company.COMPANY_SCHEMA, company.IS_PRODUCTION, 
-                !string.IsNullOrEmpty(connectionString) ? "Configurado" : "VACÍO");
+                "🔗 Compañía {CompanyId} ({Schema}): IS_PRODUCTION={IsProduction}, AppEnvironment={AppEnv}, UsandoCS={CSType}",
+                companyId, company.COMPANY_SCHEMA, company.IS_PRODUCTION, appEnvironment,
+                useProductionConnectionString ? "Production" : "Development");
 
             if (string.IsNullOrEmpty(connectionString))
             {
                 _logger.LogWarning(
                     "⚠️ Compañía {CompanyId} ({Schema}) no tiene connection_string_{Env} configurado. Usando fallback basado en appsettings.",
-                    companyId, company.COMPANY_SCHEMA, company.IS_PRODUCTION ? "production" : "development");
+                    companyId, company.COMPANY_SCHEMA, useProductionConnectionString ? "production" : "development");
 
                 // Fallback: construir connection string basado en el appsettings
                 connectionString = BuildFallbackConnectionString(company.COMPANY_SCHEMA);
             }
 
             _logger.LogDebug(
-                "Creando CompanyDbContext para compañía {CompanyId} ({Schema}), IsProduction: {IsProduction}",
-                companyId, company.COMPANY_SCHEMA, company.IS_PRODUCTION);
+                "Creando CompanyDbContext para compañía {CompanyId} ({Schema}), UsingProductionCS: {UsingProdCS}",
+                companyId, company.COMPANY_SCHEMA, useProductionConnectionString);
 
             return CreateDbContextFromConnectionString(connectionString, company.COMPANY_SCHEMA);
         }
@@ -218,6 +230,73 @@ namespace CMS.Data.Services
                 return false;
             }
         }
+
+        /// <summary>
+        /// Obtiene información de la compañía (nombre BD/schema)
+        /// </summary>
+        public async Task<CompanyInfo> GetCompanyInfoAsync(int companyId)
+        {
+            var company = await _centralDb.Companies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.ID == companyId);
+
+            if (company == null)
+            {
+                throw new InvalidOperationException($"Compañía con ID {companyId} no encontrada");
+            }
+
+            return new CompanyInfo
+            {
+                Id = company.ID,
+                Schema = company.COMPANY_SCHEMA ?? "unknown",
+                Name = company.COMPANY_NAME ?? "Unknown"
+            };
+        }
+
+        /// <summary>
+        /// Obtiene el connection string para una compañía (para queries directos como reportes)
+        /// Usa la misma lógica que CreateDbContextAsync para garantizar consistencia.
+        /// </summary>
+        public async Task<(string ConnectionString, string Schema)> GetConnectionStringAsync(int companyId)
+        {
+            // Obtener información de la compañía desde la BD central
+            var company = await _centralDb.Companies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.ID == companyId);
+
+            if (company == null)
+            {
+                throw new InvalidOperationException($"Compañía con ID {companyId} no encontrada");
+            }
+
+            // REGLA DE ORO: Determinar si usar connection string de desarrollo
+            var appEnvironment = _configuration["Environment"] ?? "Development";
+            var isAppInDevelopment = appEnvironment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+
+            // Determinar qué connection string usar
+            bool useProductionConnectionString = company.IS_PRODUCTION && !isAppInDevelopment;
+
+            var connectionString = useProductionConnectionString 
+                ? company.CONNECTION_STRING_PRODUCTION 
+                : company.CONNECTION_STRING_DEVELOPMENT;
+
+            _logger.LogInformation(
+                "🔗 GetConnectionString - Compañía {CompanyId} ({Schema}): IS_PRODUCTION={IsProduction}, AppEnvironment={AppEnv}, UsandoCS={CSType}",
+                companyId, company.COMPANY_SCHEMA, company.IS_PRODUCTION, appEnvironment,
+                useProductionConnectionString ? "Production" : "Development");
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                _logger.LogWarning(
+                    "⚠️ Compañía {CompanyId} ({Schema}) no tiene connection_string_{Env} configurado. Usando fallback.",
+                    companyId, company.COMPANY_SCHEMA, useProductionConnectionString ? "production" : "development");
+
+                // Fallback: construir connection string basado en el appsettings
+                connectionString = BuildFallbackConnectionString(company.COMPANY_SCHEMA ?? "public");
+            }
+
+            return (connectionString, company.COMPANY_SCHEMA ?? "public");
+        }
     }
 
     /// <summary>
@@ -229,5 +308,25 @@ namespace CMS.Data.Services
         CompanyDbContext CreateDbContext(string companySchema);
         Task<bool> DatabaseExistsAsync(string companySchema);
         Task<bool> CreateCompanyDatabaseAsync(string companySchema);
+
+        /// <summary>
+        /// Obtiene información de la compañía (nombre BD/schema)
+        /// </summary>
+        Task<CompanyInfo> GetCompanyInfoAsync(int companyId);
+
+        /// <summary>
+        /// Obtiene el connection string para una compañía (para queries directos)
+        /// </summary>
+        Task<(string ConnectionString, string Schema)> GetConnectionStringAsync(int companyId);
+    }
+
+    /// <summary>
+    /// Información básica de una compañía para auditoría
+    /// </summary>
+    public class CompanyInfo
+    {
+        public int Id { get; set; }
+        public string Schema { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
     }
 }

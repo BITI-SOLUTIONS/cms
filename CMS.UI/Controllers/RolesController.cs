@@ -3,8 +3,10 @@
 // PROPÓSITO: Controlador para gestión de Roles en la UI
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-02-17
+// ACTUALIZADO: 2026-03-02 - Agregada verificación de permisos
 // ================================================================================
 
+using CMS.UI.Filters;
 using CMS.UI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +16,7 @@ using System.Text.Json;
 namespace CMS.UI.Controllers
 {
     [Authorize]
+    [RequirePermission("Admin.Roles.View")]
     public class RolesController : Controller
     {
         private readonly HttpClient _httpClient;
