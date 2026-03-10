@@ -12,8 +12,8 @@
 # ============================================================================
 
 param(
-    [string]$PdfFolder = "CMS.Documentation/PDFs",
-    [string]$OutputFile = "CMS.Data/Scripts/022_insert_documentation_pdfs.sql"
+    [string]$PdfFolder = "PDFs",
+    [string]$OutputFile = "..\CMS.Data\Scripts\022_insert_documentation_pdfs.sql"
 )
 
 Write-Host "`n========================================" -ForegroundColor Cyan
@@ -44,20 +44,30 @@ $documentMapping = @{
     "CMS_FAQ.pdf" = "FAQ-001"
 }
 
+# Obtener ruta absoluta de la carpeta de PDFs
+$scriptDir = $PSScriptRoot
+if (-not $scriptDir) { $scriptDir = (Get-Location).Path }
+$PdfFolder = Join-Path $scriptDir $PdfFolder
+
 # Verificar carpeta
 if (-not (Test-Path $PdfFolder)) {
-    Write-Host "? ERROR: Carpeta no encontrada: $PdfFolder" -ForegroundColor Red
+    Write-Host "ERROR: Carpeta no encontrada: $PdfFolder" -ForegroundColor Red
     Write-Host "   Ejecute primero: .\Convert-Documentation-To-PDF.ps1" -ForegroundColor Yellow
     exit 1
 }
+
+Write-Host "Carpeta de PDFs: $PdfFolder" -ForegroundColor Green
+
+# Obtener ruta para el archivo SQL de salida
+$OutputFile = Join-Path $scriptDir $OutputFile
 
 # Iniciar contenido SQL
 $sqlContent = @"
 -- ============================================================================
 -- Script: 022_insert_documentation_pdfs.sql
--- Descripción: Inserta los archivos PDF de documentación en la BD
+-- Descripcion: Inserta los archivos PDF de documentacion en la BD
 -- Generado: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
--- Autor: Generado automáticamente por Generate-SQL-From-PDFs.ps1
+-- Autor: Generado automaticamente por Generate-SQL-From-PDFs.ps1
 -- ============================================================================
 
 -- NOTA: Este script contiene los PDFs codificados en formato hexadecimal

@@ -59,6 +59,36 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="LabelItems" method="get" class="mb-3">
+                        <!-- Selector de ordenamiento -->
+                        <div class="mb-3">
+                            <label class="form-label text-light small mb-1">
+                                <i class="bi bi-sort-alpha-down me-1"></i>Ordenar por
+                            </label>
+                            <select name="orderBy" id="orderBySelect" class="form-select" 
+                                    style="background-color: #1e293b; color: #f0f0f0; border-color: #06b6d4;"
+                                    onchange="this.form.submit()">
+                                @{
+                                    var orderOptions = new[] {
+                                        ("sale_price", "Precio de Venta"),
+                                        ("name", "Nombre"),
+                                        ("code", "Código"),
+                                        ("label_price", "Precio Etiqueta"),
+                                        ("label_item", "Etiqueta Artículo")
+                                    };
+                                    foreach (var opt in orderOptions)
+                                    {
+                                        if (Model.OrderBy == opt.Item1)
+                                        {
+                                            <option value="@opt.Item1" selected>@opt.Item2</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@opt.Item1">@opt.Item2</option>
+                                        }
+                                    }
+                                }
+                            </select>
+                        </div>
                         <div class="input-group">
                             <input type="text" name="search" class="form-control" 
                                    placeholder="Buscar por código, nombre, precio..."
@@ -135,7 +165,7 @@
                                 @for (int i = 1; i <= Model.TotalPages; i++)
                                 {
                                     <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                                        <a class="page-link" href="?page=@i&search=@Model.Search" 
+                                        <a class="page-link" href="?page=@i&search=@Model.Search&orderBy=@Model.OrderBy" 
                                            style="background-color: @(i == Model.CurrentPage ? "#06b6d4" : "#1e293b"); border-color: #06b6d4; color: white;">@i</a>
                                     </li>
                                 }

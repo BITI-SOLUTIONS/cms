@@ -1361,6 +1361,14 @@
               "format": "int32",
               "default": 20
             }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "sale_price"
+            }
           }
         ],
         "responses": {

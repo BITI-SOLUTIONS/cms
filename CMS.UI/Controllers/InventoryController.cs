@@ -80,7 +80,7 @@ namespace CMS.UI.Controllers
         /// Limitado a máximo 100 artículos (10 páginas x 10 artículos por página)
         /// para mejorar el rendimiento de la UI
         /// </remarks>
-        public async Task<IActionResult> LabelItems(string? search = null, int page = 1, int? itemId = null, int? returnToItemId = null)
+        public async Task<IActionResult> LabelItems(string? search = null, int page = 1, int? itemId = null, int? returnToItemId = null, string? orderBy = "sale_price")
         {
             try
             {
@@ -90,7 +90,7 @@ namespace CMS.UI.Controllers
                 const int pageSize = 10;
                 const int maxPages = 10;
 
-                var url = $"{GetApiBaseUrl()}/api/item/labels?page={page}&pageSize={pageSize}";
+                var url = $"{GetApiBaseUrl()}/api/item/labels?page={page}&pageSize={pageSize}&orderBy={orderBy ?? "sale_price"}";
                 if (!string.IsNullOrEmpty(search))
                     url += $"&search={Uri.EscapeDataString(search)}";
 
@@ -101,7 +101,8 @@ namespace CMS.UI.Controllers
                     Search = search,
                     CurrentPage = page,
                     SelectedItemId = itemId,
-                    ReturnToItemId = returnToItemId ?? itemId
+                    ReturnToItemId = returnToItemId ?? itemId,
+                    OrderBy = orderBy ?? "sale_price"
                 };
 
                 if (response.IsSuccessStatusCode)
@@ -1034,6 +1035,12 @@ namespace CMS.UI.Controllers
         /// ID del artículo al que regresar (para el botón Volver)
         /// </summary>
         public int? ReturnToItemId { get; set; }
+
+        /// <summary>
+        /// Campo por el cual ordenar los artículos
+        /// Valores: sale_price, name, code, label_price, label_item
+        /// </summary>
+        public string OrderBy { get; set; } = "sale_price";
     }
 
     public class SaveLabelRequest

@@ -7,6 +7,44 @@
 
 ---
 
+┌─────────────────────────────────────────────────────────────┐
+│  1. Usuario hace login con Azure AD en UI                  │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  2. UI obtiene info del usuario (OID, email, nombre)        │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  3. UI → API: POST /api/auth/token                          │
+│     Body: { "azureOid": "...", "email": "..." }            │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  4. API valida usuario en BD (por AZURE_OID)                │
+│     Calcula permisos del usuario                            │
+│     Genera JWT propio (firmado por el API)                  │
+│     Devuelve: { "token": "eyJ...", "expiresIn": 3600 }     │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  5. UI guarda el token en memoria/session                   ��
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  6. UI → API: GET /api/menu                                 │
+│     Header: Authorization: Bearer eyJ... (token del API)    │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  7. API valida token propio                                 │
+│     Extrae userId del token                                 │
+│     Filtra menús según permisos                             │
+│     Devuelve menús filtrados                                │
+└─────────────────────────────────────────────────────────────╘
+
+Login Azure AD → sync-user (crear/actualizar usuario) → token (generar JWT) → usar JWT
+
 ## 🎯 1. CONTEXTO GENERAL
 
 ### Información del Usuario/Organización
@@ -131,6 +169,10 @@ BITI-SOLUTIONS/cms/
 ├── .gitignore
 └── .gitattributes
 ```
+
+### ⚠️ IMPORTANTE: Configuración SIN appsettings.json
+
+**CRÍTICO:** Este proyecto **NO** usa `appsettings.json` ni `appsettings.Development.json`.
 
 En su lugar, usa **`connectionstrings.json`** para TODA la configuración:
 - Ubicación: `CMS.API/connectionstrings.json` y `CMS.UI/connectionstrings.json`
@@ -489,6 +531,21 @@ perf: mejoras de performance
 8. Deployment manual con kubectl set image
 ```
 
+🟩 1. Cómo debe ser tu flujo ideal (Copiar, pegar, publicar)
+A. SUBE LOS CAMBIOS A GITHUB
+Desde tu PC/Visual Studio:
+sh
+git add .
+git commit -m "Mis cambios importantes"
+git push origin main
+
+
+# Opción 1: Agregar todo excepto .vs
+git add -A -- ':!.vs' ':!.vs/**'
+
+# Opción 2: Agregar al exclude local
+Add-Content -Path ".git/info/exclude" -Value ".vs/`n.vs/**"
+
 ### Proceso de Deployment ACTUAL
 
 #### Build y Push (Manual)
@@ -527,6 +584,14 @@ kubectl set image deployment/cms-ui-deployment \
 kubectl rollout status deployment/cms-api-deployment -n cms
 kubectl rollout status deployment/cms-ui-deployment -n cms
 ```
+
+#### Reiniciar deployments
+```bash
+# Reiniciar API (rolling restart)
+kubectl rollout restart deployment/cms-api-deployment -n cms
+
+# Reiniciar UI
+kubectl rollout restart deployment/cms-ui-deployment -n cms
 
 ### ⚠️ PROBLEMAS IDENTIFICADOS
 
@@ -572,6 +637,7 @@ kubectl rollout status deployment/cms-ui-deployment -n cms
 - **Endpoint:** signin-oidc
 - **Flujo:** OAuth 2.0
 - **Azure App Registration:** ✅ Configurado (credenciales en base de datos)
+- **Configuración almacenada en:** `connectionstrings.json` (NO en appsettings.json)
 
 **Posibles causas:**
 1. API no está configurado para validar tokens JWT de Azure AD
@@ -714,6 +780,16 @@ kubectl rollout undo deployment/cms-api-deployment -n cms
 
 ## 💡 12. CONTEXTO PARA COPILOT
 
+### CRÍTICO: connectionstrings.json
+
+**NUNCA OLVIDES ESTO:**
+- Este proyecto **NO USA appsettings.json**
+- **SOLO USA connectionstrings.json**
+- Ubicaciones: `CMS.API/connectionstrings.json` y `CMS.UI/connectionstrings.json`
+- Son el **mismo archivo** (idéntico contenido)
+- Está en `.gitignore` (NO se versiona)
+- En Kubernetes: Se monta desde ConfigMap `cms-connectionstrings`
+
 ### Stack Clave
 - .NET 9.0 + PostgreSQL 15 + Kubernetes k3s + Azure AD
 - Puertos: API 8080, UI 8081, PostgreSQL 5432/30432
@@ -731,19 +807,31 @@ kubectl rollout undo deployment/cms-api-deployment -n cms
 |-------|---------|---------|
 | 2026-02-09 | 1.0 | Documento inicial completo |
 
-## 🚀 14. Checklist para Deploy en DigitalOcean Droplet/Servidor
-Dado lo que describes (Kubernetes, Docker, acceso SSH, registry privado), te dejo los comandos completos para:
-
-Actualizar el código
-Reconstruir imágenes Docker
-Push de imágenes al registry
-Actualizar el deployment en Kubernetes
-Verificar y hacer rollback si es necesario
-
-Necesito agregarle una pantalla de login al puro inicio que el usuario digite la company este dato se tiene que validar contrata la tabla SELECT * FROM admin.company espeficicamente con el campo company_schema, aqui se tiene que validar el tipo de validacion de usuario que de momento solo lo tengo implementado para que valide por azure ad, pero tambien puede ser que se validad por un usuario del propio sistema es decir correo electronico mas contraseña, para eso hay que crear un campo nuevo boolean en SELECT * FROM admin.company para saber si la compañlia utiliza o no azure ad, es decir todos los usuarios de la compañia se van a logear igual segun lo que tenga definido, tambien hay que crear una tabla nueva que relacione si el usuario puede acceder a esa compañia ya que un usurios va poder acceder a varias compañias ademas puede que en una de las compañias se valide con azure ad y en otra solo por correo mas contraseña si esta esta ultima los usuarios pueden solicitar reestablecer la contraseña si fue que se les olvido esto mandara un correo al correo registrado y con esto comprar que es el usuario, 3 intentos de poner una contraseña incorrecto se bloquea automaticamnet el usuario y debera reestablecer la contraseña
-
 ---
 
 **Autor:** @BITI-SOLUTIONS con GitHub Copilot  
 **URL:** https://cms.biti-solutions.com  
 **Servidor:** BITISERVER1 (147.182.204.86)
+
+┌─────────────────────────────────────────────────────────┐
+│                    PostgreSQL Server                     │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌─────────────────┐             │
+│  │  BD: cms        │    │  BD: admin      │             │
+│  │  Schema: admin  │    │  Schema: admin  │             │
+│  │                 │    │                 │             │
+│  │  - user         │    │  - item         │             │
+│  │  - company      │    │  - (futuro...)  │             │
+│  │  - role         │    │                 │             │
+│  │  - permission   │    └─────────────────┘             │
+│  │  - menu         │                                    │
+│  │  - etc...       │    ┌─────────────────┐             │
+│  │                 │    │  BD: eamr       │             │
+│  │  CENTRAL        │    │  Schema: eamr   │             │
+│  └─────────────────┘    │                 │             │
+│                         │  - item         │             │
+│                         │  - (futuro...)  │             │
+│                         └─────────────────┘             │
+└─────────────────────────────────────────────────────────┘
+
+Excelente ya quedo funcionando bien, ahora necesito que me ayudes a crear un submenu en el menu de Inventory que se llama "Label Items" y crear una pantalla para este meno que desplega una lista de articulos por lo cual hay que hacer una tabla nueva para manejar los datos de estos articulos la cual va estar en otra base de datos que tenemos que crear porque no esta creada la cual va tener el mismo nombre de la compañia y el esquema va tener el mismo nombre de la compañia tambien, es decir la base de datos actual llamada cms con el schema admin va tener la informacion central y administrativa del sistema pero la informacion de la operacion de las compañias va estar en bases separas con el schema y nombre de base de datos igual a la compañia, por favor guardar esto como critico en tu archivo copilot-instructions.md

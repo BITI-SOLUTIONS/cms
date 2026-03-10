@@ -293,7 +293,8 @@ namespace CMS.Data.Services
             int companyId,
             string? search = null,
             int page = 1,
-            int pageSize = 20)
+            int pageSize = 20,
+            string? orderBy = "sale_price")
         {
             using var dbContext = await _dbContextFactory.CreateDbContextAsync(companyId);
 
@@ -323,9 +324,18 @@ namespace CMS.Data.Services
             // Total count
             var totalCount = await query.CountAsync();
 
+            // Ordenamiento
+            IOrderedQueryable<Item> orderedQuery = orderBy?.ToLower() switch
+            {
+                "name" => query.OrderBy(i => i.Name),
+                "code" => query.OrderBy(i => i.Code),
+                "label_price" => query.OrderBy(i => i.LabelPrice),
+                "label_item" => query.OrderBy(i => i.LabelItem ?? i.Name),
+                "sale_price" or _ => query.OrderBy(i => i.SalePrice)
+            };
+
             // Paginación
-            var items = await query
-                .OrderBy(i => i.Name)
+            var items = await orderedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -653,7 +663,8 @@ namespace CMS.Data.Services
             int companyId,
             string? search = null,
             int page = 1,
-            int pageSize = 20);
+            int pageSize = 20,
+            string? orderBy = "sale_price");
 
         Task<Item?> GetItemByIdAsync(int companyId, int itemId);
         Task<Item?> GetItemByCodeAsync(int companyId, string code);

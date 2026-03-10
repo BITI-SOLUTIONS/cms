@@ -119,13 +119,14 @@ namespace CMS.API.Controllers
         public async Task<ActionResult<ItemListResponse>> GetLabelItems(
             [FromQuery] string? search = null,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? orderBy = "sale_price")
         {
             try
             {
                 var companyId = GetCurrentCompanyId();
                 var (items, totalCount) = await _itemService.GetLabelItemsAsync(
-                    companyId, search, page, pageSize);
+                    companyId, search, page, pageSize, orderBy);
 
                 return Ok(new ItemListResponse
                 {
