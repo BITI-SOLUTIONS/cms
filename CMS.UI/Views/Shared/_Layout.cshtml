@@ -24,6 +24,8 @@
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true">
     <link rel="icon" type="image/png" sizes="32x32" href="~/img/logo.png" asp-append-version="true">
     <link rel="apple-touch-icon" sizes="180x180" href="~/img/logo.png" asp-append-version="true">
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>

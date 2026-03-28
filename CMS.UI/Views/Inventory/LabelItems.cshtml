@@ -207,7 +207,7 @@
 
                         <!-- 1. Botón Imprimir Etiqueta - PRIMERO, GRANDE Y ANCHO COMPLETO -->
                         <div class="mb-4">
-                            <button type="button" class="btn btn-success btn-lg py-3 fs-4 w-100" id="btnPrint" disabled onclick="printLabel()">
+                            <button type="button" class="btn btn-success btn-lg py-3 fs-4 w-100" id="btnPrint" disabled onclick="printLabelDirect()">
                                 <i class="bi bi-printer-fill me-2 fs-3"></i>Imprimir Etiqueta
                             </button>
                         </div>
@@ -223,6 +223,38 @@
                                        placeholder="0.00"
                                        style="background-color: #1e293b; color: #22c55e; border-color: #16a34a; height: 80px;">
                             </div>
+                        </div>
+
+                        <!-- 2.5 Cantidad de Copias a Imprimir -->
+                        <div class="mb-4 p-3 rounded" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3);">
+                            <label class="form-label text-white fs-6 mb-2">
+                                <i class="bi bi-files me-2 text-info"></i>Cantidad de Copias a Imprimir
+                            </label>
+                            <div class="input-group">
+                                <input type="number" id="printQuantity" class="form-control form-control-lg text-center fw-bold" 
+                                       value="1" min="1" max="100"
+                                       style="background-color: #1e293b; color: #06b6d4; border-color: #06b6d4; font-size: 1.5rem;">
+                                <span class="input-group-text" style="background-color: #1e293b; border-color: #06b6d4; color: #94a3b8;">
+                                    copias
+                                </span>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Ingrese la cantidad de etiquetas que desea imprimir (1-100)</small>
+                        </div>
+
+                        <!-- 2.6 Número de Contenedor (Opcional) -->
+                        <div class="mb-4 p-3 rounded" style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3);">
+                            <label class="form-label text-white fs-6 mb-2">
+                                <i class="bi bi-box-seam me-2" style="color: #f97316;"></i>Número de Contenedor <small class="text-muted">(Opcional)</small>
+                            </label>
+                            <div class="input-group">
+                                <input type="text" id="containerNumber" class="form-control form-control-lg text-center fw-bold" 
+                                       maxlength="50" placeholder="Ej: CONT-001-2026"
+                                       style="background-color: #1e293b; color: #f97316; border-color: #f97316; font-size: 1.2rem;">
+                                <span class="input-group-text" style="background-color: #1e293b; border-color: #f97316; color: #94a3b8;">
+                                    <i class="bi bi-box-seam"></i>
+                                </span>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Ingrese el número de contenedor o lote (máx. 50 caracteres). Este valor se guarda por compañía.</small>
                         </div>
 
                         <!-- 3. Vista Previa de Etiqueta -->
@@ -565,6 +597,10 @@
 </style>
 
 @section Scripts {
+    <script>
+        window.jwtToken = '@(ViewBag.ApiToken ?? string.Empty)';
+        window.apiBaseUrl = '@(ViewBag.ApiBaseUrl ?? string.Empty)';
+    </script>
     <script src="~/js/label-items.js?v=@DateTime.UtcNow.Ticks"></script>
     @if (Model.SelectedItemId.HasValue)
     {

@@ -1,0 +1,245 @@
+@using CMS.UI.Controllers
+@model LabelPrintHistoryViewModel
+@{
+    ViewData["Title"] = "Historial de Impresión de Etiquetas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .filter-card {
+            background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        
+        .history-table {
+            background: linear-gradient(135deg, #1a1f36 0%, #252b47 100%);
+        }
+        
+        .history-table th {
+            background-color: rgba(6, 182, 212, 0.2);
+            color: #06b6d4;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(6, 182, 212, 0.3);
+        }
+        
+        .history-table td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            vertical-align: middle;
+        }
+        
+        .history-table tr:hover td {
+            background-color: rgba(6, 182, 212, 0.1);
+        }
+        
+        .badge-quantity {
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .badge-container {
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            font-size: 0.85rem;
+            padding: 0.35rem 0.7rem;
+        }
+        
+        .price-cell {
+            color: #22c55e;
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+        
+        .date-cell {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .user-cell {
+            color: #06b6d4;
+            font-size: 0.9rem;
+        }
+    </style>
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-white mb-1">
+                <i class="bi bi-clock-history me-2 text-info"></i>Historial de Impresión de Etiquetas
+            </h2>
+            <p class="text-muted mb-0">Consulta el registro de todas las etiquetas impresas</p>
+        </div>
+        <div>
+            <a asp-action="LabelItems" class="btn btn-outline-info">
+                <i class="bi bi-tag me-2"></i>Ir a Etiquetas
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card filter-card mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="LabelPrintHistory">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label text-white small">
+                            <i class="bi bi-calendar me-1"></i>Desde
+                        </label>
+                        <input type="date" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" 
+                               class="form-control" style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-white small">
+                            <i class="bi bi-calendar me-1"></i>Hasta
+                        </label>
+                        <input type="date" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" 
+                               class="form-control" style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-white small">
+                            <i class="bi bi-box-seam me-1"></i>Contenedor
+                        </label>
+                        <input type="text" name="containerNumber" value="@Model.ContainerNumber" placeholder="Ej: CONT-001"
+                               class="form-control" style="background-color: #1e293b; color: #f97316; border-color: rgba(249, 115, 22, 0.5);">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-white small">
+                            <i class="bi bi-person me-1"></i>Usuario
+                        </label>
+                        <input type="text" name="printedBy" value="@Model.PrintedBy" placeholder="Buscar por usuario..."
+                               class="form-control" style="background-color: #1e293b; color: #f0f0f0; border-color: rgba(6, 182, 212, 0.5);">
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-info flex-grow-1">
+                            <i class="bi bi-search me-2"></i>Buscar
+                        </button>
+                        <a asp-action="LabelPrintHistory" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de historial -->
+    <div class="card history-table">
+        <div class="card-body p-0">
+            @if (Model.History.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="px-4">Fecha</th>
+                                <th>Código</th>
+                                <th>Artículo</th>
+                                <th>Etiqueta</th>
+                                <th class="text-end">Precio</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-center">Contenedor</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.History)
+                            {
+                                <tr>
+                                    <td class="px-4 date-cell">
+                                        <i class="bi bi-clock me-1"></i>
+                                        @item.PrintDate.ToString("dd/MM/yyyy HH:mm")
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary font-monospace">@item.ItemCode</span>
+                                    </td>
+                                    <td class="text-light">@item.ItemName</td>
+                                    <td class="text-muted">
+                                        @(string.IsNullOrEmpty(item.LabelItem) ? "-" : item.LabelItem)
+                                    </td>
+                                    <td class="text-end price-cell">
+                                        @(string.IsNullOrEmpty(item.FormattedPrice) ? $"₡{item.LabelPrice:N2}" : item.FormattedPrice)
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-quantity">
+                                            <i class="bi bi-printer me-1"></i>@item.QuantityPrinted
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (!string.IsNullOrEmpty(item.ContainerNumber))
+                                        {
+                                            <span class="badge badge-container">
+                                                <i class="bi bi-box-seam me-1"></i>@item.ContainerNumber
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="user-cell">
+                                        <i class="bi bi-person me-1"></i>
+                                        @(string.IsNullOrEmpty(item.PrintedBy) ? "Sistema" : item.PrintedBy.Split('@')[0])
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Resumen -->
+                <div class="card-footer bg-transparent border-top border-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            Mostrando <strong class="text-info">@Model.History.Count</strong> registros
+                            @if (Model.History.Count > 0)
+                            {
+                                <span class="ms-3">
+                                    | Total impreso: <strong class="text-success">@Model.History.Sum(h => h.QuantityPrinted)</strong> etiquetas
+                                </span>
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (Model.CurrentPage > 1)
+                            {
+                                <a asp-action="LabelPrintHistory" 
+                                   asp-route-page="@(Model.CurrentPage - 1)"
+                                   asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-printedBy="@Model.PrintedBy"
+                                   asp-route-containerNumber="@Model.ContainerNumber"
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                            }
+                            @if (Model.History.Count == Model.PageSize)
+                            {
+                                <a asp-action="LabelPrintHistory" 
+                                   asp-route-page="@(Model.CurrentPage + 1)"
+                                   asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-printedBy="@Model.PrintedBy"
+                                   asp-route-containerNumber="@Model.ContainerNumber"
+                                   class="btn btn-outline-info btn-sm">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-clock-history display-1 text-muted mb-3"></i>
+                    <h5 class="text-white">No hay registros de impresión</h5>
+                    <p class="text-muted">No se encontraron impresiones con los filtros seleccionados.</p>
+                    <a asp-action="LabelItems" class="btn btn-info mt-3">
+                        <i class="bi bi-tag me-2"></i>Ir a Imprimir Etiquetas
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,56 @@
+@{
+    ViewData["Title"] = "Papelera";
+    ViewData["Subtitle"] = "Archivos eliminados (se borran permanentemente después de 30 días)";
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-light">
+                <i class="bi bi-trash me-2"></i>@ViewData["Title"]
+            </h1>
+            <p class="text-muted mb-0">@ViewData["Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger" id="btnEmptyTrash" disabled>
+                <i class="bi bi-trash3 me-2"></i>Vaciar Papelera
+            </button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-body">
+            <div class="text-center py-5">
+                <i class="bi bi-trash text-warning" style="font-size: 4rem;"></i>
+                <h4 class="text-light mt-3">Papelera Vacía</h4>
+                <p class="text-muted">
+                    Los archivos eliminados aparecerán aquí.
+                    <br>Se eliminarán permanentemente después de 30 días.
+                </p>
+                <a href="/Files/Master" class="btn btn-outline-info mt-2">
+                    <i class="bi bi-folder2-open me-2"></i>Ir al Explorador de Archivos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="card bg-dark border-warning mt-4">
+        <div class="card-body">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle text-warning fs-4 me-3"></i>
+                <div>
+                    <h6 class="text-light mb-1">Información sobre la Papelera</h6>
+                    <ul class="text-muted small mb-0">
+                        <li>Los archivos eliminados se mueven aquí automáticamente</li>
+                        <li>Puedes restaurar archivos desde la papelera en cualquier momento</li>
+                        <li>Los archivos se eliminan permanentemente después de 30 días</li>
+                        <li>Al vaciar la papelera, los archivos se eliminan permanentemente sin posibilidad de recuperación</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

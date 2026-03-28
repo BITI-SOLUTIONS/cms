@@ -475,6 +475,7 @@ namespace CMS.Data.Services
             string labelCurrencySymbol,
             string? formattedPrice,
             int quantityPrinted,
+            string? containerNumber,
             string? printedBy,
             string? printerName = null,
             string? printNotes = null)
@@ -508,6 +509,7 @@ namespace CMS.Data.Services
                 LabelCurrencySymbol = labelCurrencySymbol,
                 FormattedPrice = formattedPrice,
                 QuantityPrinted = quantityPrinted,
+                ContainerNumber = containerNumber,
                 PrintDate = DateTime.UtcNow,
                 PrintedBy = printedBy,
                 PrinterName = printerName,
@@ -520,8 +522,8 @@ namespace CMS.Data.Services
             dbContext.LabelPrintHistory.Add(printHistory);
             await dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Impresión de etiqueta registrada: Artículo {ItemCode}, Cantidad {Quantity}, Usuario {User}", 
-                itemCode, quantityPrinted, printedBy);
+            _logger.LogInformation("Impresión de etiqueta registrada: Artículo {ItemCode}, Cantidad {Quantity}, Contenedor {Container}, Usuario {User}", 
+                itemCode, quantityPrinted, containerNumber ?? "N/A", printedBy);
 
             return printHistory;
         }
@@ -535,6 +537,7 @@ namespace CMS.Data.Services
             DateTime? fromDate = null,
             DateTime? toDate = null,
             string? printedBy = null,
+            string? containerNumber = null,
             int page = 1,
             int pageSize = 50)
         {
@@ -549,17 +552,23 @@ namespace CMS.Data.Services
 
             if (fromDate.HasValue)
             {
-                query = query.Where(h => h.PrintDate >= fromDate.Value);
+                query = query.Where(h => h.PrintDate >= fromDate.Value.Date);
             }
 
             if (toDate.HasValue)
             {
-                query = query.Where(h => h.PrintDate <= toDate.Value);
+                var toDateEndOfDay = toDate.Value.Date.AddDays(1);
+                query = query.Where(h => h.PrintDate < toDateEndOfDay);
             }
 
             if (!string.IsNullOrEmpty(printedBy))
             {
                 query = query.Where(h => h.PrintedBy != null && h.PrintedBy.ToLower().Contains(printedBy.ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(containerNumber))
+            {
+                query = query.Where(h => h.ContainerNumber != null && h.ContainerNumber.ToLower().Contains(containerNumber.ToLower()));
             }
 
             return await query
@@ -693,11 +702,11 @@ namespace CMS.Data.Services
             string labelBorderColor, string labelNameColor, string labelPriceColor, string labelBarcodeColor,
             decimal labelFontSize, string labelFontFamily, int labelPriceDecimals,
             string labelThousandSeparator, string labelCurrencySymbol,
-            string? formattedPrice, int quantityPrinted, string? printedBy,
+            string? formattedPrice, int quantityPrinted, string? containerNumber, string? printedBy,
             string? printerName = null, string? printNotes = null);
 
         Task<List<LabelPrintHistory>> GetLabelPrintHistoryAsync(
             int companyId, int? itemId = null, DateTime? fromDate = null, DateTime? toDate = null,
-            string? printedBy = null, int page = 1, int pageSize = 50);
+            string? printedBy = null, string? containerNumber = null, int page = 1, int pageSize = 50);
     }
 }

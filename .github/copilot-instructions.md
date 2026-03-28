@@ -182,6 +182,7 @@
    ```
    1. Consultar admin.user_company_permission para (userId, companyId)
    2. Separar en: permitidos (is_allowed=true) y denegados (is_allowed=false)
+1. 
    3. Permisos efectivos = permitidos - denegados
    4. DENEGACIONES SIEMPRE GANAN sobre permisos permitidos
 

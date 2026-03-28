@@ -1112,7 +1112,8 @@ namespace CMS.API.Controllers
                 for (int col = 0; col < columns.Count; col++)
                 {
                     var columnKey = columns[col].ColumnKey;
-                    var value = data[row].ContainsKey(columnKey) ? data[row][columnKey] : null;
+                    // Usar búsqueda case-insensitive para manejar camelCase del JSON
+                    var value = GetRowValue(data[row], columnKey);
                     var cell = worksheet.Cell(row + 2, col + 1);
 
                     if (value != null)
@@ -1185,7 +1186,8 @@ namespace CMS.API.Controllers
             {
                 var values = columns.Select(col =>
                 {
-                    var value = row.ContainsKey(col.ColumnKey) ? row[col.ColumnKey] : null;
+                    // Usar búsqueda case-insensitive para manejar camelCase del JSON
+                    var value = GetRowValue(row, col.ColumnKey);
                     return EscapeCsvValue(value?.ToString() ?? "");
                 });
                 sb.AppendLine(string.Join(",", values));
@@ -1206,6 +1208,32 @@ namespace CMS.API.Controllers
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// Busca un valor en el diccionario de forma case-insensitive.
+        /// El JSON usa camelCase pero las columnas tienen el nombre original.
+        /// </summary>
+        private object? GetRowValue(Dictionary<string, object?> row, string columnKey)
+        {
+            // Primero intentar el key exacto
+            if (row.ContainsKey(columnKey))
+                return row[columnKey];
+
+            // Intentar camelCase (primera letra minúscula)
+            var camelKey = char.ToLowerInvariant(columnKey[0]) + columnKey.Substring(1);
+            if (row.ContainsKey(camelKey))
+                return row[camelKey];
+
+            // Búsqueda case-insensitive completa
+            var lowerKey = columnKey.ToLowerInvariant();
+            foreach (var key in row.Keys)
+            {
+                if (key.ToLowerInvariant() == lowerKey)
+                    return row[key];
+            }
+
+            return null;
         }
 
         private byte[] GeneratePdf(string reportName, List<Dictionary<string, object?>> data, List<ReportColumn> columns)
@@ -1252,7 +1280,8 @@ namespace CMS.API.Controllers
                 html.AppendLine("<tr>");
                 foreach (var col in columns)
                 {
-                    var value = row.ContainsKey(col.ColumnKey) ? row[col.ColumnKey] : null;
+                    // Usar búsqueda case-insensitive para manejar camelCase del JSON
+                    var value = GetRowValue(row, col.ColumnKey);
                     var cssClass = (col.DataType?.ToUpper() == "CURRENCY" || col.DataType?.ToUpper() == "NUMBER" || col.DataType?.ToUpper() == "DECIMAL")
                         ? "class='number'"
                         : "";
@@ -1506,6 +1535,158 @@ namespace CMS.API.Controllers
 
         #endregion
 
+        #region Permisos de Reportes por Usuario
+
+        /// <summary>
+        /// Obtiene los reportes asignados a un usuario en una compañía
+        /// GET: api/report/user/{userId}/company/{companyId}/permissions
+        /// </summary>
+        [HttpGet("user/{userId}/company/{companyId}/permissions")]
+        public async Task<ActionResult<List<UserReportPermissionDto>>> GetUserReportPermissions(int userId, int companyId)
+        {
+            try
+            {
+                // Obtener todos los reportes activos
+                var allReports = await _db.ReportDefinitions
+                    .Where(r => r.IsActive)
+                    .Include(r => r.Category)
+                    .OrderBy(r => r.Category!.SortOrder)
+                    .ThenBy(r => r.SortOrder)
+                    .ToListAsync();
+
+                // Obtener los reportes asignados al usuario
+                var userReports = await _db.UserCompanyReports
+                    .Where(ucr => ucr.UserId == userId && ucr.CompanyId == companyId)
+                    .ToListAsync();
+
+                var result = allReports.Select(r => new UserReportPermissionDto
+                {
+                    ReportId = r.Id,
+                    ReportCode = r.ReportCode,
+                    ReportName = r.ReportName,
+                    Description = r.Description,
+                    CategoryId = r.CategoryId,
+                    CategoryName = r.Category?.CategoryName ?? "Sin categoría",
+                    Icon = r.Icon,
+                    IsAllowed = userReports.Any(ur => ur.ReportDefinitionId == r.Id && ur.IsAllowed && ur.IsActive),
+                    IsDenied = userReports.Any(ur => ur.ReportDefinitionId == r.Id && !ur.IsAllowed && ur.IsActive)
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permisos de reportes para usuario {UserId} en compañía {CompanyId}", userId, companyId);
+                return StatusCode(500, new { message = "Error obteniendo permisos de reportes" });
+            }
+        }
+
+        /// <summary>
+        /// Actualiza los permisos de reportes de un usuario en una compañía
+        /// PUT: api/report/user/{userId}/company/{companyId}/permissions
+        /// </summary>
+        [HttpPut("user/{userId}/company/{companyId}/permissions")]
+        public async Task<IActionResult> UpdateUserReportPermissions(
+            int userId, 
+            int companyId, 
+            [FromBody] UpdateUserReportPermissionsRequest request)
+        {
+            try
+            {
+                var currentUser = User.Identity?.Name ?? "SYSTEM";
+
+                foreach (var permission in request.Permissions)
+                {
+                    var existing = await _db.UserCompanyReports
+                        .FirstOrDefaultAsync(ucr => 
+                            ucr.UserId == userId && 
+                            ucr.CompanyId == companyId && 
+                            ucr.ReportDefinitionId == permission.ReportId);
+
+                    if (permission.IsAllowed)
+                    {
+                        if (existing != null)
+                        {
+                            existing.IsAllowed = true;
+                            existing.IsActive = true;
+                            existing.UpdatedBy = currentUser;
+                            existing.RecordDate = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            _db.UserCompanyReports.Add(new UserCompanyReport
+                            {
+                                UserId = userId,
+                                CompanyId = companyId,
+                                ReportDefinitionId = permission.ReportId,
+                                IsAllowed = true,
+                                IsActive = true,
+                                CreatedBy = currentUser,
+                                UpdatedBy = currentUser
+                            });
+                        }
+                    }
+                    else
+                    {
+                        if (existing != null)
+                        {
+                            existing.IsAllowed = false;
+                            existing.IsActive = true;
+                            existing.UpdatedBy = currentUser;
+                            existing.RecordDate = DateTime.UtcNow;
+                        }
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Permisos de reportes actualizados para usuario {UserId} en compañía {CompanyId}", userId, companyId);
+
+                return Ok(new { success = true, message = "Permisos actualizados correctamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando permisos de reportes para usuario {UserId}", userId);
+                return StatusCode(500, new { message = "Error actualizando permisos de reportes" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las categorías de reportes (para agrupar en la UI)
+        /// GET: api/report/categories/all
+        /// </summary>
+        [HttpGet("categories/all")]
+        public async Task<ActionResult<List<ReportCategoryDto>>> GetAllCategories()
+        {
+            try
+            {
+                var categories = await _db.ReportCategories
+                    .Where(c => c.IsActive)
+                    .OrderBy(c => c.SortOrder)
+                    .Select(c => new ReportCategoryDto
+                    {
+                        Id = c.Id,
+                        CategoryCode = c.CategoryCode,
+                        CategoryName = c.CategoryName,
+                        Description = c.Description,
+                        Icon = c.Icon,
+                        SortOrder = c.SortOrder,
+                        IsActive = c.IsActive,
+                        ReportCount = c.Reports.Count(r => r.IsActive)
+                    })
+                    .ToListAsync();
+
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo categorías de reportes");
+                return StatusCode(500, new { message = "Error obteniendo categorías" });
+            }
+        }
+
+        #endregion
+
         #region Helpers
 
         private int? GetCurrentUserId()
@@ -1522,5 +1703,31 @@ namespace CMS.API.Controllers
         }
 
         #endregion
+    }
+
+    // ===== DTOs para permisos de reportes =====
+
+    public class UserReportPermissionDto
+    {
+        public int ReportId { get; set; }
+        public string ReportCode { get; set; } = string.Empty;
+        public string ReportName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Icon { get; set; }
+        public bool IsAllowed { get; set; }
+        public bool IsDenied { get; set; }
+    }
+
+    public class UpdateUserReportPermissionsRequest
+    {
+        public List<ReportPermissionItem> Permissions { get; set; } = new();
+    }
+
+    public class ReportPermissionItem
+    {
+        public int ReportId { get; set; }
+        public bool IsAllowed { get; set; }
     }
 }

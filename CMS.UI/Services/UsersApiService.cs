@@ -983,5 +983,85 @@ namespace CMS.UI.Services
         }
 
         #endregion
+
+        #region Permisos de Reportes
+
+        /// <summary>
+        /// Obtiene los permisos de reportes de un usuario en una compañía
+        /// </summary>
+        public async Task<List<UserReportPermissionDto>> GetUserReportPermissionsAsync(int userId, int companyId)
+        {
+            try
+            {
+                var client = CreateClient();
+                var response = await client.GetAsync($"api/report/user/{userId}/company/{companyId}/permissions");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var permissions = JsonSerializer.Deserialize<List<UserReportPermissionDto>>(content, JsonOptions);
+                    return permissions ?? new List<UserReportPermissionDto>();
+                }
+
+                _logger.LogWarning("Error obteniendo permisos de reportes: {StatusCode}", response.StatusCode);
+                return new List<UserReportPermissionDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permisos de reportes para usuario {UserId}", userId);
+                return new List<UserReportPermissionDto>();
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el permiso de un reporte para un usuario
+        /// </summary>
+        public async Task<bool> UpdateUserReportPermissionAsync(int userId, int companyId, int reportId, bool isAllowed)
+        {
+            try
+            {
+                var client = CreateClient();
+                var payload = new
+                {
+                    permissions = new[] { new { reportId, isAllowed } }
+                };
+
+                var response = await client.PutAsJsonAsync(
+                    $"api/report/user/{userId}/company/{companyId}/permissions", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ Permiso de reporte actualizado: UserId={UserId}, ReportId={ReportId}, IsAllowed={IsAllowed}", 
+                        userId, reportId, isAllowed);
+                    return true;
+                }
+
+                _logger.LogWarning("Error actualizando permiso de reporte: {StatusCode}", response.StatusCode);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando permiso de reporte");
+                return false;
+            }
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// DTO para permisos de reportes de usuario
+    /// </summary>
+    public class UserReportPermissionDto
+    {
+        public int ReportId { get; set; }
+        public string ReportCode { get; set; } = string.Empty;
+        public string ReportName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Icon { get; set; }
+        public bool IsAllowed { get; set; }
+        public bool IsDenied { get; set; }
     }
 }

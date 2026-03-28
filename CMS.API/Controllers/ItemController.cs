@@ -21,13 +21,16 @@ namespace CMS.API.Controllers
     public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;
+        private readonly ICompanyConsecutiveService _companyConsecutiveService;
         private readonly ILogger<ItemController> _logger;
 
         public ItemController(
             IItemService itemService,
+            ICompanyConsecutiveService companyConsecutiveService,
             ILogger<ItemController> logger)
         {
             _itemService = itemService;
+            _companyConsecutiveService = companyConsecutiveService;
             _logger = logger;
         }
 
@@ -585,6 +588,7 @@ namespace CMS.API.Controllers
                     request.LabelCurrencySymbol,
                     request.FormattedPrice,
                     request.QuantityPrinted,
+                    request.ContainerNumber,
                     user,
                     request.PrinterName,
                     request.PrintNotes
@@ -600,6 +604,7 @@ namespace CMS.API.Controllers
                     LabelPrice = printHistory.LabelPrice,
                     FormattedPrice = printHistory.FormattedPrice,
                     QuantityPrinted = printHistory.QuantityPrinted,
+                    ContainerNumber = printHistory.ContainerNumber,
                     PrintDate = printHistory.PrintDate,
                     PrintedBy = printHistory.PrintedBy
                 });
@@ -621,6 +626,7 @@ namespace CMS.API.Controllers
             [FromQuery] DateTime? fromDate = null,
             [FromQuery] DateTime? toDate = null,
             [FromQuery] string? printedBy = null,
+            [FromQuery] string? containerNumber = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
@@ -628,7 +634,7 @@ namespace CMS.API.Controllers
             {
                 var companyId = GetCurrentCompanyId();
                 var history = await _itemService.GetLabelPrintHistoryAsync(
-                    companyId, itemId, fromDate, toDate, printedBy, page, pageSize);
+                    companyId, itemId, fromDate, toDate, printedBy, containerNumber, page, pageSize);
 
                 var dtos = history.Select(h => new LabelPrintHistoryDto
                 {
@@ -640,6 +646,7 @@ namespace CMS.API.Controllers
                     LabelPrice = h.LabelPrice,
                     FormattedPrice = h.FormattedPrice,
                     QuantityPrinted = h.QuantityPrinted,
+                    ContainerNumber = h.ContainerNumber,
                     PrintDate = h.PrintDate,
                     PrintedBy = h.PrintedBy
                 }).ToList();
@@ -649,6 +656,64 @@ namespace CMS.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error obteniendo historial de impresiones");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        // ===== COMPANY CONSECUTIVE (Container Number) =====
+
+        /// <summary>
+        /// Obtiene el container_number actual de la compañía
+        /// GET: api/item/container-number
+        /// </summary>
+        [HttpGet("container-number")]
+        public async Task<ActionResult<ContainerNumberResponse>> GetContainerNumber()
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+                var containerNumber = await _companyConsecutiveService.GetContainerNumberAsync(companyId);
+
+                return Ok(new ContainerNumberResponse
+                {
+                    ContainerNumber = containerNumber,
+                    CompanyId = companyId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo container_number");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el container_number de la compañía
+        /// PUT: api/item/container-number
+        /// </summary>
+        [HttpPut("container-number")]
+        public async Task<ActionResult> UpdateContainerNumber([FromBody] UpdateContainerNumberRequest request)
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+                var user = GetCurrentUser() ?? "SYSTEM";
+
+                var success = await _companyConsecutiveService.UpdateContainerNumberAsync(
+                    companyId,
+                    request.ContainerNumber,
+                    user
+                );
+
+                if (success)
+                {
+                    return Ok(new { message = "Container number actualizado exitosamente" });
+                }
+                return StatusCode(500, new { message = "Error actualizando container number" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando container_number");
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
@@ -953,6 +1018,7 @@ namespace CMS.API.Controllers
 
         // Print info
         public int QuantityPrinted { get; set; } = 1;
+        public string? ContainerNumber { get; set; }
         public string? PrinterName { get; set; }
         public string? PrintNotes { get; set; }
     }
@@ -970,6 +1036,7 @@ namespace CMS.API.Controllers
         public decimal LabelPrice { get; set; }
         public string? FormattedPrice { get; set; }
         public int QuantityPrinted { get; set; }
+        public string? ContainerNumber { get; set; }
         public DateTime PrintDate { get; set; }
         public string? PrintedBy { get; set; }
     }
@@ -1010,5 +1077,22 @@ namespace CMS.API.Controllers
         public List<ClassificationDto> Classifications4 { get; set; } = new();
         public List<ClassificationDto> Classifications5 { get; set; } = new();
         public List<ClassificationDto> Classifications6 { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Respuesta para container number
+    /// </summary>
+    public class ContainerNumberResponse
+    {
+        public string ContainerNumber { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
+    }
+
+    /// <summary>
+    /// Request para actualizar container number
+    /// </summary>
+    public class UpdateContainerNumberRequest
+    {
+        public string ContainerNumber { get; set; } = string.Empty;
     }
 }

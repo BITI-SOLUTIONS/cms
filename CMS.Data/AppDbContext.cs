@@ -62,6 +62,12 @@ namespace CMS.Data
         // ===== TABLAS NUEVAS: CONFIGURACIÓN GLOBAL =====
         public DbSet<SystemConfig> SystemConfigs { get; set; }
 
+        // ===== TABLAS NUEVAS: CONSECUTIVOS POR COMPAÑÍA =====
+        /// <summary>
+        /// Consecutivos globales por compañía (container_number, etc.)
+        /// </summary>
+        public DbSet<CompanyConsecutive> CompanyConsecutives { get; set; }
+
         // ===== TABLAS CENTRALES: CATÁLOGOS COMPARTIDOS =====
         /// <summary>
         /// Unidades de medida - Tabla CENTRAL compartida por todas las compañías

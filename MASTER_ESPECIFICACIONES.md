@@ -580,11 +580,6 @@ kubectl set image deployment/cms-ui-deployment \
   cms-ui=registry.biti-solutions.com/cms-ui:latest \
   --namespace=cms --record=true
 
-# Verificar rollout
-kubectl rollout status deployment/cms-api-deployment -n cms
-kubectl rollout status deployment/cms-ui-deployment -n cms
-```
-
 #### Reiniciar deployments
 ```bash
 # Reiniciar API (rolling restart)
@@ -592,6 +587,11 @@ kubectl rollout restart deployment/cms-api-deployment -n cms
 
 # Reiniciar UI
 kubectl rollout restart deployment/cms-ui-deployment -n cms
+
+# Verificar rollout
+kubectl rollout status deployment/cms-api-deployment -n cms
+kubectl rollout status deployment/cms-ui-deployment -n cms
+```
 
 ### ⚠️ PROBLEMAS IDENTIFICADOS
 

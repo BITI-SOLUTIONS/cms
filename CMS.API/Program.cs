@@ -140,6 +140,8 @@ builder.Services.AddScoped<CMS.Data.Services.IEmailService, CMS.Data.Services.Em
 builder.Services.AddScoped<ICompanyDbContextFactory, CompanyDbContextFactory>();
 builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<ICompanyConsecutiveService, CompanyConsecutiveService>();
 
 // ================================================================================
 // FASE 3: CARGAR CONFIGURACIÓN DESDE [ADMIN].[COMPANY]

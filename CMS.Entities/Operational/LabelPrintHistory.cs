@@ -123,9 +123,13 @@ public class LabelPrintHistory
     public string? FormattedPrice { get; set; }
 
     // ===== Información de impresión =====
-    
+
     [Column("quantity_printed")]
     public int QuantityPrinted { get; set; } = 1;
+
+    [Column("container_number")]
+    [MaxLength(50)]
+    public string? ContainerNumber { get; set; }
 
     [Column("print_date")]
     public DateTime PrintDate { get; set; } = DateTime.UtcNow;
@@ -150,11 +154,11 @@ public class LabelPrintHistory
     public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
     [Column("created_by")]
-    [MaxLength(30)]
+    [MaxLength(100)]
     public string CreatedBy { get; set; } = "SYSTEM";
 
     [Column("updated_by")]
-    [MaxLength(30)]
+    [MaxLength(100)]
     public string UpdatedBy { get; set; } = "SYSTEM";
 
     [Column("rowpointer")]

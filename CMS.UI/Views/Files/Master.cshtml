@@ -1,0 +1,1611 @@
+@{
+    ViewData["Title"] = "File Master";
+    ViewData["Subtitle"] = "Explorador de archivos";
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-light">
+                <i class="bi bi-files me-2"></i>@ViewData["Title"]
+            </h1>
+            <p class="text-light opacity-75 mb-0">@ViewData["Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" id="btnUpload">
+                <i class="bi bi-cloud-upload me-2"></i>Subir Archivo
+            </button>
+            <button class="btn btn-outline-light" id="btnNewFolder">
+                <i class="bi bi-folder-plus me-2"></i>Nueva Carpeta
+            </button>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb bg-dark bg-opacity-50 p-2 rounded" id="folderBreadcrumb">
+            <li class="breadcrumb-item">
+                <a href="#" class="text-info text-decoration-none" data-folder-id="">
+                    <i class="bi bi-house-door me-1"></i>Raíz
+                </a>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Sidebar: Folders Tree -->
+        <div class="col-md-3 col-lg-2">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-secondary bg-opacity-25">
+                    <h6 class="mb-0 text-light">
+                        <i class="bi bi-folder me-2"></i>Carpetas
+                    </h6>
+                </div>
+                <div class="card-body p-2" id="folderTree" style="max-height: 500px; overflow-y: auto;">
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-hourglass-split fs-2"></i>
+                        <p class="small mt-2">Cargando carpetas...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Filters -->
+            <div class="card bg-dark border-secondary mt-3">
+                <div class="card-header bg-secondary bg-opacity-25">
+                    <h6 class="mb-0 text-light">
+                        <i class="bi bi-funnel me-2"></i>Filtros Rápidos
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush bg-transparent">
+                        <a href="#" class="list-group-item list-group-item-action bg-transparent text-light border-secondary quick-filter" data-filter="recent">
+                            <i class="bi bi-clock-history me-2 text-info"></i>Recientes
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-transparent text-light border-secondary quick-filter" data-filter="favorites">
+                            <i class="bi bi-star me-2 text-warning"></i>Favoritos
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-transparent text-light border-secondary quick-filter" data-filter="images">
+                            <i class="bi bi-image me-2 text-success"></i>Imágenes
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-transparent text-light border-secondary quick-filter" data-filter="documents">
+                            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Documentos
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-transparent text-light border-secondary quick-filter" data-filter="videos">
+                            <i class="bi bi-camera-video me-2 text-danger"></i>Videos
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-transparent text-light border-secondary quick-filter" data-filter="all">
+                            <i class="bi bi-folder2 me-2 text-secondary"></i>Mostrar Todo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Files Grid -->
+        <div class="col-md-9 col-lg-10">
+            <!-- Toolbar -->
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-secondary border-secondary text-light">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" 
+                                       id="searchInput" placeholder="Buscar archivos...">
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-light btn-sm active" id="viewGrid" title="Vista en cuadrícula">
+                                    <i class="bi bi-grid-3x3-gap"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-light btn-sm" id="viewList" title="Vista en lista">
+                                    <i class="bi bi-list-ul"></i>
+                                </button>
+                            </div>
+                            <div class="btn-group ms-2" role="group">
+                                <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-sort-down me-1"></i>Ordenar
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" data-sort="name">Nombre</a></li>
+                                    <li><a class="dropdown-item" href="#" data-sort="date">Fecha</a></li>
+                                    <li><a class="dropdown-item" href="#" data-sort="size">Tamaño</a></li>
+                                    <li><a class="dropdown-item" href="#" data-sort="type">Tipo</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files Container -->
+            <div class="card bg-dark border-secondary">
+                <div class="card-body" id="filesContainer" style="min-height: 400px;">
+                    <!-- Estado: Cargando -->
+                    <div class="text-center py-5" id="loadingState">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="text-muted mt-3">Cargando archivos...</p>
+                    </div>
+
+                    <!-- Estado: Vacío -->
+                    <div class="text-center py-5 d-none" id="emptyState">
+                        <i class="bi bi-folder2-open text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-light mt-3">Esta carpeta está vacía</h5>
+                        <p class="text-muted">Sube archivos o crea subcarpetas para comenzar</p>
+                        <button class="btn btn-primary mt-2" id="btnUploadEmpty">
+                            <i class="bi bi-cloud-upload me-2"></i>Subir Archivo
+                        </button>
+                    </div>
+
+                    <!-- Grid de archivos -->
+                    <div class="row g-3 d-none" id="filesGrid">
+                        <!-- Los archivos se cargarán aquí dinámicamente -->
+                    </div>
+
+                    <!-- Lista de archivos -->
+                    <div class="table-responsive d-none" id="filesList">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                                    <th>Nombre</th>
+                                    <th>Tamaño</th>
+                                    <th>Modificado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="filesTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="card-footer bg-secondary bg-opacity-25 border-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-light small" id="filesInfo">0 archivos</span>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="pagination">
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Subir Archivo -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-cloud-upload me-2"></i>Subir Archivos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-zone border border-secondary border-dashed rounded p-5 text-center" 
+                     id="dropZone">
+                    <i class="bi bi-cloud-upload text-info" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-light">Arrastra archivos aquí</h5>
+                    <p class="text-muted">o haz clic para seleccionar</p>
+                    <input type="file" class="d-none" id="fileInput" multiple>
+                    <button class="btn btn-outline-info" id="btnSelectFiles">
+                        Seleccionar Archivos
+                    </button>
+                </div>
+                <div class="mt-3 d-none" id="uploadProgress">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p class="text-muted small mt-2" id="uploadStatus">Preparando...</p>
+                </div>
+                <div class="mt-3" id="uploadList">
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnStartUpload" disabled>
+                    <i class="bi bi-upload me-2"></i>Subir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Nueva Carpeta -->
+<div class="modal fade" id="newFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-folder-plus me-2"></i>Nueva Carpeta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nombre de la carpeta</label>
+                    <input type="text" class="form-control bg-dark text-light border-secondary" 
+                           id="folderName" placeholder="Mi carpeta">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descripción (opcional)</label>
+                    <textarea class="form-control bg-dark text-light border-secondary" 
+                              id="folderDescription" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnCreateFolder">
+                    <i class="bi bi-folder-plus me-2"></i>Crear Carpeta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    .upload-zone {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        background-color: rgba(13, 202, 240, 0.1);
+        border-color: #0dcaf0 !important;
+    }
+    .file-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .file-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    /* Mostrar menú de opciones al hover */
+    .file-card .dropdown {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .file-card:hover .dropdown {
+        opacity: 1;
+    }
+    .file-icon {
+        font-size: 2.5rem;
+    }
+    .folder-item {
+        cursor: pointer;
+    }
+    .folder-item:hover {
+        background-color: rgba(255,255,255,0.1);
+    }
+    .file-item:hover {
+        background-color: rgba(255,255,255,0.05);
+    }
+    .border-dashed {
+        border-style: dashed !important;
+    }
+
+    /* ★ Estilos para Drag and Drop */
+    .folder-draggable {
+        cursor: grab;
+    }
+    .folder-draggable:active {
+        cursor: grabbing;
+    }
+    .folder-draggable.dragging {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+
+    /* Zona de drop activa (mientras se arrastra algo) */
+    .drop-target-active {
+        transition: all 0.2s ease;
+    }
+
+    /* Zona de drop cuando el mouse está encima */
+    .drop-target-hover {
+        background-color: rgba(13, 202, 240, 0.2) !important;
+        border: 2px dashed #0dcaf0 !important;
+        border-radius: 6px;
+    }
+
+    /* Indicador visual cuando se puede soltar */
+    .folder-tree-item.drop-target-hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 10px rgba(13, 202, 240, 0.5);
+    }
+</style>
+}
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ================================================================
+        // FIX CRÍTICO: Mover modales al body para evitar problemas de z-index
+        // El main-content tiene position:relative que crea un stacking context
+        // ================================================================
+        const uploadModal = document.getElementById('uploadModal');
+        const newFolderModal = document.getElementById('newFolderModal');
+
+        // Mover modales al final del body
+        if (uploadModal) {
+            document.body.appendChild(uploadModal);
+        }
+        if (newFolderModal) {
+            document.body.appendChild(newFolderModal);
+        }
+
+        // Estado actual de la navegación
+        let currentFolderId = null;
+        let currentViewMode = 'grid'; // 'grid' o 'list'
+
+        // ================================================================
+        // CARGAR CONTENIDO DESDE EL API
+        // ================================================================
+        async function loadContents(folderId = null) {
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const filesGrid = document.getElementById('filesGrid');
+            const filesList = document.getElementById('filesList');
+            const filesInfo = document.getElementById('filesInfo');
+
+            // Mostrar loading
+            loadingState.classList.remove('d-none');
+            emptyState.classList.add('d-none');
+            filesGrid.classList.add('d-none');
+            filesList.classList.add('d-none');
+
+            try {
+                const url = folderId ? `/Files/GetContents?folderId=${folderId}` : '/Files/GetContents';
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('📂 Contenido cargado:', data);
+
+                // Ocultar loading
+                loadingState.classList.add('d-none');
+
+                // Procesar datos y guardar en cache para búsqueda
+                const folders = data.folders || [];
+                const filesData = data.files?.files || data.files || [];
+                const totalItems = folders.length + filesData.length;
+
+                // ★ Guardar en cache para búsqueda
+                currentFolders = folders;
+                currentFiles = filesData;
+
+                // Actualizar info
+                filesInfo.textContent = `${folders.length} carpeta(s), ${filesData.length} archivo(s)`;
+
+                // Limpiar campo de búsqueda al cambiar de carpeta
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.value = '';
+
+                if (totalItems === 0) {
+                    // Mostrar estado vacío
+                    emptyState.classList.remove('d-none');
+                } else {
+                    // Renderizar contenido
+                    renderGrid(folders, filesData);
+                    renderList(folders, filesData);
+
+                    // Mostrar vista actual
+                    if (currentViewMode === 'grid') {
+                        filesGrid.classList.remove('d-none');
+                    } else {
+                        filesList.classList.remove('d-none');
+                    }
+                }
+
+                currentFolderId = folderId;
+
+            } catch (error) {
+                console.error('Error cargando contenido:', error);
+                loadingState.classList.add('d-none');
+                emptyState.classList.remove('d-none');
+                emptyState.querySelector('h5').textContent = 'Error cargando contenido';
+                emptyState.querySelector('p').textContent = 'No se pudo conectar con el servidor';
+            }
+        }
+
+        // ================================================================
+        // RENDERIZAR VISTA EN GRID
+        // ================================================================
+        function renderGrid(folders, files) {
+            const grid = document.getElementById('filesGrid');
+            grid.innerHTML = '';
+
+            // Renderizar carpetas primero (arrastrables)
+            folders.forEach(folder => {
+                const col = document.createElement('div');
+                col.className = 'col-6 col-md-4 col-lg-3 col-xl-2';
+
+                const card = document.createElement('div');
+                card.className = 'card bg-secondary bg-opacity-25 border-secondary file-card h-100 folder-draggable';
+                card.setAttribute('data-folder-id', folder.id);
+                card.innerHTML = `
+                    <div class="card-body text-center p-3">
+                        <i class="bi ${folder.icon || 'bi-folder-fill'} file-icon" style="color: ${folder.color || '#fbbf24'}"></i>
+                        <h6 class="text-light mt-2 mb-1 text-truncate" title="${folder.name}">${folder.name}</h6>
+                        <small class="text-light opacity-75 small">${folder.description || 'Carpeta'}</small>
+                    </div>
+                `;
+
+                // Click para navegar
+                card.addEventListener('click', function(e) {
+                    if (!e.target.closest('.dragging')) {
+                        window.navigateToFolder(folder.id);
+                    }
+                });
+
+                // Hacer arrastrable
+                window.makeFolderDraggable(card, folder.id, folder.name);
+
+                col.appendChild(card);
+                grid.appendChild(col);
+            });
+
+            // Renderizar archivos con menú de opciones
+            files.forEach(file => {
+                const col = document.createElement('div');
+                col.className = 'col-6 col-md-4 col-lg-3 col-xl-2';
+                col.innerHTML = `
+                    <div class="card bg-secondary bg-opacity-25 border-secondary file-card h-100 position-relative" 
+                         data-file-id="${file.id}">
+                        <div class="card-body text-center p-3">
+                            <i class="bi ${getFileIconFromExtension(file.fileExtension)} file-icon text-info"></i>
+                            <h6 class="text-light mt-2 mb-1 text-truncate" title="${file.title || file.originalFilename}">${file.title || file.originalFilename}</h6>
+                            <small class="text-light opacity-75 small">${file.fileSizeFormatted || formatFileSize(file.fileSizeBytes)}</small>
+                        </div>
+                        <!-- Menú de opciones -->
+                        <div class="dropdown position-absolute" style="top: 8px; right: 8px;">
+                            <button class="btn btn-sm btn-dark bg-opacity-50 border-0 dropdown-toggle" type="button" 
+                                    data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation()">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.previewFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}', '${file.fileExtension}')">
+                                    <i class="bi bi-eye me-2"></i>Vista previa
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.downloadFile(${file.id})">
+                                    <i class="bi bi-download me-2"></i>Descargar
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.renameFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-pencil me-2"></i>Renombrar
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.moveFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-arrows-move me-2"></i>Mover a...
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="event.preventDefault(); window.deleteFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-trash me-2"></i>Eliminar
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+
+                // Click en la tarjeta para vista previa (no en el menú)
+                const card = col.querySelector('.file-card');
+                card.addEventListener('click', function(e) {
+                    if (!e.target.closest('.dropdown')) {
+                        window.previewFile(file.id, file.title || file.originalFilename, file.fileExtension);
+                    }
+                });
+
+                grid.appendChild(col);
+            });
+        }
+
+        // ================================================================
+        // RENDERIZAR VISTA EN LISTA
+        // ================================================================
+        function renderList(folders, files) {
+            const tbody = document.getElementById('filesTableBody');
+            tbody.innerHTML = '';
+
+            // Renderizar carpetas primero
+            folders.forEach(folder => {
+                const tr = document.createElement('tr');
+                tr.className = 'folder-item';
+                tr.style.cursor = 'pointer';
+                tr.onclick = (e) => { 
+                    if (!e.target.closest('.dropdown') && !e.target.closest('input')) {
+                        window.navigateToFolder(folder.id);
+                    }
+                };
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="form-check-input" onclick="event.stopPropagation()"></td>
+                    <td>
+                        <i class="bi ${folder.icon || 'bi-folder-fill'} me-2" style="color: ${folder.color || '#fbbf24'}"></i>
+                        ${folder.name}
+                    </td>
+                    <td class="text-light opacity-75">-</td>
+                    <td class="text-light opacity-75">${formatDate(folder.createdAt)}</td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" 
+                                    data-bs-toggle="dropdown" onclick="event.stopPropagation()">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.navigateToFolder(${folder.id})">
+                                    <i class="bi bi-folder2-open me-2"></i>Abrir
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.renameFolder(${folder.id}, '${folder.name.replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-pencil me-2"></i>Renombrar
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="event.preventDefault(); window.deleteFolder(${folder.id}, '${folder.name.replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-trash me-2"></i>Eliminar
+                                </a></li>
+                            </ul>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Renderizar archivos con menú completo
+            files.forEach(file => {
+                const tr = document.createElement('tr');
+                tr.className = 'file-item';
+                tr.style.cursor = 'pointer';
+                tr.onclick = (e) => { 
+                    if (!e.target.closest('.dropdown') && !e.target.closest('input')) {
+                        window.previewFile(file.id, file.title || file.originalFilename, file.fileExtension);
+                    }
+                };
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="form-check-input" onclick="event.stopPropagation()"></td>
+                    <td>
+                        <i class="bi ${getFileIconFromExtension(file.fileExtension)} me-2 text-info"></i>
+                        ${file.title || file.originalFilename}
+                    </td>
+                    <td class="text-light opacity-75">${file.fileSizeFormatted || formatFileSize(file.fileSizeBytes)}</td>
+                    <td class="text-light opacity-75">${formatDate(file.createdAt)}</td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" 
+                                    data-bs-toggle="dropdown" onclick="event.stopPropagation()">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.previewFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}', '${file.fileExtension}')">
+                                    <i class="bi bi-eye me-2"></i>Vista previa
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.downloadFile(${file.id})">
+                                    <i class="bi bi-download me-2"></i>Descargar
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.renameFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-pencil me-2"></i>Renombrar
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.moveFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-arrows-move me-2"></i>Mover a...
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="event.preventDefault(); window.deleteFile(${file.id}, '${(file.title || file.originalFilename).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-trash me-2"></i>Eliminar
+                                </a></li>
+                            </ul>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ================================================================
+        // FUNCIONES HELPER (globales para onclick)
+        // ================================================================
+        window.navigateToFolder = function(folderId) {
+            loadContents(folderId);
+            updateBreadcrumb(folderId);
+            // Actualizar selección en sidebar
+            document.querySelectorAll('#folderTree .folder-tree-item').forEach(item => {
+                item.classList.remove('active', 'bg-primary');
+            });
+            const selectedItem = document.querySelector(`#folderTree .folder-tree-item[data-folder-id="${folderId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('active', 'bg-primary');
+            }
+        };
+
+        // ★ Vista previa de archivo
+        window.previewFile = function(fileId, fileName, fileExtension) {
+            const ext = (fileExtension || '').toLowerCase().replace('.', '');
+            const previewableImages = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+            const previewableDocs = ['pdf'];
+
+            if (previewableImages.includes(ext) || previewableDocs.includes(ext)) {
+                // Abrir en nueva pestaña para vista previa
+                window.open(`/Files/Preview/${fileId}`, '_blank');
+            } else {
+                // Para otros archivos, mostrar opciones
+                if (confirm(`¿Desea descargar "${fileName}"?`)) {
+                    window.downloadFile(fileId);
+                }
+            }
+        };
+
+        // ★ Descargar archivo
+        window.downloadFile = function(fileId) {
+            window.location.href = `/Files/Download/${fileId}`;
+        };
+
+        // ★ Renombrar archivo
+        window.renameFile = async function(fileId, currentName) {
+            const newName = prompt('Nuevo nombre del archivo:', currentName);
+            if (newName && newName !== currentName) {
+                try {
+                    const response = await fetch(`/Files/Rename/${fileId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ newName: newName })
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ Archivo renombrado:', newName);
+                        loadContents(currentFolderId);
+                    } else {
+                        const error = await response.json().catch(() => null);
+                        alert('Error al renombrar: ' + (error?.message || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error('Error renombrando archivo:', error);
+                    alert('Error de conexión al renombrar el archivo');
+                }
+            }
+        };
+
+        // ★ Mover archivo a otra carpeta
+        window.moveFile = async function(fileId, fileName) {
+            // Mostrar modal de selección de carpeta
+            const selectHtml = buildFolderSelectOptions(allFoldersCache, null);
+            const selectedFolderId = prompt(`Mover "${fileName}" a carpeta (ID o vacío para raíz):\n\nCarpetas disponibles:\n${getFolderListText(allFoldersCache)}`);
+
+            if (selectedFolderId !== null) {
+                const newFolderId = selectedFolderId === '' ? null : parseInt(selectedFolderId);
+
+                try {
+                    const response = await fetch(`/Files/MoveFile/${fileId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ newFolderId: newFolderId })
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ Archivo movido:', fileName);
+                        loadContents(currentFolderId);
+                    } else {
+                        const error = await response.json().catch(() => null);
+                        alert('Error al mover: ' + (error?.message || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error('Error moviendo archivo:', error);
+                    alert('Error de conexión al mover el archivo');
+                }
+            }
+        };
+
+        // Helper para obtener lista de carpetas como texto
+        function getFolderListText(folders) {
+            return folders.map(f => `  [${f.id}] ${f.name}`).join('\n') || '  (Sin carpetas)';
+        }
+
+        // Helper para construir opciones de select de carpetas
+        function buildFolderSelectOptions(folders, excludeId) {
+            return folders
+                .filter(f => f.id !== excludeId)
+                .map(f => `<option value="${f.id}">${f.name}</option>`)
+                .join('');
+        }
+
+        // ★ Eliminar archivo
+        window.deleteFile = async function(fileId, fileName) {
+            if (!confirm(`¿Está seguro de eliminar "${fileName}"?\n\nEsta acción moverá el archivo a la papelera.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Files/Delete/${fileId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('✅ Archivo eliminado:', fileName);
+                    loadContents(currentFolderId);
+                } else {
+                    const error = await response.json().catch(() => null);
+                    alert('Error al eliminar: ' + (error?.message || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error eliminando archivo:', error);
+                alert('Error de conexión al eliminar el archivo');
+            }
+        };
+
+        // ★ Renombrar carpeta
+        window.renameFolder = async function(folderId, currentName) {
+            const newName = prompt('Nuevo nombre de la carpeta:', currentName);
+            if (newName && newName !== currentName) {
+                try {
+                    const response = await fetch(`/Files/RenameFolder/${folderId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ newName: newName })
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ Carpeta renombrada:', newName);
+                        loadContents(currentFolderId);
+                        loadFolderTree(); // Actualizar árbol
+                    } else {
+                        const error = await response.json().catch(() => null);
+                        alert('Error al renombrar: ' + (error?.message || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error('Error renombrando carpeta:', error);
+                    alert('Error de conexión al renombrar la carpeta');
+                }
+            }
+        };
+
+        // ★ Eliminar carpeta
+        window.deleteFolder = async function(folderId, folderName) {
+            if (!confirm(`¿Está seguro de eliminar la carpeta "${folderName}"?\n\n⚠️ También se eliminarán todos los archivos y subcarpetas dentro.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Files/DeleteFolder/${folderId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('✅ Carpeta eliminada:', folderName);
+                    loadContents(currentFolderId);
+                    loadFolderTree(); // Actualizar árbol
+                } else {
+                    const error = await response.json().catch(() => null);
+                    alert('Error al eliminar: ' + (error?.message || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error eliminando carpeta:', error);
+                alert('Error de conexión al eliminar la carpeta');
+            }
+        };
+
+        // Mantener compatibilidad con código anterior
+        window.openFile = function(fileId) {
+            window.downloadFile(fileId);
+        };
+
+        function updateBreadcrumb(folderId) {
+            // TODO: Implementar actualización de breadcrumb con ruta completa
+        }
+
+        // ================================================================
+        // CARGAR ÁRBOL DE CARPETAS EN SIDEBAR (JERÁRQUICO)
+        // ================================================================
+        let allFoldersCache = []; // Cache de todas las carpetas para el árbol
+
+        async function loadFolderTree() {
+            console.log('🌳 loadFolderTree() iniciando...');
+            const folderTree = document.getElementById('folderTree');
+
+            try {
+                // Cargar TODAS las carpetas sin filtrar por parentId para construir el árbol completo
+                const response = await fetch('/Files/GetContents');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                allFoldersCache = data.folders || [];
+
+                // Filtrar solo carpetas raíz (sin parentId o parentId = null)
+                const rootFolders = allFoldersCache.filter(f => !f.parentId);
+
+                if (allFoldersCache.length === 0) {
+                    folderTree.innerHTML = `
+                        <div class="text-center text-light opacity-75 py-3">
+                            <i class="bi bi-folder-x fs-4"></i>
+                            <p class="small mt-2 mb-0">Sin carpetas</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                folderTree.innerHTML = '';
+
+                // Agregar carpeta raíz (Home) - también es zona de drop
+                const rootItem = document.createElement('div');
+                rootItem.className = 'folder-tree-item d-flex align-items-center p-2 rounded mb-1 text-light';
+                rootItem.setAttribute('data-folder-id', '');
+                rootItem.setAttribute('data-folder-name', 'Raíz');
+                rootItem.style.cursor = 'pointer';
+                rootItem.innerHTML = `
+                    <i class="bi bi-house-door me-2 text-info"></i>
+                    <span class="small">Raíz</span>
+                `;
+                rootItem.onclick = () => window.navigateToFolder(null);
+
+                // ★ Hacer que la raíz sea zona de drop
+                console.log('🎯 Configurando drop target para RAÍZ...');
+                window.makeFolderDropTarget(rootItem, null, 'Raíz');
+                console.log('✅ Drop target configurado para RAÍZ');
+
+                folderTree.appendChild(rootItem);
+
+                // Agregar SOLO carpetas raíz con posibilidad de expandir
+                rootFolders.forEach(folder => {
+                    const hasChildren = allFoldersCache.some(f => f.parentId === folder.id);
+                    const folderContainer = createFolderTreeItem(folder, 0, hasChildren);
+                    folderTree.appendChild(folderContainer);
+                });
+
+                console.log('🌳 loadFolderTree() completado - Drop targets configurados:', rootFolders.length + 1);
+
+            } catch (error) {
+                console.error('❌ Error cargando árbol de carpetas:', error);
+                folderTree.innerHTML = `
+                    <div class="text-center text-danger py-3">
+                        <i class="bi bi-exclamation-triangle fs-4"></i>
+                        <p class="small mt-2 mb-0">Error cargando</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Crear elemento de carpeta en el árbol con soporte para expandir/colapsar y drop
+        function createFolderTreeItem(folder, level, hasChildren) {
+            const container = document.createElement('div');
+            container.className = 'folder-tree-container';
+            container.setAttribute('data-folder-container', folder.id);
+
+            const item = document.createElement('div');
+            item.className = 'folder-tree-item d-flex align-items-center p-2 rounded mb-1 text-light';
+            item.setAttribute('data-folder-id', folder.id);
+            item.setAttribute('data-folder-name', folder.name);
+            item.style.cursor = 'pointer';
+            item.style.paddingLeft = `${(level * 16) + 8}px`;
+
+            const expandIcon = hasChildren ? 'bi-chevron-right' : '';
+            const expandHtml = hasChildren 
+                ? `<i class="bi ${expandIcon} me-1 expand-icon" style="font-size: 0.7rem; transition: transform 0.2s;"></i>` 
+                : `<span style="width: 14px; display: inline-block;"></span>`;
+
+            item.innerHTML = `
+                ${expandHtml}
+                <i class="bi ${folder.icon || 'bi-folder-fill'} me-2" style="color: ${folder.color || '#fbbf24'}"></i>
+                <span class="small text-truncate" title="${folder.name}">${folder.name}</span>
+            `;
+
+            // Click en la carpeta: navegar
+            item.onclick = (e) => {
+                e.stopPropagation();
+                window.navigateToFolder(folder.id);
+                // Si tiene hijos, también expandir/colapsar
+                if (hasChildren) {
+                    toggleFolderChildren(folder.id, container, level);
+                }
+            };
+
+            item.onmouseover = () => item.classList.add('bg-secondary', 'bg-opacity-50');
+            item.onmouseout = () => { if (!item.classList.contains('active')) item.classList.remove('bg-secondary', 'bg-opacity-50'); };
+
+            // ★ Hacer que sea zona de drop para drag-and-drop
+            console.log('🎯 Configurando drop target para carpeta:', folder.name, 'ID:', folder.id);
+            window.makeFolderDropTarget(item, folder.id, folder.name);
+
+            container.appendChild(item);
+
+            // Contenedor para hijos (inicialmente oculto)
+            if (hasChildren) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'folder-children d-none';
+                childrenContainer.setAttribute('data-children-of', folder.id);
+                container.appendChild(childrenContainer);
+            }
+
+            return container;
+        }
+
+        // Expandir/colapsar hijos de una carpeta
+        function toggleFolderChildren(parentId, container, parentLevel) {
+            const childrenContainer = container.querySelector(`[data-children-of="${parentId}"]`);
+            const expandIcon = container.querySelector('.expand-icon');
+
+            if (!childrenContainer) return;
+
+            const isExpanded = !childrenContainer.classList.contains('d-none');
+
+            if (isExpanded) {
+                // Colapsar
+                childrenContainer.classList.add('d-none');
+                if (expandIcon) {
+                    expandIcon.classList.remove('bi-chevron-down');
+                    expandIcon.classList.add('bi-chevron-right');
+                    expandIcon.style.transform = 'rotate(0deg)';
+                }
+            } else {
+                // Expandir: cargar hijos si no están cargados
+                if (childrenContainer.children.length === 0) {
+                    const children = allFoldersCache.filter(f => f.parentId === parentId);
+                    children.forEach(child => {
+                        const hasGrandchildren = allFoldersCache.some(f => f.parentId === child.id);
+                        const childItem = createFolderTreeItem(child, parentLevel + 1, hasGrandchildren);
+                        childrenContainer.appendChild(childItem);
+                    });
+                }
+                childrenContainer.classList.remove('d-none');
+                if (expandIcon) {
+                    expandIcon.classList.remove('bi-chevron-right');
+                    expandIcon.classList.add('bi-chevron-down');
+                    expandIcon.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
+
+        function getFileIconFromExtension(ext) {
+            if (!ext) return 'bi-file-earmark';
+            ext = ext.toLowerCase().replace('.', '');
+            const icons = {
+                'pdf': 'bi-file-pdf',
+                'doc': 'bi-file-word', 'docx': 'bi-file-word',
+                'xls': 'bi-file-excel', 'xlsx': 'bi-file-excel',
+                'ppt': 'bi-file-ppt', 'pptx': 'bi-file-ppt',
+                'jpg': 'bi-file-image', 'jpeg': 'bi-file-image', 'png': 'bi-file-image', 'gif': 'bi-file-image', 'webp': 'bi-file-image',
+                'mp4': 'bi-file-play', 'avi': 'bi-file-play', 'mov': 'bi-file-play',
+                'mp3': 'bi-file-music', 'wav': 'bi-file-music',
+                'zip': 'bi-file-zip', 'rar': 'bi-file-zip', '7z': 'bi-file-zip',
+                'txt': 'bi-file-text', 'csv': 'bi-file-text',
+                'html': 'bi-file-code', 'css': 'bi-file-code', 'js': 'bi-file-code', 'json': 'bi-file-code'
+            };
+            return icons[ext] || 'bi-file-earmark';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('es-CR', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // ================================================================
+        // DRAG AND DROP - MOVER CARPETAS
+        // ================================================================
+        // ⚠️ IMPORTANTE: Estas funciones DEBEN definirse ANTES de loadFolderTree()
+        // porque loadFolderTree() las usa al crear los elementos del árbol
+        let draggedFolderId = null;
+        let draggedFolderName = null;
+
+        // Hacer que las carpetas del grid sean arrastrables
+        window.makeFolderDraggable = function(element, folderId, folderName) {
+            console.log('🔧 makeFolderDraggable llamado para:', folderName, 'ID:', folderId, 'Tipo:', typeof folderId);
+            element.setAttribute('draggable', 'true');
+            element.style.cursor = 'grab';
+
+            element.addEventListener('dragstart', function(e) {
+                console.log('🚀 DRAGSTART iniciado para:', folderName, 'ID:', folderId);
+                draggedFolderId = folderId;
+                draggedFolderName = folderName;
+                e.dataTransfer.setData('text/plain', String(folderId));
+                e.dataTransfer.effectAllowed = 'move';
+                element.style.opacity = '0.5';
+                element.classList.add('dragging');
+
+                // Activar zonas de drop en el árbol
+                document.querySelectorAll('.folder-tree-item, .folder-tree-drop-zone').forEach(item => {
+                    item.classList.add('drop-target-active');
+                });
+                console.log('✅ draggedFolderId establecido a:', draggedFolderId, 'Tipo:', typeof draggedFolderId);
+            });
+
+            element.addEventListener('dragend', function(e) {
+                console.log('🛑 DRAGEND - limpiando estado');
+                element.style.opacity = '1';
+                element.classList.remove('dragging');
+                draggedFolderId = null;
+                draggedFolderName = null;
+
+                // Desactivar zonas de drop
+                document.querySelectorAll('.folder-tree-item, .folder-tree-drop-zone').forEach(item => {
+                    item.classList.remove('drop-target-active', 'drop-target-hover');
+                });
+            });
+        };
+
+        // Configurar carpetas del sidebar como zonas de drop
+        window.makeFolderDropTarget = function(element, targetFolderId, targetFolderName) {
+            console.log('🎯 makeFolderDropTarget llamado para:', targetFolderName, 'ID:', targetFolderId, 'Tipo:', typeof targetFolderId);
+
+            element.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log('📍 DRAGOVER en:', targetFolderName, '| draggedId:', draggedFolderId, '('+typeof draggedFolderId+')', '| targetId:', targetFolderId, '('+typeof targetFolderId+')');
+
+                // No permitir drop en sí mismo (comparación flexible para evitar problemas de tipo)
+                if (String(draggedFolderId) === String(targetFolderId)) {
+                    console.log('❌ Auto-drop detectado, bloqueando');
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                }
+
+                console.log('✅ Drop permitido, estableciendo dropEffect=move');
+
+                e.dataTransfer.dropEffect = 'move';
+                element.classList.add('drop-target-hover');
+            });
+
+            element.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                element.classList.remove('drop-target-hover');
+                console.log('👋 DRAGLEAVE de:', targetFolderName);
+            });
+
+            element.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                element.classList.remove('drop-target-hover');
+
+                const sourceIdStr = e.dataTransfer.getData('text/plain');
+                const sourceFolderId = parseInt(sourceIdStr);
+
+                console.log('💧 DROP en:', targetFolderName, '| sourceId:', sourceFolderId, '| targetId:', targetFolderId);
+
+                // No permitir drop en sí mismo (comparar como números)
+                const targetIdNum = targetFolderId === null ? null : parseInt(targetFolderId);
+                if (sourceFolderId === targetIdNum) {
+                    console.log('❌ Auto-drop en DROP, cancelando');
+                    return;
+                }
+
+                // Confirmar la operación
+                const targetName = targetFolderName || 'Raíz';
+                const confirmMove = confirm(`¿Mover "${draggedFolderName}" a "${targetName}"?`);
+
+                if (!confirmMove) return;
+
+                console.log('📤 Enviando request MoveFolder:', { folderId: sourceFolderId, newParentId: targetIdNum });
+
+                try {
+                    const response = await fetch('/Files/MoveFolder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            folderId: sourceFolderId,
+                            newParentId: targetIdNum
+                        })
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ Carpeta movida exitosamente');
+                        // Refrescar ambas vistas
+                        await loadFolderTree();
+                        await loadContents(currentFolderId);
+                    } else {
+                        const error = await response.json();
+                        console.error('❌ Error del servidor:', error);
+                        alert('Error al mover la carpeta: ' + (error.message || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error('❌ Error de red:', error);
+                    alert('Error de conexión al mover la carpeta');
+                }
+            });
+        };
+
+        // ================================================================
+        // CARGAR CONTENIDO AL INICIAR
+        // ================================================================
+        console.log('========================================');
+        console.log('🚀 INICIALIZANDO FILE MASTER');
+        console.log('makeFolderDraggable:', typeof window.makeFolderDraggable);
+        console.log('makeFolderDropTarget:', typeof window.makeFolderDropTarget);
+        console.log('========================================');
+
+        // ★ Cache de contenido actual para búsqueda
+        let currentFolders = [];
+        let currentFiles = [];
+
+        loadContents();
+        loadFolderTree();
+
+        // ================================================================
+        // BÚSQUEDA EN EL SERVIDOR (RECURSIVA)
+        // ================================================================
+        const searchInput = document.getElementById('searchInput');
+        let searchTimeout = null;
+        let isSearching = false;
+
+        searchInput?.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+
+            // Debounce: esperar 500ms después de la última tecla
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (query.length >= 2) {
+                    searchFiles(query);
+                } else if (query.length === 0) {
+                    // Sin búsqueda, recargar contenido normal
+                    isSearching = false;
+                    loadContents(currentFolderId);
+                }
+            }, 500);
+        });
+
+        // Búsqueda en el servidor
+        async function searchFiles(query) {
+            try {
+                isSearching = true;
+                console.log(`🔍 Buscando en servidor: "${query}"`);
+
+                // Mostrar indicador de carga
+                const filesInfo = document.getElementById('filesInfo');
+                filesInfo.textContent = 'Buscando...';
+
+                // Buscar archivos en el servidor (la API soporta parámetro search)
+                const response = await fetch(`/Files/SearchFiles?search=${encodeURIComponent(query)}&folderId=${currentFolderId || ''}`);
+
+                if (!response.ok) {
+                    throw new Error('Error en búsqueda');
+                }
+
+                const data = await response.json();
+
+                // Mostrar resultados
+                const folders = data.folders || [];
+                const files = data.files?.files || data.files || [];
+
+                // Guardar en cache
+                currentFolders = folders;
+                currentFiles = files;
+
+                renderGrid(folders, files);
+                renderList(folders, files);
+                updateFilesInfo(folders.length, files.length, true);
+
+                // Mostrar vistas
+                if (currentViewMode === 'grid') {
+                    document.getElementById('filesGrid').classList.remove('d-none');
+                    document.getElementById('filesList').classList.add('d-none');
+                } else {
+                    document.getElementById('filesGrid').classList.add('d-none');
+                    document.getElementById('filesList').classList.remove('d-none');
+                }
+
+                console.log(`✅ Resultados: ${folders.length} carpetas, ${files.length} archivos`);
+
+            } catch (error) {
+                console.error('❌ Error buscando:', error);
+                const filesInfo = document.getElementById('filesInfo');
+                filesInfo.textContent = 'Error en búsqueda';
+            }
+        }
+
+        // Actualizar contador de archivos
+        function updateFilesInfo(folderCount, fileCount, isFiltered = false) {
+            const filesInfo = document.getElementById('filesInfo');
+            const suffix = isFiltered ? ' (resultados de búsqueda)' : '';
+            filesInfo.textContent = `${folderCount} carpeta(s), ${fileCount} archivo(s)${suffix}`;
+        }
+
+        // ================================================================
+        // FILTROS RÁPIDOS
+        // ================================================================
+        document.querySelectorAll('.quick-filter').forEach(filter => {
+            filter.addEventListener('click', function(e) {
+                e.preventDefault();
+                const filterType = this.dataset.filter;
+                applyQuickFilter(filterType);
+            });
+        });
+
+        async function applyQuickFilter(filterType) {
+            try {
+                console.log(`🎯 Aplicando filtro: ${filterType}`);
+                const filesInfo = document.getElementById('filesInfo');
+                filesInfo.textContent = 'Aplicando filtro...';
+
+                let url = '/Files/GetContents?';
+
+                switch (filterType) {
+                    case 'recent':
+                        url += 'orderBy=created_at&descending=true';
+                        break;
+                    case 'favorites':
+                        url += 'isFavorite=true';
+                        break;
+                    case 'images':
+                        url += 'extension=jpg,jpeg,png,gif,webp,svg';
+                        break;
+                    case 'documents':
+                        url += 'extension=pdf,doc,docx,xls,xlsx,ppt,pptx,txt';
+                        break;
+                    case 'videos':
+                        url += 'extension=mp4,avi,mov,mkv,webm';
+                        break;
+                    default:
+                        loadContents(currentFolderId);
+                        return;
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Error aplicando filtro');
+
+                const data = await response.json();
+                const folders = data.folders || [];
+                const files = data.files?.files || data.files || [];
+
+                currentFolders = folders;
+                currentFiles = files;
+
+                renderGrid(folders, files);
+                renderList(folders, files);
+
+                const filterNames = {
+                    'recent': 'Recientes',
+                    'favorites': 'Favoritos',
+                    'images': 'Imágenes',
+                    'documents': 'Documentos',
+                    'videos': 'Videos'
+                };
+                filesInfo.textContent = `Filtro: ${filterNames[filterType]} - ${files.length} archivo(s)`;
+
+                // Mostrar vista actual
+                if (currentViewMode === 'grid') {
+                    document.getElementById('filesGrid').classList.remove('d-none');
+                    document.getElementById('filesList').classList.add('d-none');
+                } else {
+                    document.getElementById('filesGrid').classList.add('d-none');
+                    document.getElementById('filesList').classList.remove('d-none');
+                }
+
+            } catch (error) {
+                console.error('❌ Error aplicando filtro:', error);
+            }
+        }
+
+        // Upload modal - usar Bootstrap Modal API
+        var uploadModalInstance = uploadModal ? new bootstrap.Modal(uploadModal) : null;
+        var newFolderModalInstance = newFolderModal ? new bootstrap.Modal(newFolderModal) : null;
+
+        document.getElementById('btnUpload')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (uploadModalInstance) {
+                uploadModalInstance.show();
+            }
+        });
+
+        document.getElementById('btnUploadEmpty')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (uploadModalInstance) {
+                uploadModalInstance.show();
+            }
+        });
+
+        // New folder modal
+        document.getElementById('btnNewFolder')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (newFolderModalInstance) {
+                newFolderModalInstance.show();
+            }
+        });
+
+        // File input - Seleccionar archivos
+        document.getElementById('btnSelectFiles')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('fileInput').click();
+        });
+
+        // Click en toda la zona de upload
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            dropZone.addEventListener('click', function(e) {
+                if (e.target.id !== 'btnSelectFiles') {
+                    document.getElementById('fileInput').click();
+                }
+            });
+
+            // Drag and drop
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            });
+        }
+
+        // Manejar selección de archivos
+        document.getElementById('fileInput')?.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                handleFiles(this.files);
+            }
+        });
+
+        // Función para manejar archivos seleccionados
+        function handleFiles(files) {
+            const uploadList = document.getElementById('uploadList');
+            const btnStartUpload = document.getElementById('btnStartUpload');
+
+            // ✅ GUARDAR archivos en variable global para el upload
+            window.selectedFiles = Array.from(files);
+
+            uploadList.innerHTML = '';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileSize = formatFileSize(file.size);
+                const fileIcon = getFileIcon(file.type);
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'd-flex align-items-center justify-content-between p-2 border border-secondary rounded mb-2';
+                fileItem.dataset.index = i; // Guardar índice para poder eliminar
+                fileItem.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi ${fileIcon} me-2 text-info"></i>
+                        <div>
+                            <div class="text-light small">${file.name}</div>
+                            <div class="text-muted small">${fileSize}</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFileFromList(${i}); this.parentElement.remove(); checkUploadButton();">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                uploadList.appendChild(fileItem);
+            }
+
+            btnStartUpload.disabled = false;
+        }
+
+        // Función para eliminar archivo de la lista
+        window.removeFileFromList = function(index) {
+            window.selectedFiles.splice(index, 1);
+        };
+
+        // Función para formatear tamaño de archivo
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Función para obtener icono según tipo de archivo
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return 'bi-file-image';
+            if (mimeType.startsWith('video/')) return 'bi-file-play';
+            if (mimeType.startsWith('audio/')) return 'bi-file-music';
+            if (mimeType.includes('pdf')) return 'bi-file-pdf';
+            if (mimeType.includes('word') || mimeType.includes('document')) return 'bi-file-word';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'bi-file-excel';
+            if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'bi-file-zip';
+            return 'bi-file-earmark';
+        }
+
+        // Verificar si hay archivos para habilitar/deshabilitar botón
+        window.checkUploadButton = function() {
+            const btnStartUpload = document.getElementById('btnStartUpload');
+            // ✅ Usar el array global en lugar de contar hijos del DOM
+            btnStartUpload.disabled = window.selectedFiles.length === 0;
+        };
+
+        // Variable global para almacenar los archivos seleccionados (drag-drop o input)
+        window.selectedFiles = [];
+
+        // Botón SUBIR - Implementar subida de archivos
+        document.getElementById('btnStartUpload')?.addEventListener('click', async function(e) {
+            e.preventDefault();
+
+            // Usar archivos del array global (funciona para drag-drop e input)
+            const files = window.selectedFiles;
+
+            if (!files || files.length === 0) {
+                alert('Por favor selecciona al menos un archivo');
+                return;
+            }
+
+            const btnStartUpload = this;
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressBar = uploadProgress.querySelector('.progress-bar');
+            const uploadStatus = document.getElementById('uploadStatus');
+
+            // Mostrar progreso
+            uploadProgress.classList.remove('d-none');
+            btnStartUpload.disabled = true;
+            btnStartUpload.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Subiendo...';
+
+            let uploaded = 0;
+            let failed = 0;
+            const total = files.length;
+
+            // Obtener JWT de la sesión
+            const apiBaseUrl = '@Html.Raw(ViewBag.ApiBaseUrl ?? "https://localhost:7001")';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('title', file.name);
+                // ✅ IMPORTANTE: Enviar folderId para que el archivo se guarde en la carpeta correcta
+                if (currentFolderId) {
+                    formData.append('folderId', currentFolderId);
+                }
+
+                uploadStatus.textContent = `Subiendo ${i + 1} de ${total}: ${file.name}`;
+
+                try {
+                    const response = await fetch('/Files/Upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        uploaded++;
+                    } else {
+                        const errorData = await response.json().catch(() => null);
+                        console.error('Error subiendo archivo:', file.name, errorData);
+                        failed++;
+                    }
+                } catch (error) {
+                    console.error('Error subiendo archivo:', file.name, error);
+                    failed++;
+                }
+
+                // Actualizar barra de progreso
+                const percent = Math.round(((i + 1) / total) * 100);
+                progressBar.style.width = percent + '%';
+            }
+
+            // Completado
+            uploadStatus.textContent = `Completado: ${uploaded} subidos, ${failed} fallidos`;
+
+            setTimeout(function() {
+                // Cerrar modal y refrescar página
+                if (uploadModalInstance) {
+                    uploadModalInstance.hide();
+                }
+
+                // Limpiar estado
+                uploadProgress.classList.add('d-none');
+                progressBar.style.width = '0%';
+                document.getElementById('uploadList').innerHTML = '';
+                document.getElementById('fileInput').value = '';
+                window.selectedFiles = []; // ✅ Limpiar array global
+                btnStartUpload.disabled = true;
+                btnStartUpload.innerHTML = '<i class="bi bi-upload me-2"></i>Subir';
+
+                // Refrescar lista de archivos (sin recargar página)
+                if (uploaded > 0) {
+                    loadContents(currentFolderId);
+                }
+            }, 1500);
+        });
+
+        // View toggle
+        document.getElementById('viewGrid')?.addEventListener('click', function() {
+            currentViewMode = 'grid';
+            this.classList.add('active');
+            document.getElementById('viewList').classList.remove('active');
+            document.getElementById('filesGrid').classList.remove('d-none');
+            document.getElementById('filesList').classList.add('d-none');
+        });
+
+        document.getElementById('viewList')?.addEventListener('click', function() {
+            currentViewMode = 'list';
+            this.classList.add('active');
+            document.getElementById('viewGrid').classList.remove('active');
+            document.getElementById('filesList').classList.remove('d-none');
+            document.getElementById('filesGrid').classList.add('d-none');
+        });
+
+        // ================================================================
+        // CREAR CARPETA
+        // ================================================================
+        document.getElementById('btnCreateFolder')?.addEventListener('click', async function() {
+            const folderName = document.getElementById('folderName').value.trim();
+            const folderDescription = document.getElementById('folderDescription').value.trim();
+
+            if (!folderName) {
+                alert('Por favor ingresa un nombre para la carpeta');
+                return;
+            }
+
+            const btnCreateFolder = this;
+            btnCreateFolder.disabled = true;
+            btnCreateFolder.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando...';
+
+            try {
+                const response = await fetch('/Files/CreateFolder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: folderName,
+                        description: folderDescription || null,
+                        parentId: null // TODO: implementar navegación de carpetas
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Carpeta creada:', result);
+
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('newFolderModal'));
+                    if (modal) modal.hide();
+
+                    // Limpiar campos
+                    document.getElementById('folderName').value = '';
+                    document.getElementById('folderDescription').value = '';
+
+                    // Mostrar mensaje de éxito y refrescar lista
+                    alert('Carpeta creada exitosamente');
+                    loadContents(currentFolderId);
+                } else {
+                    const error = await response.json();
+                    console.error('Error creando carpeta:', error);
+                    alert('Error al crear la carpeta: ' + (error.message || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error creando carpeta:', error);
+                alert('Error de conexión al crear la carpeta');
+            } finally {
+                btnCreateFolder.disabled = false;
+                btnCreateFolder.innerHTML = '<i class="bi bi-folder-plus me-2"></i>Crear Carpeta';
+            }
+        });
+    });
+</script>
+}

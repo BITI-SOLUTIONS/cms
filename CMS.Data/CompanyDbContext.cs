@@ -44,6 +44,33 @@ namespace CMS.Data
         /// </summary>
         public DbSet<Classification> Classifications { get; set; } = null!;
 
+        // ===== FILE MANAGEMENT =====
+
+        /// <summary>
+        /// Carpetas de archivos
+        /// </summary>
+        public DbSet<FileFolder> FileFolders { get; set; } = null!;
+
+        /// <summary>
+        /// Archivos/Documentos
+        /// </summary>
+        public DbSet<FileDocument> Files { get; set; } = null!;
+
+        /// <summary>
+        /// Versiones de archivos
+        /// </summary>
+        public DbSet<FileVersion> FileVersions { get; set; } = null!;
+
+        /// <summary>
+        /// Comentarios en archivos
+        /// </summary>
+        public DbSet<FileComment> FileComments { get; set; } = null!;
+
+        /// <summary>
+        /// Etiquetas de archivos
+        /// </summary>
+        public DbSet<FileTag> FileTags { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -86,6 +113,107 @@ namespace CMS.Data
                 entity.HasIndex(e => new { e.Code, e.ClassificationGroup }).IsUnique();
                 entity.HasIndex(e => e.ClassificationGroup);
                 entity.HasIndex(e => e.IsActive);
+            });
+
+            // ===== FILE MANAGEMENT TABLES =====
+
+            // Configurar la tabla FileFolder
+            modelBuilder.Entity<FileFolder>(entity =>
+            {
+                entity.ToTable("file_folder", _schema);
+                entity.HasKey(e => e.IdFileFolder);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.ParentId);
+                entity.HasIndex(e => e.Path);
+                entity.HasIndex(e => e.CategoryCode);
+                entity.HasIndex(e => e.IsActive);
+
+                entity.HasOne(e => e.Parent)
+                    .WithMany(e => e.Children)
+                    .HasForeignKey(e => e.ParentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configurar la tabla File (FileDocument)
+            modelBuilder.Entity<FileDocument>(entity =>
+            {
+                entity.ToTable("file", _schema);
+                entity.HasKey(e => e.IdFile);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.Uuid).IsUnique();
+                entity.HasIndex(e => e.IdFileFolder);
+                entity.HasIndex(e => e.CategoryCode);
+                entity.HasIndex(e => e.FileExtension);
+                entity.HasIndex(e => e.FileHash);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.DeletedAt);
+                entity.HasIndex(e => e.IsLocked);
+                entity.HasIndex(e => new { e.RelatedEntityType, e.RelatedEntityId });
+
+                entity.HasOne(e => e.Folder)
+                    .WithMany(e => e.Files)
+                    .HasForeignKey(e => e.IdFileFolder)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configurar la tabla FileVersion
+            modelBuilder.Entity<FileVersion>(entity =>
+            {
+                entity.ToTable("file_version", _schema);
+                entity.HasKey(e => e.IdFileVersion);
+                entity.HasIndex(e => e.IdFile);
+                entity.HasIndex(e => new { e.IdFile, e.VersionNumber }).IsUnique();
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.File)
+                    .WithMany(e => e.Versions)
+                    .HasForeignKey(e => e.IdFile)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurar la tabla FileComment
+            modelBuilder.Entity<FileComment>(entity =>
+            {
+                entity.ToTable("file_comment", _schema);
+                entity.HasKey(e => e.IdFileComment);
+                entity.HasIndex(e => e.IdFile);
+                entity.HasIndex(e => e.ParentId);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.File)
+                    .WithMany(e => e.Comments)
+                    .HasForeignKey(e => e.IdFile)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Parent)
+                    .WithMany(e => e.Replies)
+                    .HasForeignKey(e => e.ParentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configurar la tabla FileTag
+            modelBuilder.Entity<FileTag>(entity =>
+            {
+                entity.ToTable("file_tag", _schema);
+                entity.HasKey(e => e.IdFileTag);
+                entity.HasIndex(e => e.Name).IsUnique();
+            });
+
+            // Configurar la tabla FileFileTag (relación muchos a muchos)
+            modelBuilder.Entity<FileFileTag>(entity =>
+            {
+                entity.ToTable("file_file_tag", _schema);
+                entity.HasKey(e => new { e.IdFile, e.IdFileTag });
+
+                entity.HasOne(e => e.File)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdFile)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Tag)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdFileTag)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

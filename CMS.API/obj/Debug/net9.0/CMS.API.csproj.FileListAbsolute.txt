@@ -143,7 +143,6 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\n
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\CMS.Shared.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\CMS.Shared.pdb
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\CMS.API.MvcApplicationPartsAssemblyInfo.cs
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\ClosedXML.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\ClosedXML.Parser.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\DocumentFormat.OpenXml.dll
@@ -152,3 +151,4 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\n
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\RBush.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\SixLabors.Fonts.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\bin\Debug\net9.0\System.IO.Packaging.dll
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.API\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

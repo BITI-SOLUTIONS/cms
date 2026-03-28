@@ -852,5 +852,149 @@ namespace CMS.UI.Controllers
         }
 
         #endregion
+
+        #region Permisos de Reportes
+
+        /// <summary>
+        /// Vista de gestión de permisos de reportes de un usuario en una compañía
+        /// GET: /Users/ReportPermissions/{userId}/{companyId}
+        /// </summary>
+        public async Task<IActionResult> ReportPermissions(int userId, int companyId)
+        {
+            try
+            {
+                // Obtener info del usuario
+                var user = await _usersApi.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    TempData["Error"] = "Usuario no encontrado";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Obtener info de compañía desde el resumen de auth
+                var authSummary = await _userAuthApi.GetAuthSummaryAsync(userId, companyId);
+                string companyName = authSummary?.CompanyName ?? "Compañía";
+
+                // Obtener permisos de reportes
+                var reportPermissionsDto = await _usersApi.GetUserReportPermissionsAsync(userId, companyId);
+                var reportPermissions = reportPermissionsDto.Select(r => new UserReportPermissionViewModel
+                {
+                    ReportId = r.ReportId,
+                    ReportCode = r.ReportCode,
+                    ReportName = r.ReportName,
+                    Description = r.Description,
+                    CategoryId = r.CategoryId,
+                    CategoryName = r.CategoryName,
+                    Icon = r.Icon,
+                    IsAllowed = r.IsAllowed,
+                    IsDenied = r.IsDenied
+                }).ToList();
+
+                var viewModel = new UserReportPermissionsViewModel
+                {
+                    UserId = userId,
+                    UserName = user.DisplayName ?? user.Email ?? "Usuario",
+                    UserEmail = user.Email ?? "",
+                    CompanyId = companyId,
+                    CompanyName = companyName,
+                    ReportPermissions = reportPermissions
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo permisos de reportes para usuario {UserId}", userId);
+                TempData["Error"] = "Error al cargar los permisos de reportes";
+                return RedirectToAction(nameof(CompanyAuth), new { userId, companyId });
+            }
+        }
+
+        /// <summary>
+        /// Otorga acceso a un reporte a un usuario
+        /// POST: /Users/GrantReportAccess
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GrantReportAccess(int userId, int companyId, int reportId)
+        {
+            try
+            {
+                var success = await _usersApi.UpdateUserReportPermissionAsync(userId, companyId, reportId, true);
+
+                if (success)
+                {
+                    TempData["Success"] = "Acceso al reporte otorgado exitosamente";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo otorgar acceso al reporte";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error otorgando acceso a reporte");
+                TempData["Error"] = "Error interno al otorgar acceso";
+            }
+
+            return RedirectToAction(nameof(ReportPermissions), new { userId, companyId });
+        }
+
+        /// <summary>
+        /// Remueve acceso a un reporte de un usuario
+        /// POST: /Users/RevokeReportAccess
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RevokeReportAccess(int userId, int companyId, int reportId)
+        {
+            try
+            {
+                var success = await _usersApi.UpdateUserReportPermissionAsync(userId, companyId, reportId, false);
+
+                if (success)
+                {
+                    TempData["Success"] = "Acceso al reporte removido exitosamente";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo remover acceso al reporte";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removiendo acceso a reporte");
+                TempData["Error"] = "Error interno al remover acceso";
+            }
+
+            return RedirectToAction(nameof(ReportPermissions), new { userId, companyId });
+        }
+
+        #endregion
+    }
+
+    // ===== ViewModels para Permisos de Reportes =====
+
+    public class UserReportPermissionsViewModel
+    {
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public List<UserReportPermissionViewModel> ReportPermissions { get; set; } = new();
+    }
+
+    public class UserReportPermissionViewModel
+    {
+        public int ReportId { get; set; }
+        public string ReportCode { get; set; } = string.Empty;
+        public string ReportName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Icon { get; set; }
+        public bool IsAllowed { get; set; }
+        public bool IsDenied { get; set; }
     }
 }

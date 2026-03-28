@@ -1,0 +1,224 @@
+@{
+    ViewData["Title"] = "Categorías de Archivos";
+    ViewData["Subtitle"] = "Administrar categorías globales";
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-light">
+                <i class="bi bi-tags me-2"></i>@ViewData["Title"]
+            </h1>
+            <p class="text-muted mb-0">@ViewData["Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" id="btnNewCategory">
+                <i class="bi bi-plus-lg me-2"></i>Nueva Categoría
+            </button>
+        </div>
+    </div>
+
+    <!-- Categories Grid -->
+    <div class="row g-4">
+        <!-- Documentos -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(59, 130, 246, 0.2);">
+                        <i class="bi bi-file-earmark-text text-primary fs-3"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Documentos</h5>
+                    <p class="text-muted small mb-2">DOC</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legal -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(139, 92, 246, 0.2);">
+                        <i class="bi bi-file-earmark-ruled text-purple fs-3" style="color: #8b5cf6;"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Legal</h5>
+                    <p class="text-muted small mb-2">LEGAL</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financieros -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(16, 185, 129, 0.2);">
+                        <i class="bi bi-file-earmark-spreadsheet text-success fs-3"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Financieros</h5>
+                    <p class="text-muted small mb-2">FIN</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Imágenes -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(236, 72, 153, 0.2);">
+                        <i class="bi bi-image fs-3" style="color: #ec4899;"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Imágenes</h5>
+                    <p class="text-muted small mb-2">IMG</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recursos Humanos -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(245, 158, 11, 0.2);">
+                        <i class="bi bi-people text-warning fs-3"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Recursos Humanos</h5>
+                    <p class="text-muted small mb-2">HR</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Técnico -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(99, 102, 241, 0.2);">
+                        <i class="bi bi-gear text-info fs-3"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Técnico</h5>
+                    <p class="text-muted small mb-2">TECH</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Videos -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(239, 68, 68, 0.2);">
+                        <i class="bi bi-film text-danger fs-3"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Videos</h5>
+                    <p class="text-muted small mb-2">VID</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio -->
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background-color: rgba(20, 184, 166, 0.2);">
+                        <i class="bi bi-music-note-beamed fs-3" style="color: #14b8a6;"></i>
+                    </div>
+                    <h5 class="text-light mb-1">Audio</h5>
+                    <p class="text-muted small mb-2">AUD</p>
+                    <span class="badge bg-secondary">0 archivos</span>
+                </div>
+                <div class="card-footer bg-transparent border-secondary text-center">
+                    <button class="btn btn-sm btn-outline-light me-1">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="card bg-dark border-info mt-4">
+        <div class="card-body">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle text-info fs-4 me-3"></i>
+                <div>
+                    <h6 class="text-light mb-1">Acerca de las Categorías</h6>
+                    <p class="text-muted small mb-0">
+                        Las categorías son globales y se usan en todas las compañías del sistema.
+                        Permiten clasificar y organizar archivos para facilitar su búsqueda y gestión.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

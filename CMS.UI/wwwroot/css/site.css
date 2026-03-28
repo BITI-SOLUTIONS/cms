@@ -1117,3 +1117,27 @@ body {
 .avatar-inactive {
     background: linear-gradient(135deg, #64748b 0%, #475569 100%);
 }
+
+/* ===== MODAL Z-INDEX FIX ===== */
+/* Asegurar que modales de Bootstrap estén sobre el sidebar (z-index: 1000) */
+.modal {
+    z-index: 1060 !important;
+}
+
+.modal-backdrop {
+    z-index: 1055 !important;
+}
+
+.modal-dialog {
+    z-index: 1065 !important;
+    position: relative;
+}
+
+/* Asegurar que el contenido del modal sea clickeable */
+.modal.show .modal-dialog {
+    pointer-events: auto;
+}
+
+.modal-content {
+    pointer-events: auto;
+}

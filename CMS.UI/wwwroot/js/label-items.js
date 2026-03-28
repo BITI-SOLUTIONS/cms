@@ -428,7 +428,37 @@ function resetLabel() {
     updatePreview();
 }
 
-function printLabel() {
+// ================================================================================
+// FUNCIÓN PRINCIPAL DE IMPRESIÓN (SIN MODAL)
+// ================================================================================
+
+// Imprimir directamente usando la cantidad del campo de texto
+function printLabelDirect() {
+    var itemId = getElementValue('selectedItemId', '');
+    if (!itemId) {
+        alert('Por favor seleccione un artículo primero');
+        return;
+    }
+
+    // Obtener cantidad del campo de texto
+    var quantityInput = document.getElementById('printQuantity');
+    var quantity = parseInt(quantityInput ? quantityInput.value : 1) || 1;
+
+    // Validar rango
+    if (quantity < 1) quantity = 1;
+    if (quantity > 100) quantity = 100;
+
+    // Actualizar el campo si se corrigió
+    if (quantityInput) {
+        quantityInput.value = quantity;
+    }
+
+    // Ejecutar la impresión con la cantidad seleccionada
+    executePrint(quantity);
+}
+
+// Ejecutar la impresión real
+function executePrint(quantity) {
     var itemId = getElementValue('selectedItemId', '');
     if (!itemId) {
         alert('Por favor seleccione un artículo primero');
@@ -466,6 +496,9 @@ function printLabel() {
     var thousandSeparator = getElementValue('labelThousandSeparator', ',');
     var currencySymbol = getElementValue('labelCurrencySymbol', '₡');
 
+    // Obtener número de contenedor (opcional)
+    var containerNumber = getElementValue('containerNumber', '');
+
     // Ajustar dimensiones según orientación
     var width = orientation === 'horizontal' ? widthCm : heightCm;
     var height = orientation === 'horizontal' ? heightCm : widthCm;
@@ -473,52 +506,64 @@ function printLabel() {
     // Formatear precio
     var formattedPrice = formatPrice(price, priceDecimals, thousandSeparator, currencySymbol, printCurrency);
 
-    // Registrar la impresión en el historial
-    recordPrint({
-        itemId: parseInt(itemId),
-        itemCode: itemCode,
-        itemName: itemName,
-        labelItem: name,
-        labelPrice: price,
-        labelItemBarcode: barcode,
-        printLabelName: showName,
-        printLabelPrice: showPrice,
-        printLabelBarcode: showBarcode,
-        printLabelBorder: showBorder,
-        printCurrencySymbol: printCurrency,
-        labelWidthCm: widthCm,
-        labelHeightCm: heightCm,
-        labelOrientation: orientation,
-        labelBorderColor: borderColor,
-        labelNameColor: nameColor,
-        labelPriceColor: priceColor,
-        labelBarcodeColor: barcodeColor,
-        labelFontSize: fontSize,
-        labelFontFamily: fontFamily,
-        labelPriceDecimals: priceDecimals,
-        labelThousandSeparator: thousandSeparator,
-        labelCurrencySymbol: currencySymbol,
-        formattedPrice: formattedPrice,
-        quantityPrinted: 1
+    // Guardar el container_number en la tabla de consecutivos de la compañía
+    // y luego registrar la impresión en el historial
+    saveCompanyContainerNumber(containerNumber).then(function() {
+        // Registrar la impresión en el historial CON LA CANTIDAD
+        recordPrint({
+            itemId: parseInt(itemId),
+            itemCode: itemCode,
+            itemName: itemName,
+            labelItem: name,
+            labelPrice: price,
+            labelItemBarcode: barcode,
+            printLabelName: showName,
+            printLabelPrice: showPrice,
+            printLabelBarcode: showBarcode,
+            printLabelBorder: showBorder,
+            printCurrencySymbol: printCurrency,
+            labelWidthCm: widthCm,
+            labelHeightCm: heightCm,
+            labelOrientation: orientation,
+            labelBorderColor: borderColor,
+            labelNameColor: nameColor,
+            labelPriceColor: priceColor,
+            labelBarcodeColor: barcodeColor,
+            labelFontSize: fontSize,
+            labelFontFamily: fontFamily,
+            labelPriceDecimals: priceDecimals,
+            labelThousandSeparator: thousandSeparator,
+            labelCurrencySymbol: currencySymbol,
+            formattedPrice: formattedPrice,
+            quantityPrinted: quantity,
+            containerNumber: containerNumber
+        });
     });
+
+    // Generar HTML para múltiples etiquetas
+    var labelsHtml = '';
+    for (var i = 0; i < quantity; i++) {
+        labelsHtml += '<div class="label">' +
+            (showName ? '<div class="name">' + name + '</div>' : '') +
+            (showPrice ? '<div class="price">' + formattedPrice + '</div>' : '') +
+            (showBarcode ? '<div class="barcode">' + barcode + '</div>' : '') +
+            '</div>';
+    }
 
     // Abrir ventana de impresión
     var printWindow = window.open('', '_blank');
-    var html = '<!DOCTYPE html><html><head><title>Imprimir Etiqueta</title>' +
+    var html = '<!DOCTYPE html><html><head><title>Imprimir ' + quantity + ' Etiqueta(s)</title>' +
         '<style>' +
         '@page { size: ' + width + 'cm ' + height + 'cm; margin: 0; }' +
-        'body { font-family: ' + fontFamily + ', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }' +
-        '.label { width: ' + width + 'cm; height: ' + height + 'cm; ' + (showBorder ? 'border: 2px solid ' + borderColor + ';' : '') + ' padding: 5px; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }' +
+        '@media print { .label { page-break-after: always; } .label:last-child { page-break-after: avoid; } }' +
+        'body { font-family: ' + fontFamily + ', sans-serif; margin: 0; padding: 0; }' +
+        '.label { width: ' + width + 'cm; height: ' + height + 'cm; ' + (showBorder ? 'border: 2px solid ' + borderColor + ';' : '') + ' padding: 5px; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; margin: 0 auto; }' +
         '.name { font-size: ' + fontSize + 'px; font-weight: bold; margin-bottom: 3px; color: ' + nameColor + '; font-family: ' + fontFamily + '; }' +
         '.price { font-size: ' + (fontSize * 1.4) + 'px; font-weight: bold; color: ' + priceColor + '; margin-bottom: 3px; font-family: ' + fontFamily + '; }' +
         '.barcode { font-family: monospace; font-size: ' + (fontSize * 0.7) + 'px; color: ' + barcodeColor + '; }' +
         '</style>' +
         '</head><body>' +
-        '<div class="label">' +
-        (showName ? '<div class="name">' + name + '</div>' : '') +
-        (showPrice ? '<div class="price">' + formattedPrice + '</div>' : '') +
-        (showBarcode ? '<div class="barcode">' + barcode + '</div>' : '') +
-        '</div>' +
+        labelsHtml +
         '<scr' + 'ipt>window.print(); window.close();</scr' + 'ipt>' +
         '</body></html>';
     printWindow.document.write(html);
@@ -583,5 +628,102 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.addEventListener('input', updatePreview);
     });
 
+    // ================================================================================
+    // EVENT LISTENER PARA EL CAMPO DE CANTIDAD (VALIDACIÓN)
+    // ================================================================================
+
+    // Input de cantidad - permitir solo números y validar rango
+    var printQuantityInput = document.getElementById('printQuantity');
+    if (printQuantityInput) {
+        printQuantityInput.addEventListener('input', function(e) {
+            var value = parseInt(this.value) || 1;
+            if (value < 1) this.value = 1;
+            if (value > 100) this.value = 100;
+        });
+
+        printQuantityInput.addEventListener('focus', function() {
+            this.select();
+        });
+    }
+
+    // ================================================================================
+    // CARGAR CONTAINER NUMBER DE LA COMPAÑÍA AL INICIO
+    // ================================================================================
+    loadCompanyContainerNumber();
+
     console.log('Label Items JS initialized');
 });
+
+// ================================================================================
+// FUNCIONES PARA CONTAINER NUMBER POR COMPAÑÍA
+// ================================================================================
+
+// Cargar el container_number de la compañía desde la API
+function loadCompanyContainerNumber() {
+    var apiBaseUrl = window.apiBaseUrl || '';
+    var jwtToken = window.jwtToken || '';
+
+    if (!jwtToken) {
+        console.warn('No JWT token disponible para cargar container number');
+        return;
+    }
+
+    fetch(apiBaseUrl + '/api/item/container-number', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + jwtToken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Error obteniendo container number: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(function(result) {
+        var containerNumber = result.containerNumber || '';
+        var containerInput = document.getElementById('containerNumber');
+        if (containerInput) {
+            containerInput.value = containerNumber;
+            console.log('Container number cargado:', containerNumber);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error cargando container number:', error);
+    });
+}
+
+// Guardar el container_number de la compañía en la API
+function saveCompanyContainerNumber(containerNumber) {
+    var apiBaseUrl = window.apiBaseUrl || '';
+    var jwtToken = window.jwtToken || '';
+
+    if (!jwtToken) {
+        console.warn('No JWT token disponible para guardar container number');
+        return Promise.resolve(false);
+    }
+
+    return fetch(apiBaseUrl + '/api/item/container-number', {
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + jwtToken,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ containerNumber: containerNumber })
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Error guardando container number: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(function(result) {
+        console.log('Container number guardado exitosamente');
+        return true;
+    })
+    .catch(function(error) {
+        console.error('Error guardando container number:', error);
+        return false;
+    });
+}

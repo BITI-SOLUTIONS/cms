@@ -126,6 +126,13 @@ namespace CMS.UI.Controllers
                     TempData["Error"] = "Error al cargar los artículos de etiqueta.";
                 }
 
+                // Pasar token JWT y URL de la API para las llamadas directas desde JS
+                var apiToken = _httpContextAccessor.HttpContext?.Session.GetString("ApiToken")
+                            ?? _httpContextAccessor.HttpContext?.Session.GetString("JwtToken")
+                            ?? string.Empty;
+                ViewBag.ApiToken = apiToken;
+                ViewBag.ApiBaseUrl = GetApiBaseUrl();
+
                 return View(viewModel);
             }
             catch (Exception ex)
@@ -263,6 +270,7 @@ namespace CMS.UI.Controllers
                     labelCurrencySymbol = request.LabelCurrencySymbol,
                     formattedPrice = request.FormattedPrice,
                     quantityPrinted = request.QuantityPrinted,
+                    containerNumber = request.ContainerNumber,
                     printerName = request.PrinterName,
                     printNotes = request.PrintNotes
                 });
@@ -283,6 +291,77 @@ namespace CMS.UI.Controllers
             {
                 _logger.LogError(ex, "Error registrando impresión del artículo {Id}", request.ItemId);
                 return Json(new { success = false, message = "Error al registrar la impresión" });
+            }
+        }
+
+        /// <summary>
+        /// Historial de impresiones de etiquetas
+        /// GET: /Inventory/LabelPrintHistory
+        /// </summary>
+        public async Task<IActionResult> LabelPrintHistory(
+            int? itemId = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            string? printedBy = null,
+            string? containerNumber = null,
+            int page = 1)
+        {
+            try
+            {
+                ConfigureAuthHeader();
+
+                // Defaultear fechas al día actual en el primer acceso
+                fromDate ??= DateTime.Today;
+                toDate ??= DateTime.Today;
+
+                const int pageSize = 20;
+
+                var url = $"{GetApiBaseUrl()}/api/item/print-history?page={page}&pageSize={pageSize}";
+
+                if (itemId.HasValue)
+                    url += $"&itemId={itemId}";
+                if (fromDate.HasValue)
+                    url += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+                if (toDate.HasValue)
+                    url += $"&toDate={toDate.Value:yyyy-MM-dd}";
+                if (!string.IsNullOrEmpty(printedBy))
+                    url += $"&printedBy={Uri.EscapeDataString(printedBy)}";
+                if (!string.IsNullOrEmpty(containerNumber))
+                    url += $"&containerNumber={Uri.EscapeDataString(containerNumber)}";
+
+                var response = await _httpClient.GetAsync(url);
+
+                var viewModel = new LabelPrintHistoryViewModel
+                {
+                    ItemId = itemId,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    PrintedBy = printedBy,
+                    ContainerNumber = containerNumber,
+                    CurrentPage = page,
+                    PageSize = pageSize
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var history = JsonSerializer.Deserialize<List<LabelPrintHistoryDto>>(json, JsonOptions);
+                    viewModel.History = history ?? new List<LabelPrintHistoryDto>();
+                    viewModel.TotalCount = history?.Count ?? 0;
+                }
+                else
+                {
+                    _logger.LogWarning("Error obteniendo historial: {StatusCode}", response.StatusCode);
+                    TempData["Error"] = "Error al cargar el historial de impresiones.";
+                }
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en LabelPrintHistory");
+                TempData["Error"] = "Error al cargar el historial de impresiones";
+                return View(new LabelPrintHistoryViewModel());
             }
         }
 
@@ -1109,6 +1188,7 @@ namespace CMS.UI.Controllers
 
         // Print info
         public int QuantityPrinted { get; set; } = 1;
+        public string? ContainerNumber { get; set; }
         public string? PrinterName { get; set; }
         public string? PrintNotes { get; set; }
     }
@@ -1174,5 +1254,36 @@ namespace CMS.UI.Controllers
         public string? LabelItemBarcode { get; set; }
         public bool IsLabelItem { get; set; }
         public string? Error { get; set; }
+    }
+
+    // ===== HISTORIAL DE IMPRESIONES VIEW MODELS =====
+
+    public class LabelPrintHistoryViewModel
+    {
+        public List<LabelPrintHistoryDto> History { get; set; } = new();
+        public int? ItemId { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public string? PrintedBy { get; set; }
+        public string? ContainerNumber { get; set; }
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public int TotalCount { get; set; }
+        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    }
+
+    public class LabelPrintHistoryDto
+    {
+        public int Id { get; set; }
+        public int IdItem { get; set; }
+        public string ItemCode { get; set; } = string.Empty;
+        public string ItemName { get; set; } = string.Empty;
+        public string? LabelItem { get; set; }
+        public decimal LabelPrice { get; set; }
+        public string? FormattedPrice { get; set; }
+        public int QuantityPrinted { get; set; }
+        public string? ContainerNumber { get; set; }
+        public DateTime PrintDate { get; set; }
+        public string? PrintedBy { get; set; }
     }
 }
