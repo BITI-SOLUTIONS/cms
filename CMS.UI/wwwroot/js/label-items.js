@@ -440,6 +440,16 @@ function printLabelDirect() {
         return;
     }
 
+    // Validar número de contenedor (obligatorio)
+    var containerNumberVal = (document.getElementById('containerNumber') ? document.getElementById('containerNumber').value : '').trim();
+    var containerFeedback = document.getElementById('containerNumberFeedback');
+    if (!containerNumberVal) {
+        if (containerFeedback) containerFeedback.classList.remove('d-none');
+        showContainerModal();
+        return;
+    }
+    if (containerFeedback) containerFeedback.classList.add('d-none');
+
     // Obtener cantidad del campo de texto
     var quantityInput = document.getElementById('printQuantity');
     var quantity = parseInt(quantityInput ? quantityInput.value : 1) || 1;
@@ -596,6 +606,31 @@ function recordPrint(data) {
 function getElementText(id, defaultValue) {
     var el = document.getElementById(id);
     return el ? (el.textContent || el.innerText || defaultValue) : defaultValue;
+}
+
+// ================================================================================
+// MODAL PERSONALIZADO: Validación Número de Contenedor
+// Usa position:fixed + z-index alto para evitar conflictos de stacking context
+// ================================================================================
+function showContainerModal() {
+    var modal = document.getElementById('modalContainerRequired');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeContainerModal() {
+    var modal = document.getElementById('modalContainerRequired');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    var containerInput = document.getElementById('containerNumber');
+    if (containerInput) {
+        containerInput.focus();
+        containerInput.select();
+    }
 }
 
 // Inicializar event listeners cuando el DOM esté listo

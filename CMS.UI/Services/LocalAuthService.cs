@@ -59,6 +59,11 @@ namespace CMS.UI.Services
             public bool Success { get; set; }
             public string? Message { get; set; }
             public Company? Company { get; set; }
+            /// <summary>
+            /// Timezone de la compañía en formato UTC offset, ej: "UTC-06:00"
+            /// Se obtiene del país asociado (admin.country.time_zone)
+            /// </summary>
+            public string? CompanyTimezone { get; set; }
         }
 
         public class PasswordResetResult
@@ -108,10 +113,22 @@ namespace CMS.UI.Services
                     company.COMPANY_NAME, company.COMPANY_SCHEMA);
                 _logger.LogInformation("   🔐 USES_AZURE_AD = {UsesAzureAD}", company.USES_AZURE_AD);
 
+                // Obtener timezone del país asociado a la compañía
+                string? timezone = null;
+                if (company.IdCountry.HasValue)
+                {
+                    timezone = await _context.Countries
+                        .AsNoTracking()
+                        .Where(c => c.ID_COUNTRY == company.IdCountry.Value)
+                        .Select(c => c.TIME_ZONE)
+                        .FirstOrDefaultAsync();
+                }
+
                 return new CompanyValidationResult
                 {
                     Success = true,
-                    Company = company
+                    Company = company,
+                    CompanyTimezone = timezone
                 };
             }
             catch (Exception ex)

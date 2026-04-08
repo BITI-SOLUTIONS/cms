@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Historial de Impresión de Etiquetas";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var companyTz = Context.Session.GetString("CompanyTimeZone");
 }
 
 @section Styles {
@@ -149,7 +150,7 @@
                                 <tr>
                                     <td class="px-4 date-cell">
                                         <i class="bi bi-clock me-1"></i>
-                                        @item.PrintDate.ToString("dd/MM/yyyy HH:mm")
+                                        @DateTimeHelper.FormatDateTime(item.PrintDate, companyTz)
                                     </td>
                                     <td>
                                         <span class="badge bg-secondary font-monospace">@item.ItemCode</span>

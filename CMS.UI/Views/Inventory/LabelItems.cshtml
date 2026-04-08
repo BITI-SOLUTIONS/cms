@@ -241,20 +241,21 @@
                             <small class="text-muted mt-1 d-block">Ingrese la cantidad de etiquetas que desea imprimir (1-100)</small>
                         </div>
 
-                        <!-- 2.6 Número de Contenedor (Opcional) -->
+                        <!-- 2.6 Número de Contenedor (Requerido) -->
                         <div class="mb-4 p-3 rounded" style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3);">
                             <label class="form-label text-white fs-6 mb-2">
-                                <i class="bi bi-box-seam me-2" style="color: #f97316;"></i>Número de Contenedor <small class="text-muted">(Opcional)</small>
+                                <i class="bi bi-box-seam me-2" style="color: #f97316;"></i>Número de Contenedor <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <input type="text" id="containerNumber" class="form-control form-control-lg text-center fw-bold" 
-                                       maxlength="50" placeholder="Ej: CONT-001-2026"
+                                       maxlength="50" placeholder="Ej: CONT-001-2026" required
                                        style="background-color: #1e293b; color: #f97316; border-color: #f97316; font-size: 1.2rem;">
                                 <span class="input-group-text" style="background-color: #1e293b; border-color: #f97316; color: #94a3b8;">
                                     <i class="bi bi-box-seam"></i>
                                 </span>
                             </div>
-                            <small class="text-muted mt-1 d-block">Ingrese el número de contenedor o lote (máx. 50 caracteres). Este valor se guarda por compañía.</small>
+                            <div id="containerNumberFeedback" class="text-danger small mt-1 d-none"><i class="bi bi-exclamation-circle me-1"></i>El número de contenedor es obligatorio.</div>
+                            <small class="text-light mt-1 d-block">Ingrese el número de contenedor o lote (máx. 50 caracteres). Este valor se guarda por compañía.</small>
                         </div>
 
                         <!-- 3. Vista Previa de Etiqueta -->
@@ -719,3 +720,34 @@
         </script>
     }
 }
+
+<!-- Modal personalizado: Validación Número de Contenedor -->
+<div id="modalContainerRequired"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.75); z-index:99999;
+            align-items:center; justify-content:center;">
+    <div style="background:#1e293b; border:1px solid rgba(249,115,22,0.5); border-radius:16px;
+                max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.6); overflow:hidden;">
+        <div style="border-bottom:1px solid rgba(249,115,22,0.3); padding:1rem 1.5rem; display:flex; align-items:center;">
+            <h5 style="color:#f8fafc; margin:0; font-size:1.1rem;">
+                <i class="bi bi-exclamation-triangle-fill me-2" style="color:#f97316;"></i>Campo Requerido
+            </h5>
+        </div>
+        <div style="padding:2rem 1.5rem; text-align:center;">
+            <i class="bi bi-box-seam d-block mb-3" style="font-size:3rem; color:#f97316;"></i>
+            <p style="color:#f1f5f9; font-size:1rem; margin-bottom:0.5rem;">
+                Debe ingresar el <strong style="color:#f97316;">Número de Contenedor</strong> antes de imprimir.
+            </p>
+            <p style="color:#94a3b8; font-size:0.85rem; margin:0;">Este campo es obligatorio. Ingrese el número de contenedor o lote.</p>
+        </div>
+        <div style="border-top:1px solid rgba(249,115,22,0.3); padding:1rem 1.5rem; display:flex; justify-content:center;">
+            <button type="button" onclick="closeContainerModal()"
+                    style="background:#f97316; color:white; border:none; border-radius:8px;
+                           padding:0.75rem 3rem; font-size:1rem; cursor:pointer; font-weight:600;
+                           transition:background 0.2s;"
+                    onmouseover="this.style.background='#ea6c0a'" onmouseout="this.style.background='#f97316'">
+                <i class="bi bi-check-circle me-2"></i>Aceptar
+            </button>
+        </div>
+    </div>
+</div>

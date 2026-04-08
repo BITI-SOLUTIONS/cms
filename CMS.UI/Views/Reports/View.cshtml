@@ -629,41 +629,52 @@
         }
     }
 
+    // ── Conversión UTC → timezone de la compañía ──────────────────────────────────
+    function _parseCompanyOffsetMinutes() {
+        const tz = window.companyTimezone || 'UTC+00:00';
+        const m = tz.match(/UTC([+-])(\d{2}):(\d{2})/);
+        if (!m) return 0;
+        return (m[1] === '+' ? 1 : -1) * (parseInt(m[2]) * 60 + parseInt(m[3]));
+    }
+    const _companyOffsetMs = _parseCompanyOffsetMinutes() * 60000;
+
+    function _toCompanyDate(date) {
+        // Desplaza el timestamp por el offset de la compañía; luego se leen las partes UTC
+        return new Date(date.getTime() + _companyOffsetMs);
+    }
+
     function formatDate(value, format) {
         if (!value) return '-';
-
-        // Si ya viene como string formateado (DD/MM/YYYY o YYYY-MM-DD), parsearlo correctamente
         let date;
         if (typeof value === 'string') {
-            // Si viene en formato DD/MM/YYYY
             if (value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
                 const parts = value.split('/');
-                date = new Date(parts[2], parts[1] - 1, parts[0]);
-            }
-            // Si viene en formato YYYY-MM-DD (ISO)
-            else if (value.match(/^\d{4}-\d{2}-\d{2}/)) {
-                date = new Date(value);
-            }
-            // Intentar parseo directo
-            else {
+                date = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])));
+            } else {
                 date = new Date(value);
             }
         } else {
             date = new Date(value);
         }
-
-        // Verificar si la fecha es válida
-        if (isNaN(date.getTime())) {
-            return value; // Retornar el valor original si no se puede parsear
-        }
-
-        return date.toLocaleDateString('es-CR');
+        if (isNaN(date.getTime())) return value;
+        const local = _toCompanyDate(date);
+        const d = String(local.getUTCDate()).padStart(2, '0');
+        const mo = String(local.getUTCMonth() + 1).padStart(2, '0');
+        const y = local.getUTCFullYear();
+        return `${d}/${mo}/${y}`;
     }
 
     function formatDateTime(value, format) {
         if (!value) return '-';
         const date = new Date(value);
-        return date.toLocaleString('es-CR');
+        if (isNaN(date.getTime())) return value;
+        const local = _toCompanyDate(date);
+        const d = String(local.getUTCDate()).padStart(2, '0');
+        const mo = String(local.getUTCMonth() + 1).padStart(2, '0');
+        const y = local.getUTCFullYear();
+        const h = String(local.getUTCHours()).padStart(2, '0');
+        const min = String(local.getUTCMinutes()).padStart(2, '0');
+        return `${d}/${mo}/${y} ${h}:${min}`;
     }
 
     function formatCurrency(value) {
