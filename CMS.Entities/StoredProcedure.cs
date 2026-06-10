@@ -18,17 +18,17 @@ namespace CMS.Entities
         [Column("id_stored_procedure")]
         public int ID_SP { get; set; }
 
-        [Column("sp_code")]
+        [Column("code")]
         [Required]
         [MaxLength(50)]
         public string SP_CODE { get; set; } = default!;
 
-        [Column("sp_name")]
+        [Column("name")]
         [Required]
         [MaxLength(200)]
         public string SP_NAME { get; set; } = default!;
 
-        [Column("sp_description")]
+        [Column("description")]
         [MaxLength(500)]
         public string? SP_DESCRIPTION { get; set; }
 
@@ -50,12 +50,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
     }
 }

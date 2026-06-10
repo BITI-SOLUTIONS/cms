@@ -10,7 +10,7 @@ namespace CMS.Entities
         [Column("id_role")]
         public int ID_ROLE { get; set; }
 
-        [Column("role_name")]
+        [Column("name")]
         [Required]
         [MaxLength(100)]
         public string ROLE_NAME { get; set; } = default!;
@@ -37,12 +37,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         // ⭐ MARCAR COMO [NotMapped] TEMPORALMENTE

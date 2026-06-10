@@ -28,7 +28,7 @@ namespace CMS.Entities.Reports
         [Column("saved_filters", TypeName = "jsonb")]
         public string? SavedFilters { get; set; }
 
-        [Column("favorite_name")]
+        [Column("name")]
         [MaxLength(100)]
         public string? FavoriteName { get; set; }
 
@@ -50,11 +50,11 @@ namespace CMS.Entities.Reports
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
         [Column("created_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? CreatedBy { get; set; }
 
         [Column("updated_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? UpdatedBy { get; set; }
     }
 }

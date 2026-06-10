@@ -23,17 +23,17 @@ namespace CMS.Entities.Reports
         public int ReportId { get; set; }
 
         // Identificación del filtro
-        [Column("filter_key")]
+        [Column("code")]
         [Required]
         [MaxLength(50)]
         public string FilterKey { get; set; } = string.Empty; // Nombre del parámetro (@startDate)
 
-        [Column("filter_name")]
+        [Column("name")]
         [Required]
         [MaxLength(100)]
         public string FilterName { get; set; } = string.Empty; // Nombre para mostrar
 
-        [Column("filter_description")]
+        [Column("description")]
         [MaxLength(300)]
         public string? FilterDescription { get; set; }
 
@@ -106,11 +106,11 @@ namespace CMS.Entities.Reports
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
         [Column("created_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? CreatedBy { get; set; }
 
         [Column("updated_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? UpdatedBy { get; set; }
     }
 }

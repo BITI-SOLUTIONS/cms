@@ -1,0 +1,195 @@
+@* ================================================================================
+   VISTA: CMS.UI/Views/Settings/FleetCatalogs.cshtml
+   PROPÓSITO: Mantenimiento de catálogos centrales de Fleet Management
+   (Tipo Unidad, Estado Unidad, Tipo Combustible, Marca, Modelo)
+   ================================================================================ *@
+@{
+    ViewData["Title"] = "Catálogos Fleet";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+    .catalog-badge { font-size: .75rem; }
+    .nav-tabs .nav-link          { color: #94a3b8; border-color: transparent; }
+    .nav-tabs .nav-link.active   { background: #1e293b; color: #f1f5f9; border-color: #475569 #475569 #1e293b; }
+    .nav-tabs .nav-link:hover    { color: #f1f5f9; border-color: #334155 #334155 transparent; }
+    .tab-pane table th           { font-size: .78rem; text-transform: uppercase; color: #94a3b8; }
+    .color-preview               { width: 20px; height: 20px; border-radius: 4px; display: inline-block; border: 1px solid #475569; }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white mb-0"><i class="bi bi-sliders me-2 text-info"></i>Catálogos Fleet Management</h4>
+            <small class="text-muted">Mantenimiento de tipos, estados, combustibles, marcas y modelos</small>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-0" id="fleetTabs">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabUnitType"><i class="bi bi-tag me-1"></i>Tipo de Unidad</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabStatus"><i class="bi bi-circle me-1"></i>Estado</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabFuel"><i class="bi bi-fuel-pump me-1"></i>Combustible</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabBrand"><i class="bi bi-award me-1"></i>Marca</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabModel"><i class="bi bi-car-front me-1"></i>Modelo</a></li>
+    </ul>
+
+    <div class="tab-content bg-dark rounded-bottom rounded-end border border-top-0 border-secondary p-3">
+
+        <!-- TAB: TIPO DE UNIDAD -->
+        <div class="tab-pane fade show active" id="tabUnitType">
+            <div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-sm btn-primary" onclick="FC.openModal('unitType')"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0" id="tblUnitType">
+                    <thead><tr>
+                        <th>Código</th><th>Nombre</th><th>Descripción</th><th>Icono</th>
+                        <th class="text-center">Orden</th><th class="text-center">Activo</th><th></th>
+                    </tr></thead>
+                    <tbody id="bodyUnitType"><tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: ESTADO -->
+        <div class="tab-pane fade" id="tabStatus">
+            <div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-sm btn-primary" onclick="FC.openModal('status')"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0">
+                    <thead><tr>
+                        <th>Código</th><th>Nombre</th><th>Color Badge</th><th>Descripción</th>
+                        <th class="text-center">Orden</th><th class="text-center">Activo</th><th></th>
+                    </tr></thead>
+                    <tbody id="bodyStatus"><tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: COMBUSTIBLE -->
+        <div class="tab-pane fade" id="tabFuel">
+            <div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-sm btn-primary" onclick="FC.openModal('fuel')"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0">
+                    <thead><tr>
+                        <th>Código</th><th>Nombre</th><th>Descripción</th><th>Icono</th>
+                        <th class="text-center">Orden</th><th class="text-center">Activo</th><th></th>
+                    </tr></thead>
+                    <tbody id="bodyFuel"><tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: MARCA -->
+        <div class="tab-pane fade" id="tabBrand">
+            <div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-sm btn-primary" onclick="FC.openModal('brand')"><i class="bi bi-plus-lg me-1"></i>Nueva</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0">
+                    <thead><tr>
+                        <th>Código</th><th>Nombre</th><th>País de Origen</th><th>Descripción</th>
+                        <th class="text-center">Orden</th><th class="text-center">Activo</th><th></th>
+                    </tr></thead>
+                    <tbody id="bodyBrand"><tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: MODELO -->
+        <div class="tab-pane fade" id="tabModel">
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <select id="filterModelBrand"
+                        class="form-select form-select-sm bg-dark text-white border-secondary"
+                        style="max-width:220px"
+                        onchange="FC.filterModels()">
+                    <option value="">— Todas las marcas —</option>
+                </select>
+                <div class="ms-auto">
+                    <button class="btn btn-sm btn-primary" onclick="FC.openModal('model')">
+                        <i class="bi bi-plus-lg me-1"></i>Nuevo
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0">
+                    <thead><tr>
+                        <th>Código</th><th>Marca</th><th>Nombre</th><th>Tipo Unidad</th>
+                        <th class="text-center">Orden</th><th class="text-center">Activo</th><th></th>
+                    </tr></thead>
+                    <tbody id="bodyModel"><tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /tab-content -->
+</div>
+
+<!-- ============================================================
+     MODAL GENÉRICO
+     ============================================================ -->
+<div class="modal fade" id="fcModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="fcModalTitle">Catálogo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="fcModalBody">
+                <!-- Se inyecta dinámicamente -->
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="fcBtnSave" onclick="FC.save()">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL ELIMINAR/DESACTIVAR
+     ============================================================ -->
+<div class="modal fade" id="fcDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-danger text-light">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Desactivar</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Desea desactivar el registro <strong id="fcDeleteName"></strong>?</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="FC.confirmDelete()">
+                    <i class="bi bi-trash me-1"></i>Desactivar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    window.FC_API   = '@ViewBag.ApiBaseUrl';
+    window.FC_TOKEN = '@ViewBag.ApiToken';
+</script>
+<script src="~/js/fleetCatalogs.js" asp-append-version="true"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ['fcModal','fcDeleteModal'].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+    });
+</script>
+}

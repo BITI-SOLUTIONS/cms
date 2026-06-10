@@ -1,0 +1,554 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Warehouse/DistributionRoutes.cshtml                     *@
+@* PROPÓSITO: Pantalla de gestión de rutas de distribución                       *@
+@* DISEÑO: Touch-first, responsive, tema oscuro. Optimizado para tablet.         *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                               *@
+@* CREADO: 2026-06-10                                                            *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Distribution Routes";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? string.Empty;
+    var apiToken   = ViewBag.ApiToken   as string ?? string.Empty;
+}
+
+@section Styles {
+<style>
+/* ── Variables ── */
+:root {
+    --dr-accent  : #6366f1;
+    --dr-accent15: rgba(99,102,241,.15);
+    --dr-surface0: #0f172a;
+    --dr-surface1: #1e293b;
+    --dr-surface2: #334155;
+    --dr-text    : #e2e8f0;
+    --dr-muted   : #94a3b8;
+    --dr-border  : rgba(255,255,255,.08);
+}
+
+/* ── Help text ── */
+small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+
+/* ── Inputs ── */
+.form-select, .form-control {
+    background-color: var(--dr-surface1) !important;
+    color: var(--dr-text) !important;
+    border-color: rgba(255,255,255,.2) !important;
+    border-radius: 10px !important;
+}
+.form-select option { background-color: var(--dr-surface1); color: var(--dr-text); }
+.form-control::placeholder { color: var(--dr-muted) !important; opacity: 1; }
+.form-select:focus, .form-control:focus {
+    border-color: var(--dr-accent15) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.12) !important;
+}
+.form-check-input:checked { background-color: var(--dr-accent); border-color: var(--dr-accent); }
+
+/* ── KPI chips ── */
+.kpi-chip {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: .9rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--dr-border);
+    background: var(--dr-surface1);
+    min-width: 90px;
+}
+.kpi-chip .kpi-num  { font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1; }
+.kpi-chip .kpi-lbl  { font-size: .68rem; color: var(--dr-muted); margin-top: .2rem; text-align: center; }
+
+/* ── Route cards ── */
+.dr-card {
+    background: var(--dr-surface1);
+    border-radius: 14px;
+    border: 1px solid var(--dr-border);
+    padding: 1rem 1.1rem;
+    transition: transform .15s, box-shadow .15s;
+    cursor: pointer;
+}
+.dr-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.dr-code       { font-size: .75rem; font-weight: 700; color: var(--dr-accent); letter-spacing: .04em; text-transform: uppercase; }
+.dr-name       { font-size: .95rem; font-weight: 600; color: #fff; }
+.dr-desc       { font-size: .78rem; color: var(--dr-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.dr-status-badge {
+    display: inline-flex; align-items: center;
+    font-size: .68rem; font-weight: 600; padding: .15rem .55rem;
+    border-radius: 20px; letter-spacing: .02em;
+}
+
+.dr-meta-row   { display: flex; flex-wrap: wrap; gap: .35rem; }
+.dr-meta-pill  {
+    display: inline-flex; align-items: center;
+    font-size: .72rem; color: var(--dr-muted);
+    background: rgba(255,255,255,.05); border-radius: 20px;
+    padding: .15rem .55rem;
+}
+
+.dr-days { display: flex; flex-wrap: wrap; gap: .2rem; align-items: center; }
+.dr-day-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    font-size: .65rem; font-weight: 600;
+    background: var(--dr-surface2); color: var(--dr-muted);
+    transition: background .15s, color .15s;
+}
+.dr-day-chip.active { background: var(--dr-accent); color: #fff; }
+
+.dr-stops-badge {
+    font-size: .72rem; color: var(--dr-muted);
+    background: rgba(255,255,255,.05); border-radius: 20px;
+    padding: .2rem .6rem;
+}
+
+/* ── Botón ghost icon ── */
+.btn-icon-ghost {
+    background: transparent;
+    border: none;
+    color: var(--dr-muted);
+    padding: .3rem .45rem;
+    border-radius: 8px;
+    line-height: 1;
+}
+.btn-icon-ghost:hover { background: rgba(255,255,255,.07); color: #fff; }
+
+/* ── Modales ── */
+.modal-content  { background: var(--dr-surface0); border: 1px solid var(--dr-border); border-radius: 18px; }
+.modal-header   { border-bottom: 1px solid var(--dr-border); }
+.modal-footer   { border-top: 1px solid var(--dr-border); }
+.modal-backdrop { z-index: 1055 !important; }
+.modal          { z-index: 1060 !important; }
+
+/* ── Secciones de formulario ── */
+.form-section-title {
+    color: #818cf8; font-size: .78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    border-bottom: 1px solid rgba(99,102,241,.2);
+    padding-bottom: .4rem; margin-bottom: .9rem;
+}
+
+/* ── Selector de días ── */
+.day-toggle {
+    min-width: 42px; min-height: 42px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: var(--dr-surface2); color: var(--dr-muted);
+    border-radius: 10px; font-size: .78rem; font-weight: 600;
+    transition: all .15s; cursor: pointer;
+}
+.day-toggle.active { background: var(--dr-accent); color: #fff; border-color: var(--dr-accent); }
+.day-toggle:hover:not(.active) { background: rgba(99,102,241,.15); color: #c7d2fe; }
+
+/* ── Paradas (form) ── */
+.stop-form-item {
+    background: var(--dr-surface1);
+    border: 1px solid var(--dr-border);
+    border-radius: 12px;
+    margin-bottom: .75rem;
+    overflow: hidden;
+}
+.stop-form-header {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .6rem .9rem;
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--dr-border);
+}
+.stop-form-body { padding: .8rem .9rem; }
+.stop-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--dr-accent); color: #fff;
+    font-size: .72rem; font-weight: 700; flex-shrink: 0;
+}
+
+/* ── Paradas (solo lectura) ── */
+.stops-readonly-list { display: flex; flex-direction: column; gap: .5rem; }
+.stop-readonly-item {
+    display: flex; align-items: flex-start; gap: .75rem;
+    padding: .6rem .8rem;
+    background: var(--dr-surface1);
+    border: 1px solid var(--dr-border);
+    border-radius: 10px;
+}
+.stop-readonly-info { flex: 1; min-width: 0; }
+
+/* ── Detalle ── */
+.detail-block { padding: .5rem .8rem; background: var(--dr-surface1); border-radius: 10px; border: 1px solid var(--dr-border); }
+.detail-label { font-size: .68rem; color: var(--dr-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .15rem; }
+.detail-value { font-size: .875rem; color: var(--dr-text); }
+
+/* ── Paginación ── */
+.page-link { background-color: var(--dr-surface1); border-color: var(--dr-border); color: var(--dr-muted); }
+.page-link:hover { background-color: var(--dr-surface2); color: #fff; }
+.page-item.active .page-link { background-color: var(--dr-accent); border-color: var(--dr-accent); color: #fff; }
+.page-item.disabled .page-link { background-color: var(--dr-surface0); color: #475569; }
+
+/* ── Accesibilidad táctil ── */
+@@media (hover: none) and (pointer: coarse) {
+    .dr-card { min-height: 160px; }
+    .btn, .form-control, .form-select, .day-toggle { min-height: 44px; }
+    .form-control.form-control-sm, .form-select.form-select-sm { min-height: 40px; }
+}
+</style>
+}
+
+<div class="content-container">
+
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-map me-2" style="color:#818cf8;"></i>
+                Rutas de Distribución
+            </h1>
+            <p class="mb-0" style="color:#94a3b8;">Gestión de rutas, paradas y asignación de vehículos</p>
+        </div>
+        <div class="page-header-actions d-flex gap-2">
+            <button class="btn btn-tech-primary" onclick="openCreate()">
+                <i class="bi bi-plus-lg me-2"></i>Nueva Ruta
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== ALERTA ===== -->
+    <div id="pageAlert" class="d-none mb-3" role="alert"></div>
+
+    <!-- ===== KPIs ===== -->
+    <div class="d-flex flex-wrap gap-3 mb-4">
+        <div class="kpi-chip">
+            <span class="kpi-num" id="kpiTotal">—</span>
+            <span class="kpi-lbl">Total rutas</span>
+        </div>
+        <div class="kpi-chip">
+            <span class="kpi-num" style="color:#22c55e;" id="kpiActive">—</span>
+            <span class="kpi-lbl">Activas</span>
+        </div>
+        <div class="kpi-chip">
+            <span class="kpi-num" style="color:#f59e0b;" id="kpiInProgress">—</span>
+            <span class="kpi-lbl">En ruta</span>
+        </div>
+        <div class="kpi-chip">
+            <span class="kpi-num" style="color:#818cf8;" id="kpiStops">—</span>
+            <span class="kpi-lbl">Paradas</span>
+        </div>
+    </div>
+
+    <!-- ===== FILTROS ===== -->
+    <div class="card bg-dark-card border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4 col-lg-3">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-search me-1"></i>Buscar</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Código, nombre, placa…">
+                </div>
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-circle-half me-1"></i>Estado</label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Active">Activa</option>
+                        <option value="Inactive">Inactiva</option>
+                        <option value="InProgress">En ruta</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-calendar me-1"></i>Frecuencia</label>
+                    <select id="filterFrequency" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="Daily">Diaria</option>
+                        <option value="Weekly">Semanal</option>
+                        <option value="BiWeekly">Quincenal</option>
+                        <option value="Monthly">Mensual</option>
+                        <option value="OnDemand">Bajo demanda</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 col-lg-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-toggle-on me-1"></i>Vigencia</label>
+                    <select id="filterActive" class="form-select">
+                        <option value="true">Vigentes</option>
+                        <option value="">Todas</option>
+                        <option value="false">Inactivas</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-auto">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SPINNER ===== -->
+    <div id="loadingSpinner" class="text-center py-3 d-none">
+        <div class="spinner-border text-indigo" role="status"></div>
+    </div>
+
+    <!-- ===== GRID DE RUTAS ===== -->
+    <div class="row g-3" id="routesGrid">
+        <!-- cargado por JS -->
+    </div>
+
+    <!-- ===== PAGINACIÓN ===== -->
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination" id="pagination"></ul>
+    </nav>
+
+</div>
+
+@* ═══════════════════════════════════════════════════════════════════════════════ *@
+@* MODAL — Crear / Editar Ruta                                                   *@
+@* ═══════════════════════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="routeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="modalRouteTitle">Nueva Ruta de Distribución</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-4">
+
+          <!-- ── Columna izquierda: datos de la ruta ── -->
+          <div class="col-12 col-lg-7">
+
+            <!-- Identificación -->
+            <p class="form-section-title"><i class="bi bi-info-circle me-2"></i>Identificación</p>
+            <div class="row g-3 mb-4">
+              <div class="col-4">
+                <label class="form-label text-white">Código <span class="text-danger">*</span></label>
+                <input type="text" id="fCode" class="form-control text-uppercase" placeholder="RT-001" maxlength="30">
+                <small>Identificador único de la ruta</small>
+              </div>
+              <div class="col-8">
+                <label class="form-label text-white">Nombre <span class="text-danger">*</span></label>
+                <input type="text" id="fName" class="form-control" placeholder="Ruta Sur — Zona Comercial" maxlength="200">
+              </div>
+              <div class="col-12">
+                <label class="form-label text-white">Descripción</label>
+                <textarea id="fDescription" class="form-control" rows="2" placeholder="Descripción operacional de la ruta…" maxlength="1000"></textarea>
+              </div>
+            </div>
+
+            <!-- Operación -->
+            <p class="form-section-title"><i class="bi bi-calendar-week me-2"></i>Operación</p>
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Estado</label>
+                <select id="fStatus" class="form-select">
+                    <option value="Active">Activa</option>
+                    <option value="Inactive">Inactiva</option>
+                    <option value="InProgress">En ruta</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Frecuencia</label>
+                <select id="fFrequency" class="form-select">
+                    <option value="Daily">Diaria</option>
+                    <option value="Weekly">Semanal</option>
+                    <option value="BiWeekly">Quincenal</option>
+                    <option value="Monthly">Mensual</option>
+                    <option value="OnDemand">Bajo demanda</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Hora de salida</label>
+                <input type="time" id="fDeparture" class="form-control">
+              </div>
+              <div class="col-12">
+                <label class="form-label text-white d-block mb-2">Días de operación</label>
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="button" class="day-toggle" data-day="0">Lun</button>
+                  <button type="button" class="day-toggle" data-day="1">Mar</button>
+                  <button type="button" class="day-toggle" data-day="2">Mié</button>
+                  <button type="button" class="day-toggle" data-day="3">Jue</button>
+                  <button type="button" class="day-toggle" data-day="4">Vie</button>
+                  <button type="button" class="day-toggle" data-day="5">Sáb</button>
+                  <button type="button" class="day-toggle" data-day="6">Dom</button>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Duración estimada</label>
+                <div class="input-group">
+                  <input type="number" id="fDuration" class="form-control" placeholder="120" min="1">
+                  <span class="input-group-text" style="background:var(--dr-surface2);color:#94a3b8;border-color:rgba(255,255,255,.2);">min</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Distancia estimada</label>
+                <div class="input-group">
+                  <input type="number" id="fDistance" class="form-control" placeholder="45.5" min="0" step="0.1">
+                  <span class="input-group-text" style="background:var(--dr-surface2);color:#94a3b8;border-color:rgba(255,255,255,.2);">km</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Bodega origen</label>
+                <select id="fOriginWarehouse" class="form-select">
+                    <option value="">— Sin bodega origen —</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Vehículo y conductor -->
+            <p class="form-section-title"><i class="bi bi-truck me-2"></i>Vehículo &amp; Conductor</p>
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-4">
+                <label class="form-label text-white">Placa</label>
+                <input type="text" id="fPlate" class="form-control text-uppercase" placeholder="ABC-123" maxlength="100">
+              </div>
+              <div class="col-6 col-md-8">
+                <label class="form-label text-white">Descripción vehículo</label>
+                <input type="text" id="fVehicleDesc" class="form-control" placeholder="Camión 3.5T, Mercedes Sprinter…" maxlength="100">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label text-white">Conductor asignado</label>
+                <select id="fDriver" class="form-select">
+                    <option value="">— Sin conductor asignado —</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label text-white">Peso máx.</label>
+                <div class="input-group">
+                  <input type="number" id="fMaxWeight" class="form-control" placeholder="3500" min="0">
+                  <span class="input-group-text" style="background:var(--dr-surface2);color:#94a3b8;border-color:rgba(255,255,255,.2);">kg</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label text-white">Volumen máx.</label>
+                <div class="input-group">
+                  <input type="number" id="fMaxVolume" class="form-control" placeholder="12.5" min="0" step="0.1">
+                  <span class="input-group-text" style="background:var(--dr-surface2);color:#94a3b8;border-color:rgba(255,255,255,.2);">m³</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuración y notas -->
+            <p class="form-section-title"><i class="bi bi-gear me-2"></i>Configuración</p>
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="d-flex flex-wrap gap-4">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="fReqSignature">
+                    <label class="form-check-label text-white" for="fReqSignature">Requiere firma</label>
+                  </div>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="fReqPhoto">
+                    <label class="form-check-label text-white" for="fReqPhoto">Requiere foto</label>
+                  </div>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="fAllowPartial" checked>
+                    <label class="form-check-label text-white" for="fAllowPartial">Permite entrega parcial</label>
+                  </div>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="fIsActive" checked>
+                    <label class="form-check-label text-white" for="fIsActive">Ruta activa</label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label text-white">Notas</label>
+                <textarea id="fNotes" class="form-control" rows="2" placeholder="Observaciones o instrucciones especiales…" maxlength="2000"></textarea>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ── Columna derecha: paradas ── -->
+          <div class="col-12 col-lg-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <p class="form-section-title mb-0"><i class="bi bi-signpost-split me-2"></i>Paradas de entrega</p>
+              <button type="button" class="btn btn-sm btn-outline-indigo" onclick="addStop()">
+                <i class="bi bi-plus-lg me-1"></i>Agregar Parada
+              </button>
+            </div>
+            <div id="stopsContainer" style="max-height:520px;overflow-y:auto;">
+              <!-- renderizado por JS -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btnSaveRoute" class="btn btn-tech-primary" onclick="saveRoute()">
+          <i class="bi bi-check-lg me-2"></i>Guardar Ruta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@* ═══════════════════════════════════════════════════════════════════════════════ *@
+@* MODAL — Detalle de Ruta                                                       *@
+@* ═══════════════════════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Detalle de Ruta</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detailBody">
+        <!-- renderizado por JS -->
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" id="detailToggleBtn" class="btn btn-warning">Desactivar</button>
+        <button type="button" id="detailStopsBtn"  class="btn btn-outline-info">
+          <i class="bi bi-signpost-split me-1"></i>Gestionar Paradas
+        </button>
+        <button type="button" id="detailEditBtn"   class="btn btn-tech-primary">
+          <i class="bi bi-pencil me-1"></i>Editar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@* ═══════════════════════════════════════════════════════════════════════════════ *@
+@* MODAL — Gestión de Paradas (standalone)                                       *@
+@* ═══════════════════════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="stopsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title text-white">Gestión de Paradas</h5>
+          <small class="text-muted" id="stopsRouteTitle"></small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-end mb-3">
+          <button type="button" class="btn btn-outline-indigo btn-sm" onclick="addStopStandalone()">
+            <i class="bi bi-plus-lg me-1"></i>Agregar Parada
+          </button>
+        </div>
+        <div id="stopsContainerStandalone" style="max-height:500px;overflow-y:auto;">
+          <!-- renderizado por JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btnSaveStops" class="btn btn-tech-primary" onclick="saveStops()">
+          <i class="bi bi-check-lg me-2"></i>Guardar Paradas
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+    const _apiBase  = '@Html.Raw(apiBaseUrl)';
+    const _apiToken = '@Html.Raw(apiToken)';
+</script>
+<script src="~/js/distributionRoutes.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        initDistributionRoutes(_apiBase, _apiToken);
+
+        // Mover modales al body para evitar conflicto con sidebar
+        ['routeModal','detailModal','stopsModal'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+    });
+</script>
+}

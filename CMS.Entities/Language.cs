@@ -10,17 +10,17 @@ namespace CMS.Entities
         [Column("id_language")]
         public int ID_LANGUAGE { get; set; }
 
-        [Column("language_code")]
+        [Column("code")]
         [Required]
         [MaxLength(15)]
         public string LANGUAGE_CODE { get; set; } = default!;
 
-        [Column("language_name")]
+        [Column("name")]
         [Required]
         [MaxLength(200)]
         public string LANGUAGE_NAME { get; set; } = default!;
 
-        [Column("language_name_native")]
+        [Column("name_native")]
         [Required]
         [MaxLength(200)]
         public string LANGUAGE_NAME_NATIVE { get; set; } = default!;
@@ -42,12 +42,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         public virtual ICollection<Country> Countries { get; set; } = new List<Country>();

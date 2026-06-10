@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
     "net9.0": {
       "Azure.Core/1.38.0": {
@@ -8894,6 +8894,7 @@
       },
       "frameworks": {
         "net9.0": {
+          "framework": "net9.0",
           "targetAlias": "net9.0",
           "projectReferences": {
             "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Application\\CMS.Application.csproj": {
@@ -8918,10 +8919,11 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.200"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net9.0": {
+        "framework": "net9.0",
         "targetAlias": "net9.0",
         "dependencies": {
           "ClosedXML": {
@@ -8971,19 +8973,19 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[9.0.14, 9.0.14]"
+            "version": "[9.0.16, 9.0.16]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[9.0.14, 9.0.14]"
+            "version": "[9.0.16, 9.0.16]"
           },
           {
             "name": "Microsoft.NETCore.App.Ref",
-            "version": "[9.0.14, 9.0.14]"
+            "version": "[9.0.16, 9.0.16]"
           },
           {
             "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[9.0.14, 9.0.14]"
+            "version": "[9.0.16, 9.0.16]"
           }
         ],
         "frameworkReferences": {
@@ -8994,7 +8996,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

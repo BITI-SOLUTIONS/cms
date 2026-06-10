@@ -23,11 +23,33 @@ namespace CMS.UI.Controllers
     {
         private readonly SettingsApiService _api;
         private readonly ILogger<SettingsController> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IConfiguration _configuration;
 
-        public SettingsController(SettingsApiService api, ILogger<SettingsController> logger)
+        public SettingsController(
+            SettingsApiService api,
+            ILogger<SettingsController> logger,
+            IHttpContextAccessor httpContextAccessor,
+            IConfiguration configuration)
         {
             _api = api;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
+            _configuration = configuration;
+        }
+
+        private string GetApiToken() =>
+            _httpContextAccessor.HttpContext?.Session.GetString("ApiToken")
+            ?? _httpContextAccessor.HttpContext?.Session.GetString("JwtToken")
+            ?? string.Empty;
+
+        private string GetApiBaseUrl()
+        {
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+            var baseUrl = _configuration[$"ApiSettings:{environment}:BaseUrl"];
+            return baseUrl ?? (environment == "Production"
+                ? "https://cms.biti-solutions.com"
+                : "https://localhost:7001");
         }
 
         // =====================================================
@@ -157,13 +179,23 @@ namespace CMS.UI.Controllers
         /// <returns>Vista Backup.cshtml</returns>
         public IActionResult Backup()
         {
-            // TODO: Implementar funcionalidad de backup/restore
-            // Opciones:
-            // 1. Backup manual bajo demanda (exportar a .bak o .sql)
-            // 2. Listar backups existentes con fechas y tamaños
-            // 3. Restaurar desde backup seleccionado
-            // 4. Configurar backups automáticos programados
             _logger.LogInformation("Acceso a la vista de backup y restore");
+            return View();
+        }
+
+        // =====================================================
+        // CATÁLOGOS FLEET MANAGEMENT
+        // =====================================================
+
+        /// <summary>
+        /// Pantalla de mantenimiento de catálogos Fleet:
+        /// Tipo de Unidad, Estado, Combustible, Marca y Modelo.
+        /// GET: /Settings/FleetCatalogs
+        /// </summary>
+        public IActionResult FleetCatalogs()
+        {
+            ViewBag.ApiBaseUrl = GetApiBaseUrl();
+            ViewBag.ApiToken   = GetApiToken();
             return View();
         }
     }

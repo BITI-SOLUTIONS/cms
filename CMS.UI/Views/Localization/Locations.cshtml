@@ -1,0 +1,403 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Localization/Locations.cshtml                            *@
+@* PROPÓSITO: Gestión centralizada de todas las localizaciones del sistema        *@
+@* RUTA: /Settings/Locations                                                      *@
+@* DESCRIPCIÓN: Pantalla de gestión de localizaciones (bodegas, clientes,        *@
+@*              empleados, proveedores, sucursales, etc.)                         *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                *@
+@* CREADO: 2026-06-03                                                             *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Localizaciones";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? string.Empty;
+    var apiToken   = ViewBag.ApiToken   as string ?? string.Empty;
+    var companyCountryId = ViewBag.CompanyCountryId as int? ?? 0;
+}
+
+@section Styles {
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<style>
+.form-select, .form-control {
+    background-color: #1e293b !important;
+    color: #f0f0f0 !important;
+    border-color: rgba(255,255,255,.2) !important;
+}
+.form-select:focus, .form-control:focus {
+    border-color: rgba(99,102,241,.6) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15) !important;
+}
+/* Placeholder visible en fondo oscuro */
+.form-control::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
+.form-select option { color: #f0f0f0; background-color: #1e293b; }
+.modal-content { background-color: #0f172a; border: 1px solid rgba(255,255,255,.1); }
+.modal-header  { border-bottom: 1px solid rgba(255,255,255,.08); }
+.modal-footer  { border-top:    1px solid rgba(255,255,255,.08); }
+.loc-row:hover { background: rgba(99,102,241,.08) !important; cursor: pointer; }
+.form-section-title { color: #818cf8; font-size: .8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; border-bottom: 1px solid rgba(99,102,241,.2);
+    padding-bottom: .4rem; margin-bottom: 1rem; }
+.page-link { background-color: #1e293b; border-color: rgba(255,255,255,.1); color: #94a3b8; }
+.page-link:hover { background-color: #334155; color: #f0f0f0; }
+.page-item.active .page-link { background-color: #6366f1; border-color: #6366f1; }
+.page-item.disabled .page-link { background-color: #0f172a; color: #475569; }
+/* Textos de la tabla con contraste suficiente */
+#wlocContainer td { color: #e2e8f0; }
+#wlocContainer .text-muted { color: #94a3b8 !important; }
+/* Geocoder en tema oscuro */
+.leaflet-control-geocoder { background: #1e293b; border-color: rgba(255,255,255,.2); }
+.leaflet-control-geocoder-form input { background: #1e293b; color: #f0f0f0; border-color: rgba(255,255,255,.2); }
+.leaflet-control-geocoder-alternatives { background: #1e293b; }
+.leaflet-control-geocoder-alternatives li a { color: #f0f0f0; }
+.leaflet-control-geocoder-alternatives li:hover { background: #334155; }
+</style>
+}
+
+<div class="content-container">
+
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-geo-alt me-2" style="color:#818cf8;"></i>
+                Localizaciones
+            </h1>
+            <p class="mb-0" style="color:#94a3b8;">
+                Gestión centralizada de todas las ubicaciones del sistema: bodegas, clientes, empleados, proveedores, sucursales y más
+            </p>
+        </div>
+        <div class="page-header-actions d-flex gap-2 flex-wrap">
+            <button class="btn btn-tech-primary" onclick="WLOC.openCreate()">
+                <i class="bi bi-plus-lg me-2"></i>Nueva Ubicación
+            </button>
+        </div>
+    </div>
+
+    <div id="pageAlert" class="d-none mb-3" role="alert"></div>
+
+
+    <!-- Filtros -->
+    <div class="card bg-dark-card border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-search me-1"></i>Buscar</label>
+                    <input type="text" id="wlocSearch" class="form-control" placeholder="Código, nombre, ciudad…">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-tags me-1"></i>Tipo de Ubicación</label>
+                    <select id="wlocLocType" class="form-select">
+                        <option value="">Todos los tipos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-toggle-on me-1"></i>Estado</label>
+                    <select id="wlocStatus" class="form-select">
+                        <option value="true">Activas</option>
+                        <option value="false">Inactivas</option>
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-tech-primary flex-grow-1" onclick="WLOC.applyFilters()">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="WLOC.clearFilters()" title="Limpiar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <span style="color:#cbd5e1; font-size:.85rem;"><span id="wlocTotal">0</span> ubicaciones encontradas</span>
+        <div id="wlocSpinner" class="d-none"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+    </div>
+
+    <div id="wlocContainer"></div>
+
+    <div id="wlocEmpty" class="d-none text-center py-5">
+        <i class="bi bi-geo-alt" style="font-size:3rem; color:#334155;"></i>
+        <p class="text-muted mt-3">No se encontraron ubicaciones</p>
+        <button class="btn btn-tech-primary mt-2" onclick="WLOC.openCreate()">
+            <i class="bi bi-plus-lg me-2"></i>Crear ubicación
+        </button>
+    </div>
+
+    <div id="wlocPagination" class="mt-4">
+        <nav><ul class="pagination pagination-sm justify-content-center flex-wrap" id="wlocPager"></ul></nav>
+    </div>
+
+</div>
+
+@* ── MODAL CREAR / EDITAR ── *@
+<div class="modal fade" id="wlocModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title text-white mb-0" id="wlocModalTitle">Nueva Ubicación</h5>
+                    <small style="color:#94a3b8" id="wlocModalSubtitle">Complete los datos de la ubicación.</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="wlocForm" novalidate>
+
+                    <div class="form-section-title"><i class="bi bi-tags me-2"></i>Clasificación</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Tipo de Localización <span class="text-danger">*</span></label>
+                            <select id="fWlocLocType" class="form-select" required>
+                                <option value="">-- Seleccione tipo --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch ms-2">
+                                <input class="form-check-input" type="checkbox" id="fWlocIsActive" checked>
+                                <label class="form-check-label text-light" for="fWlocIsActive">Activa</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title"><i class="bi bi-map me-2"></i>Dirección</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="form-label text-light">Dirección <span class="text-danger">*</span></label>
+                            <input type="text" id="fWlocAddress" class="form-control" maxlength="500" placeholder="Calle, número, zona… (mínimo 4 caracteres)" required>
+                            <div class="invalid-feedback">La dirección debe tener al menos 4 caracteres.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-light">Dirección 2</label>
+                            <input type="text" id="fWlocAddress2" class="form-control" maxlength="200" placeholder="Apartamento, suite, edificio…">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">País <span class="text-danger">*</span></label>
+                            <select id="fWlocCountry" class="form-select" onchange="loadProvincesCascade(this.value)" required>
+                                <option value="">-- Seleccione país --</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un país.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Ubicación Geográfica 1 <span class="text-danger">*</span></label>
+                            <select id="fWlocProvince" class="form-select" onchange="loadCantonsCascade(this.value)" required>
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la Ubicación Geográfica 1.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Ubicación Geográfica 2 <span class="text-danger">*</span></label>
+                            <select id="fWlocCanton" class="form-select" onchange="loadDistrictsCascade(this.value)" required>
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la Ubicación Geográfica 2.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Ubicación Geográfica 3 <span class="text-danger">*</span></label>
+                            <select id="fWlocDistrict" class="form-select" onchange="loadNeighborhoodsCascade(this.value)" required>
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la Ubicación Geográfica 3.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Ubicación Geográfica 4 <span class="text-danger">*</span></label>
+                            <select id="fWlocNeighborhood" class="form-select" onchange="updatePostalCode()" required>
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la Ubicación Geográfica 4.</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-light">Código Postal</label>
+                            <input type="text" id="fWlocPostalCode" class="form-control" maxlength="20" readonly
+                                   style="background-color:#0d1b2a!important; color:#818cf8!important; cursor:default;"
+                                   placeholder="Generado automáticamente">
+                        </div>
+                    </div>
+
+                    <div class="form-section-title"><i class="bi bi-geo me-2"></i>Coordenadas GPS</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label text-light"><i class="bi bi-search me-1"></i>Buscar dirección en el mapa</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text" style="background:#1e293b;border-color:rgba(255,255,255,.2);color:#94a3b8;"><i class="bi bi-search"></i></span>
+                                <input type="text" id="wlocGeoSearch" class="form-control" placeholder="Buscar lugar, dirección o ciudad…" autocomplete="off">
+                                <button type="button" class="btn btn-outline-info" onclick="wlocSearchAddress()">
+                                    <i class="bi bi-geo-alt"></i> Buscar
+                                </button>
+                            </div>
+                            <div id="wlocGeoResults" class="list-group mb-2" style="display:none; max-height:180px; overflow-y:auto; background:#1e293b; border:1px solid rgba(255,255,255,.15); border-radius:6px;"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-light"><i class="bi bi-map me-1"></i>Posición en el mapa</label>
+                            <div id="wlocMapContainer" style="height:450px; border-radius:8px; border:1px solid rgba(255,255,255,.2); overflow:hidden;">
+                                <div id="wlocMap" style="height:100%;width:100%;"></div>
+                            </div>
+                            <small style="color:#94a3b8;">Haga clic en el mapa para marcar la posición exacta. También puede editar manualmente los campos de abajo.</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Latitud GPS</label>
+                            <input type="number" id="fWlocLat" class="form-control" step="0.0000001" placeholder="Ej: 9.9281"
+                                   oninput="updateMapMarker()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Longitud GPS</label>
+                            <input type="number" id="fWlocLon" class="form-control" step="0.0000001" placeholder="Ej: -84.0907"
+                                   oninput="updateMapMarker()">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="wlocClearGps()">
+                                <i class="bi bi-x-circle me-1"></i>Limpiar coordenadas
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-tech-primary" onclick="WLOC.save()"><i class="bi bi-check-lg me-2"></i>Guardar</button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="~/js/warehouse-locations.js" asp-append-version="true"></script>
+<script>
+    WLOC_CFG.apiBase = '@apiBaseUrl';
+    WLOC_CFG.token   = '@apiToken';
+    WLOC_CFG.companyCountryId = @companyCountryId;
+
+    // ── Mapa Leaflet ─────────────────────────────────────────
+    let _wlocMap = null;
+    let _wlocMarker = null;
+    const WLOC_MAP_DEFAULT = { lat: 9.9281, lng: -84.0907, zoom: 7 };
+
+    function initWlocMap() {
+        if (_wlocMap) { _wlocMap.remove(); _wlocMap = null; _wlocMarker = null; }
+        _wlocMap = L.map('wlocMap').setView([WLOC_MAP_DEFAULT.lat, WLOC_MAP_DEFAULT.lng], WLOC_MAP_DEFAULT.zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '\u00a9 OpenStreetMap contributors'
+        }).addTo(_wlocMap);
+        _wlocMap.on('click', function(e) { setWlocGps(e.latlng.lat, e.latlng.lng); });
+    }
+
+    function setWlocGps(lat, lng) {
+        document.getElementById('fWlocLat').value = lat.toFixed(7);
+        document.getElementById('fWlocLon').value = lng.toFixed(7);
+        if (!_wlocMap) return;
+        if (_wlocMarker) { _wlocMarker.setLatLng([lat, lng]); }
+        else { _wlocMarker = L.marker([lat, lng]).addTo(_wlocMap); }
+        _wlocMap.setView([lat, lng], 16);
+    }
+
+    function updateMapMarker() {
+        const lat = parseFloat(document.getElementById('fWlocLat').value);
+        const lng = parseFloat(document.getElementById('fWlocLon').value);
+        if (!isNaN(lat) && !isNaN(lng) && _wlocMap) {
+            if (_wlocMarker) { _wlocMarker.setLatLng([lat, lng]); }
+            else { _wlocMarker = L.marker([lat, lng]).addTo(_wlocMap); }
+            _wlocMap.setView([lat, lng], 16);
+        }
+    }
+
+    function wlocClearGps() {
+        document.getElementById('fWlocLat').value = '';
+        document.getElementById('fWlocLon').value = '';
+        if (_wlocMarker && _wlocMap) { _wlocMap.removeLayer(_wlocMarker); _wlocMarker = null; }
+    }
+
+    // ── Búsqueda de dirección (Nominatim) ────────────────────
+    async function wlocSearchAddress() {
+        const q = document.getElementById('wlocGeoSearch').value.trim();
+        if (!q) return;
+        const resBox = document.getElementById('wlocGeoResults');
+        resBox.innerHTML = '<a class="list-group-item list-group-item-action" style="background:#1e293b;color:#94a3b8;"><i class="bi bi-hourglass-split me-2"></i>Buscando…</a>';
+        resBox.style.display = 'block';
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`;
+            const resp = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+            const data = await resp.json();
+            if (!data.length) {
+                resBox.innerHTML = '<a class="list-group-item" style="background:#1e293b;color:#94a3b8;">Sin resultados</a>';
+                return;
+            }
+            resBox.innerHTML = data.map((r, i) =>
+                `<a href="#" class="list-group-item list-group-item-action" style="background:#1e293b;color:#e2e8f0;border-color:rgba(255,255,255,.1);"
+                    onmouseenter="this.style.background='#334155'" onmouseleave="this.style.background='#1e293b'"
+                    onclick="wlocSelectGeoResult(${r.lat},${r.lon});return false;">
+                    <i class="bi bi-geo-alt me-2" style="color:#818cf8;"></i>${r.display_name}
+                </a>`).join('');
+        } catch {
+            resBox.innerHTML = '<a class="list-group-item" style="background:#1e293b;color:#f87171;">Error al buscar</a>';
+        }
+    }
+
+    function wlocSelectGeoResult(lat, lng) {
+        setWlocGps(parseFloat(lat), parseFloat(lng));
+        document.getElementById('wlocGeoResults').style.display = 'none';
+        document.getElementById('wlocGeoSearch').value = '';
+    }
+
+    // Cerrar resultados al hacer click fuera
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#wlocGeoSearch') && !e.target.closest('#wlocGeoResults') && !e.target.closest('[onclick="wlocSearchAddress()"]')) {
+            const r = document.getElementById('wlocGeoResults');
+            if (r) r.style.display = 'none';
+        }
+    });
+
+    // Buscar al presionar Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'wlocGeoSearch') {
+            e.preventDefault();
+            wlocSearchAddress();
+        }
+    });
+
+    // Iniciar mapa cuando el modal se abre
+    document.addEventListener('DOMContentLoaded', function () {
+        var modal = document.getElementById('wlocModal');
+        if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal.addEventListener('shown.bs.modal', function () {
+            initWlocMap();
+            const lat = parseFloat(document.getElementById('fWlocLat').value);
+            const lng = parseFloat(document.getElementById('fWlocLon').value);
+            if (!isNaN(lat) && !isNaN(lng)) { setWlocGps(lat, lng); }
+        });
+        modal.addEventListener('hidden.bs.modal', function () {
+            if (_wlocMap) { _wlocMap.remove(); _wlocMap = null; _wlocMarker = null; }
+            const r = document.getElementById('wlocGeoResults');
+            if (r) r.style.display = 'none';
+            const fa = document.getElementById('wlocFormAlert');
+            if (fa) fa.remove();
+        });
+    });
+
+    // Helpers de cascada geográfica
+    function loadProvincesCascade(v) { WLOC.loadProvinces(v ? parseInt(v) : null); }
+    function loadCantonsCascade(v)   { WLOC.loadCantons(v ? parseInt(v) : null); }
+    function loadDistrictsCascade(v) { WLOC.loadDistricts(v ? parseInt(v) : null); }
+    function loadNeighborhoodsCascade(v) { WLOC.loadNeighborhoods(v ? parseInt(v) : null); }
+
+    // Código postal automático
+    async function updatePostalCode() {
+        const country   = parseInt(document.getElementById('fWlocCountry')?.value)      || 0;
+        const division1 = parseInt(document.getElementById('fWlocProvince')?.value)     || 0;
+        const division2 = parseInt(document.getElementById('fWlocCanton')?.value)       || 0;
+        const division3 = parseInt(document.getElementById('fWlocDistrict')?.value)     || 0;
+        const division4 = parseInt(document.getElementById('fWlocNeighborhood')?.value) || 0;
+        const cpEl = document.getElementById('fWlocPostalCode');
+        if (!country || !division1 || !division2 || !division3 || !division4) { if (cpEl) cpEl.value = ''; return; }
+        try {
+            const qs = `idCountry=${country}&idDivision1=${division1}&idDivision2=${division2}&idDivision3=${division3}&idDivision4=${division4}`;
+            const res = await fetch(`${WLOC_CFG.apiBase}/api/location/geo/postal-code?${qs}`, {
+                headers: { 'Authorization': `Bearer ${WLOC_CFG.token}` }
+            });
+            if (res.ok) { const d = await res.json(); if (cpEl) cpEl.value = d.postalCode || ''; }
+        } catch { /* ignorar */ }
+    }
+</script>
+}

@@ -18,7 +18,7 @@ public class LabelPrintHistory
 {
     [Key]
     [Column("id_label_print_history")]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     // ===== Referencia al artículo =====
 

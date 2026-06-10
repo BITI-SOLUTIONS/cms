@@ -139,8 +139,14 @@ builder.Services.AddScoped<CMS.Data.Services.IEmailService, CMS.Data.Services.Em
 // ================================================================================
 builder.Services.AddScoped<ICompanyDbContextFactory, CompanyDbContextFactory>();
 builder.Services.AddScoped<IItemService, ItemService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IStockTransferService, StockTransferService>();
+builder.Services.AddScoped<IDistributionRouteService, DistributionRouteService>();
+builder.Services.AddScoped<ILocationTypeService, LocationTypeService>();
+builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 builder.Services.AddScoped<ICompanyConsecutiveService, CompanyConsecutiveService>();
 
 // ================================================================================

@@ -30,14 +30,14 @@ namespace CMS.Entities.Admin
         /// <summary>
         /// ID del archivo
         /// </summary>
-        [Column("file_id")]
+        [Column("id_file")]
         public int FileId { get; set; }
 
         /// <summary>
         /// Código del archivo
         /// </summary>
         [MaxLength(50)]
-        [Column("file_code")]
+        [Column("code")]
         public string? FileCode { get; set; }
 
         /// <summary>
@@ -51,8 +51,8 @@ namespace CMS.Entities.Admin
         [Column("id_user")]
         public int IdUser { get; set; }
 
-        [MaxLength(100)]
-        [Column("user_name")]
+        [MaxLength(150)]
+        [Column("name")]
         public string? UserName { get; set; }
 
         [MaxLength(45)]
@@ -104,11 +104,11 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "system";
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "system";
 

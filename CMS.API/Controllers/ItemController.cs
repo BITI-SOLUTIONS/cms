@@ -1028,7 +1028,7 @@ namespace CMS.API.Controllers
     /// </summary>
     public class LabelPrintHistoryDto
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public int IdItem { get; set; }
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;

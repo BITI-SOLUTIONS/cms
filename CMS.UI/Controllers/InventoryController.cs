@@ -86,8 +86,8 @@ namespace CMS.UI.Controllers
             {
                 ConfigureAuthHeader();
 
-                // Limitar a 10 artículos por página, máximo 10 páginas (100 artículos total)
-                const int pageSize = 10;
+                // Limitar a 16 artículos por página, máximo 10 páginas (160 artículos total)
+                const int pageSize = 16;
                 const int maxPages = 10;
 
                 var url = $"{GetApiBaseUrl()}/api/item/labels?page={page}&pageSize={pageSize}&orderBy={orderBy ?? "sale_price"}";
@@ -113,7 +113,7 @@ namespace CMS.UI.Controllers
                     if (result != null)
                     {
                         viewModel.Items = result.Items;
-                        // Limitar a 100 items máximo (10 páginas x 10 items)
+                        // Limitar a 160 items máximo (10 páginas x 16 items)
                         viewModel.TotalCount = Math.Min(result.TotalCount, maxPages * pageSize);
                         viewModel.TotalPages = Math.Min(result.TotalPages, maxPages);
                     }
@@ -1274,7 +1274,7 @@ namespace CMS.UI.Controllers
 
     public class LabelPrintHistoryDto
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public int IdItem { get; set; }
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;

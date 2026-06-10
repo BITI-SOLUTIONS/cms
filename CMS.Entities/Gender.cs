@@ -10,7 +10,7 @@ namespace CMS.Entities
         [Column("id_gender")]
         public int ID_GENDER { get; set; }
 
-        [Column("gender_code")]
+        [Column("code")]
         [Required]
         [MaxLength(10)]
         public string GENDER_CODE { get; set; } = default!;
@@ -34,12 +34,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         public virtual ICollection<User> Users { get; set; } = new List<User>();

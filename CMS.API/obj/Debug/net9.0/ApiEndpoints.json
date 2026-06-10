@@ -629,6 +629,190 @@
     ]
   },
   {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "GetAll",
+    "RelativePath": "api/distributionroute",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "status",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "frequency",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "Create",
+    "RelativePath": "api/distributionroute",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.RouteUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "GetById",
+    "RelativePath": "api/distributionroute/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "Update",
+    "RelativePath": "api/distributionroute/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.RouteUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "Activate",
+    "RelativePath": "api/distributionroute/{id}/activate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "Deactivate",
+    "RelativePath": "api/distributionroute/{id}/deactivate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "GetStops",
+    "RelativePath": "api/distributionroute/{id}/stops",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "SaveStops",
+    "RelativePath": "api/distributionroute/{id}/stops",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dtos",
+        "Type": "System.Collections.Generic.List\u00601[[CMS.API.Controllers.StopUpsertDto, CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DistributionRouteController",
+    "Method": "CheckCode",
+    "RelativePath": "api/distributionroute/check-code",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "code",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "excludeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CMS.API.Controllers.DocumentationController",
     "Method": "GetDocumentation",
     "RelativePath": "api/Documentation",
@@ -746,6 +930,116 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DriverController",
+    "Method": "GetAll",
+    "RelativePath": "api/drivers",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DriverController",
+    "Method": "Create",
+    "RelativePath": "api/drivers",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Operational.Driver",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DriverController",
+    "Method": "GetById",
+    "RelativePath": "api/drivers/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DriverController",
+    "Method": "Update",
+    "RelativePath": "api/drivers/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Operational.Driver",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DriverController",
+    "Method": "Delete",
+    "RelativePath": "api/drivers/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.DriverController",
+    "Method": "GetSystemUsers",
+    "RelativePath": "api/drivers/system-users",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
   },
   {
     "ContainingType": "CMS.API.Controllers.FileController",
@@ -1365,6 +1659,871 @@
     ]
   },
   {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetBrands",
+    "RelativePath": "api/fleet-catalog/brands",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "CreateBrand",
+    "RelativePath": "api/fleet-catalog/brands",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitBrand",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetBrand",
+    "RelativePath": "api/fleet-catalog/brands/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "UpdateBrand",
+    "RelativePath": "api/fleet-catalog/brands/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitBrand",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "DeleteBrand",
+    "RelativePath": "api/fleet-catalog/brands/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetCountries",
+    "RelativePath": "api/fleet-catalog/countries",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetFuelTypes",
+    "RelativePath": "api/fleet-catalog/fuel-types",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "CreateFuelType",
+    "RelativePath": "api/fleet-catalog/fuel-types",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.FuelTypeCatalog",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetFuelType",
+    "RelativePath": "api/fleet-catalog/fuel-types/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "UpdateFuelType",
+    "RelativePath": "api/fleet-catalog/fuel-types/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.FuelTypeCatalog",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "DeleteFuelType",
+    "RelativePath": "api/fleet-catalog/fuel-types/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetModels",
+    "RelativePath": "api/fleet-catalog/models",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "brandId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "CreateModel",
+    "RelativePath": "api/fleet-catalog/models",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitModel",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetModel",
+    "RelativePath": "api/fleet-catalog/models/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "UpdateModel",
+    "RelativePath": "api/fleet-catalog/models/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitModel",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "DeleteModel",
+    "RelativePath": "api/fleet-catalog/models/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetUnitStatuses",
+    "RelativePath": "api/fleet-catalog/unit-statuses",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "CreateUnitStatus",
+    "RelativePath": "api/fleet-catalog/unit-statuses",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitStatusCatalog",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetUnitStatus",
+    "RelativePath": "api/fleet-catalog/unit-statuses/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "UpdateUnitStatus",
+    "RelativePath": "api/fleet-catalog/unit-statuses/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitStatusCatalog",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "DeleteUnitStatus",
+    "RelativePath": "api/fleet-catalog/unit-statuses/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetUnitTypes",
+    "RelativePath": "api/fleet-catalog/unit-types",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "CreateUnitType",
+    "RelativePath": "api/fleet-catalog/unit-types",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitTypeCatalog",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "GetUnitType",
+    "RelativePath": "api/fleet-catalog/unit-types/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "UpdateUnitType",
+    "RelativePath": "api/fleet-catalog/unit-types/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Admin.TransportUnitTypeCatalog",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.FleetCatalogController",
+    "Method": "DeleteUnitType",
+    "RelativePath": "api/fleet-catalog/unit-types/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InsurerController",
+    "Method": "GetAll",
+    "RelativePath": "api/insurers",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InsurerController",
+    "Method": "Create",
+    "RelativePath": "api/insurers",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Operational.Insurer",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InsurerController",
+    "Method": "GetById",
+    "RelativePath": "api/insurers/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InsurerController",
+    "Method": "Update",
+    "RelativePath": "api/insurers/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Operational.Insurer",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InsurerController",
+    "Method": "Delete",
+    "RelativePath": "api/insurers/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "GetTransactions",
+    "RelativePath": "api/InventoryTransaction",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "movementType",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "status",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "warehouseOriginId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "warehouseDestId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "dateFrom",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "dateTo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "Create",
+    "RelativePath": "api/InventoryTransaction",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.CreateInventoryTransactionDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "GetById",
+    "RelativePath": "api/InventoryTransaction/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "Update",
+    "RelativePath": "api/InventoryTransaction/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.UpdateInventoryTransactionDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "Cancel",
+    "RelativePath": "api/InventoryTransaction/{id}/cancel",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.CancelTransactionDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "Complete",
+    "RelativePath": "api/InventoryTransaction/{id}/complete",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "Confirm",
+    "RelativePath": "api/InventoryTransaction/{id}/confirm",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "GetLines",
+    "RelativePath": "api/InventoryTransaction/{id}/lines",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "SaveLines",
+    "RelativePath": "api/InventoryTransaction/{id}/lines",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dtos",
+        "Type": "System.Collections.Generic.List\u00601[[CMS.API.Controllers.InventoryTransactionLineDto, CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "ReceiveLines",
+    "RelativePath": "api/InventoryTransaction/{id}/receive",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.ReceiveLinesDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "CheckAnySeal",
+    "RelativePath": "api/InventoryTransaction/check-any-seal",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "seal",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "excludeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "CheckNumber",
+    "RelativePath": "api/InventoryTransaction/check-number",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "number",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "excludeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "CheckSeal",
+    "RelativePath": "api/InventoryTransaction/check-seal",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "seal",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "excludeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "GetExistenceByItem",
+    "RelativePath": "api/InventoryTransaction/existence/item/{itemId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "itemId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "GetExistenceByWarehouse",
+    "RelativePath": "api/InventoryTransaction/existence/warehouse/{warehouseId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "warehouseId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.InventoryTransactionController",
+    "Method": "GetNextNumber",
+    "RelativePath": "api/InventoryTransaction/next-number",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CMS.API.Controllers.ItemController",
     "Method": "GetItems",
     "RelativePath": "api/Item",
@@ -1810,6 +2969,418 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetAll",
+    "RelativePath": "api/Location",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "locationTypeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "Create",
+    "RelativePath": "api/Location",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.LocationUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetById",
+    "RelativePath": "api/Location/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "Update",
+    "RelativePath": "api/Location/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.LocationUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "Delete",
+    "RelativePath": "api/Location/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "Activate",
+    "RelativePath": "api/Location/{id}/activate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "Deactivate",
+    "RelativePath": "api/Location/{id}/deactivate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetByType",
+    "RelativePath": "api/Location/by-type/{locationTypeId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "locationTypeId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetCantons",
+    "RelativePath": "api/Location/geo/cantons",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idProvince",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetCountries",
+    "RelativePath": "api/Location/geo/countries",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "filterCountryId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetDistricts",
+    "RelativePath": "api/Location/geo/districts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCanton",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetNeighborhoods",
+    "RelativePath": "api/Location/geo/neighborhoods",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idDistrict",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetPostalCode",
+    "RelativePath": "api/Location/geo/postal-code",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCountry",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "idDivision1",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "idDivision2",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "idDivision3",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "idDivision4",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationController",
+    "Method": "GetProvinces",
+    "RelativePath": "api/Location/geo/provinces",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCountry",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "GetAll",
+    "RelativePath": "api/LocationType",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "Create",
+    "RelativePath": "api/LocationType",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.LocationTypeUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "GetById",
+    "RelativePath": "api/LocationType/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "Update",
+    "RelativePath": "api/LocationType/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.LocationTypeUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "Delete",
+    "RelativePath": "api/LocationType/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "Activate",
+    "RelativePath": "api/LocationType/{id}/activate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "Deactivate",
+    "RelativePath": "api/LocationType/{id}/deactivate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.LocationTypeController",
+    "Method": "CheckCode",
+    "RelativePath": "api/LocationType/check-code",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "code",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "excludeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
   },
   {
     "ContainingType": "CMS.API.Controllers.MenuController",
@@ -2718,6 +4289,178 @@
     ]
   },
   {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "GetTransfers",
+    "RelativePath": "api/StockTransfer",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "status",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "warehouseOriginId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "warehouseDestId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "dateFrom",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "dateTo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "Create",
+    "RelativePath": "api/StockTransfer",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.StockTransferUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "GetById",
+    "RelativePath": "api/StockTransfer/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "Update",
+    "RelativePath": "api/StockTransfer/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.StockTransferUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "Approve",
+    "RelativePath": "api/StockTransfer/{id}/approve",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "Cancel",
+    "RelativePath": "api/StockTransfer/{id}/cancel",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.CancelTransferDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "Complete",
+    "RelativePath": "api/StockTransfer/{id}/complete",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.CompleteTransferDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.StockTransferController",
+    "Method": "GetNextNumber",
+    "RelativePath": "api/StockTransfer/next-number",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CMS.API.Controllers.SupportController",
     "Method": "SendSupportRequest",
     "RelativePath": "api/Support/request",
@@ -2728,6 +4471,257 @@
       {
         "Name": "request",
         "Type": "CMS.API.Controllers.SupportRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "GetAll",
+    "RelativePath": "api/TransportUnit",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "status",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "Create",
+    "RelativePath": "api/TransportUnit",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.TransportUnitDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "GetById",
+    "RelativePath": "api/TransportUnit/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "Update",
+    "RelativePath": "api/TransportUnit/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.TransportUnitDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "Delete",
+    "RelativePath": "api/TransportUnit/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "GetMaintenance",
+    "RelativePath": "api/TransportUnit/{id}/maintenance",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "AddMaintenance",
+    "RelativePath": "api/TransportUnit/{id}/maintenance",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.TransportUnitMaintenanceDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "UpdateOdometer",
+    "RelativePath": "api/TransportUnit/{id}/odometer",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.UpdateOdometerDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "ChangeStatus",
+    "RelativePath": "api/TransportUnit/{id}/status",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.ChangeTransportUnitStatusDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "UpdateMaintenance",
+    "RelativePath": "api/TransportUnit/{unitId}/maintenance/{maintenanceId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "unitId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "maintenanceId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.TransportUnitMaintenanceDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.TransportUnitController",
+    "Method": "DeleteMaintenance",
+    "RelativePath": "api/TransportUnit/{unitId}/maintenance/{maintenanceId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "unitId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "maintenanceId",
+        "Type": "System.Int32",
         "IsRequired": true
       }
     ],
@@ -3233,6 +5227,16 @@
   },
   {
     "ContainingType": "CMS.API.Controllers.UserController",
+    "Method": "GetForCompany",
+    "RelativePath": "api/User/for-company",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.UserController",
     "Method": "GetCurrentUser",
     "RelativePath": "api/User/me",
     "HttpMethod": "GET",
@@ -3563,6 +5567,190 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "GetWarehouses",
+    "RelativePath": "api/Warehouse",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "warehouseType",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "warehouseLevel",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "parentId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "Create",
+    "RelativePath": "api/Warehouse",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.WarehouseUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "GetById",
+    "RelativePath": "api/Warehouse/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "Update",
+    "RelativePath": "api/Warehouse/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.API.Controllers.WarehouseUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "Activate",
+    "RelativePath": "api/Warehouse/{id}/activate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "Deactivate",
+    "RelativePath": "api/Warehouse/{id}/deactivate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "CheckCode",
+    "RelativePath": "api/Warehouse/check-code",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "code",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "excludeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseController",
+    "Method": "GetTree",
+    "RelativePath": "api/Warehouse/tree",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "activeOnly",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.WarehouseTypeController",
+    "Method": "GetAll",
+    "RelativePath": "api/warehousetype",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
     "Method": "\u003C\u003CMain\u003E$\u003Eb__8",
     "RelativePath": "health",
@@ -3572,7 +5760,7 @@
     "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "\u003C\u003Ef__AnonymousType42\u00605[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.DateTime, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "Type": "\u003C\u003Ef__AnonymousType75\u00605[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.DateTime, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "MediaTypes": [
           "application/json"
         ],

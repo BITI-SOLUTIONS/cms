@@ -91,6 +91,38 @@ namespace CMS.API.Controllers
             return Ok(userInfo);
         }
 
+        // GET: api/user/for-company — usuarios activos de la compañía del token (sin rol Admin)
+        [HttpGet("for-company")]
+        public async Task<IActionResult> GetForCompany()
+        {
+            try
+            {
+                var companyIdClaim = User.FindFirstValue("companyId") ?? User.FindFirstValue("CompanyId");
+                if (!int.TryParse(companyIdClaim, out var companyId))
+                    return Unauthorized(new { message = "companyId no encontrado en el token" });
+
+                var users = await (from uc in _db.UserCompanies
+                                   join u in _db.Users on uc.ID_USER equals u.ID_USER
+                                   where uc.ID_COMPANY == companyId && uc.IS_ACTIVE && u.IS_ACTIVE
+                                   orderby u.DISPLAY_NAME
+                                   select new
+                                   {
+                                       id          = u.ID_USER,
+                                       username    = u.USER_NAME,
+                                       displayName = u.DISPLAY_NAME,
+                                       email       = u.EMAIL,
+                                       isActive    = u.IS_ACTIVE,
+                                   }).ToListAsync();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo usuarios de la compañía");
+                return StatusCode(500, new { message = "Error obteniendo usuarios" });
+            }
+        }
+
         // GET: api/user/5 - Detalle completo con roles y permisos
         [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]

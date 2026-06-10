@@ -10,9 +10,9 @@ namespace CMS.Entities
         [Column("id_user")]
         public int ID_USER { get; set; }
 
-        [Column("user_name")]
+        [Column("name")]
         [Required]
-        [MaxLength(100)]
+        [MaxLength(150)]
         public string USER_NAME { get; set; } = default!;
 
         [Column("azure_oid")]
@@ -121,12 +121,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         // ⭐ PROPIEDADES DE NAVEGACIÓN - MARCADAS COMO [NotMapped] TEMPORALMENTE

@@ -32,7 +32,7 @@ namespace CMS.Entities.Admin
         /// <summary>
         /// ID del archivo en la BD de la compañía
         /// </summary>
-        [Column("file_id")]
+        [Column("id_file")]
         public int FileId { get; set; }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace CMS.Entities.Admin
         /// </summary>
         [Required]
         [MaxLength(50)]
-        [Column("file_code")]
+        [Column("code")]
         public string FileCode { get; set; } = string.Empty;
 
         // ===== Compartido con =====
@@ -143,11 +143,11 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "system";
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "system";
 

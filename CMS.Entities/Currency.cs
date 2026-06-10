@@ -10,17 +10,17 @@ namespace CMS.Entities
         [Column("id_currency")]
         public int ID_CURRENCY { get; set; }
 
-        [Column("currency_code")]
+        [Column("code")]
         [Required]
         [MaxLength(3)]
         public string CURRENCY_CODE { get; set; } = default!;
 
-        [Column("currency_name")]
+        [Column("name")]
         [Required]
         [MaxLength(100)]
         public string CURRENCY_NAME { get; set; } = default!;
 
-        [Column("currency_symbol")]
+        [Column("symbol")]
         [Required]
         [MaxLength(10)]
         public string CURRENCY_SYMBOL { get; set; } = default!;
@@ -51,12 +51,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         public virtual ICollection<Country> Countries { get; set; } = new List<Country>();

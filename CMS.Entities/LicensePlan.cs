@@ -10,12 +10,12 @@ namespace CMS.Entities
         [Column("id_license_plan")]
         public int ID_LICENSE_PLAN { get; set; }
 
-        [Column("license_plan_name")]
+        [Column("name")]
         [Required]
         [MaxLength(100)]
         public string LICENSE_PLAN_NAME { get; set; } = default!;
 
-        [Column("license_plan_description")]
+        [Column("description")]
         [Required]
         public string LICENSE_PLAN_DESCRIPTION { get; set; } = default!;
 
@@ -58,12 +58,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();

@@ -389,6 +389,20 @@ builder.Services.AddHttpClient<PermissionsApiService>()
 builder.Services.AddHttpClient<MenusAdminApiService>()
     .AddHttpMessageHandler<AuthenticatedApiMessageHandler>();
 
+// ⭐ Warehouse module
+builder.Services.AddHttpClient<CMS.UI.Controllers.WarehouseController>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
+// ⭐ Localization module (Settings/Localization + Settings/LocalizationType)
+builder.Services.AddHttpClient<CMS.UI.Controllers.LocalizationController>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
 
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(
@@ -527,6 +541,22 @@ app.MapControllerRoute(
     name: "admin-dashboard",
     pattern: "Admin/Dashboard",
     defaults: new { controller = "Admin", action = "Dashboard" });
+
+// Warehouse & Distribution
+app.MapControllerRoute(
+    name: "warehouse",
+    pattern: "Warehouse/{action=Warehouses}/{id?}",
+    defaults: new { controller = "Warehouse" });
+app.MapControllerRoute(
+    name: "settings-localization-type",
+    pattern: "Settings/LocalizationType",
+    defaults: new { controller = "Localization", action = "LocalizationType" });
+
+// Settings - Localization
+app.MapControllerRoute(
+    name: "settings-localization",
+    pattern: "Settings/Localization",
+    defaults: new { controller = "Localization", action = "Localization" });
 
 // Ruta por defecto
 app.MapControllerRoute(

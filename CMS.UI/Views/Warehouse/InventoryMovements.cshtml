@@ -1,0 +1,551 @@
+@{
+    ViewData["Title"] = "Inventory Movements";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "";
+    var apiToken   = ViewBag.ApiToken   as string ?? "";
+}
+
+@section Styles {
+<style>
+    /* ============================================================
+       INVENTORY MOVEMENTS — Estilos específicos (tema oscuro)
+    ============================================================ */
+    :root {
+        --inv-bg:        #0f1629;
+        --inv-card:      #1a2340;
+        --inv-border:    #2a3a5c;
+        --inv-accent:    #6c63ff;
+        --inv-green:     #22c55e;
+        --inv-yellow:    #f59e0b;
+        --inv-red:       #ef4444;
+        --inv-blue:      #3b82f6;
+        --inv-orange:    #f97316;
+        --inv-cyan:      #06b6d4;
+        --inv-text:      #e2e8f0;
+        --inv-muted:     #94a3b8;
+        --inv-row-hover: #1e2d4a;
+    }
+
+    body { background: var(--inv-bg); color: var(--inv-text); }
+
+    /* ---- KPI chips ---- */
+    .kpi-chip {
+        background: var(--inv-card);
+        border: 1px solid var(--inv-border);
+        border-radius: 14px;
+        padding: .65rem 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        min-width: 150px;
+        cursor: pointer;
+        transition: border-color .2s, transform .15s;
+    }
+    .kpi-chip:hover { border-color: var(--inv-accent); transform: translateY(-2px); }
+    .kpi-chip.active { border-color: var(--inv-accent); background: #1e1b4b; }
+    .kpi-chip .kpi-icon { font-size: 1.5rem; }
+    .kpi-chip .kpi-val  { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .kpi-chip .kpi-lbl  { font-size: .72rem; color: var(--inv-muted); }
+
+    /* ---- Filtros ---- */
+    .filter-bar { background: var(--inv-card); border: 1px solid var(--inv-border); border-radius: 12px; padding: 1rem; }
+    .filter-bar .form-control,
+    .filter-bar .form-select {
+        background: #111827; color: var(--inv-text); border: 1px solid var(--inv-border);
+    }
+    .filter-bar .form-control::placeholder { color: var(--inv-muted); }
+    .filter-bar .form-control:focus,
+    .filter-bar .form-select:focus { border-color: var(--inv-accent); box-shadow: 0 0 0 .2rem rgba(108,99,255,.25); }
+
+    /* ---- Tabla ---- */
+    .inv-table { width: 100%; border-collapse: collapse; }
+    .inv-table thead th {
+        background: #111827; color: var(--inv-muted);
+        font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;
+        padding: .6rem .75rem; border-bottom: 1px solid var(--inv-border);
+        white-space: nowrap;
+    }
+    .inv-table tbody tr {
+        border-bottom: 1px solid var(--inv-border);
+        transition: background .15s;
+        cursor: pointer;
+    }
+    .inv-table tbody tr:hover { background: var(--inv-row-hover); }
+    .inv-table tbody td { padding: .6rem .75rem; font-size: .875rem; vertical-align: middle; }
+
+    /* ---- Badges de estado ---- */
+    .badge-status {
+        display: inline-flex; align-items: center; gap: .3rem;
+        padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
+    }
+    .st-Draft            { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .st-Confirmed        { background: #1d3557; color: #60a5fa; border: 1px solid #2563eb; }
+    .st-InTransit        { background: #1c1917; color: var(--inv-orange); border: 1px solid var(--inv-orange); }
+    .st-PartiallyReceived{ background: #1c1608; color: var(--inv-yellow); border: 1px solid var(--inv-yellow); }
+    .st-Completed        { background: #052e16; color: var(--inv-green); border: 1px solid var(--inv-green); }
+    .st-Cancelled        { background: #1c0a0a; color: var(--inv-red); border: 1px solid var(--inv-red); }
+
+    /* ---- Badge de tipo ---- */
+    .badge-type {
+        display: inline-flex; align-items: center; gap: .25rem;
+        padding: .2rem .5rem; border-radius: 6px; font-size: .7rem;
+        font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .tp-Transfer         { background: #1d3557; color: #93c5fd; }
+    .tp-TransitTransfer  { background: #2d1b00; color: #fdba74; }
+    .tp-PurchaseReceipt  { background: #052e16; color: #86efac; }
+    .tp-SaleIssue        { background: #1c0a0a; color: #fca5a5; }
+    .tp-AdjustmentIn     { background: #0d1f0d; color: #4ade80; }
+    .tp-AdjustmentOut    { background: #1c1608; color: #fbbf24; }
+    .tp-CustomerReturn   { background: #1a1a2e; color: #c4b5fd; }
+    .tp-SupplierReturn   { background: #1a1a2e; color: #a5b4fc; }
+    .tp-WriteOff         { background: #1c0a0a; color: #f87171; }
+    .tp-PhysicalCount    { background: #0c1a2c; color: #7dd3fc; }
+
+    /* ---- Modales ---- */
+    .modal-content { background: var(--inv-card); color: var(--inv-text); border: 1px solid var(--inv-border); border-radius: 16px; }
+    .modal-header  { border-bottom: 1px solid var(--inv-border); }
+    .modal-footer  { border-top: 1px solid var(--inv-border); }
+    .modal .form-control,
+    .modal .form-select { background: #111827; color: var(--inv-text); border: 1px solid var(--inv-border); }
+    .modal .form-control::placeholder { color: var(--inv-muted); }
+    .modal .form-control:focus,
+    .modal .form-select:focus { border-color: var(--inv-accent); box-shadow: 0 0 0 .2rem rgba(108,99,255,.25); }
+    .modal .form-label { color: var(--inv-muted); font-size: .8rem; margin-bottom: .2rem; }
+    .modal input[type=time]::-webkit-calendar-picker-indicator,
+    .modal input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.6); cursor: pointer; }
+
+    /* ---- Líneas dentro del modal ---- */
+    .lines-container { max-height: 520px; overflow-y: auto; }
+    .line-row {
+        background: #111827; border: 1px solid var(--inv-border);
+        border-radius: 10px; padding: .65rem .75rem; margin-bottom: .5rem;
+        position: relative;
+    }
+    .line-row.transit { border-left: 3px solid var(--inv-orange); }
+    .line-row .line-status-badge {
+        position: absolute; top: .4rem; right: .5rem;
+        font-size: .65rem; padding: .15rem .45rem; border-radius: 999px;
+    }
+
+    /* ---- Alerta inline ---- */
+    .inv-alert { border-radius: 10px; font-size: .875rem; padding: .65rem 1rem; }
+
+    /* ---- Panel de detalle: timeline ---- */
+    .timeline { position: relative; padding-left: 1.5rem; }
+    .timeline::before { content: ''; position: absolute; left: .5rem; top: 0; bottom: 0; width: 2px; background: var(--inv-border); }
+    .timeline-item { position: relative; margin-bottom: .9rem; }
+    .timeline-item::before {
+        content: ''; position: absolute; left: -1rem; top: .25rem;
+        width: .6rem; height: .6rem; border-radius: 50%;
+        background: var(--inv-accent); border: 2px solid var(--inv-bg);
+    }
+    .timeline-item.done::before  { background: var(--inv-green); }
+    .timeline-item.warn::before  { background: var(--inv-orange); }
+    .timeline-item.cancel::before{ background: var(--inv-red); }
+
+    /* ---- Paginación ---- */
+    .pagination .page-link { background: var(--inv-card); border-color: var(--inv-border); color: var(--inv-text); }
+    .pagination .page-link:hover,
+    .pagination .active .page-link { background: var(--inv-accent); border-color: var(--inv-accent); color: #fff; }
+
+    /* ---- Transit indicator ---- */
+    .transit-banner {
+        background: linear-gradient(135deg, #1c1300 0%, #2d1b00 100%);
+        border: 1px dashed var(--inv-orange);
+        border-radius: 10px; padding: .65rem 1rem; margin-bottom: 1rem;
+    }
+
+    /* ---- Botones ---- */
+    .btn-inv { font-size: .85rem; border-radius: 8px; }
+    .btn-inv-primary { background: var(--inv-accent); border: none; color: #fff; }
+    .btn-inv-primary:hover { background: #5a51e0; color: #fff; }
+
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+
+    /* ---- Icono del calendario en inputs de fecha (tema oscuro) ---- */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(1.8);
+        cursor: pointer;
+        opacity: .85;
+    }
+
+    @@media (max-width: 768px) {
+        .kpi-chips { flex-wrap: wrap; }
+        .kpi-chip  { min-width: 130px; flex: 1 1 130px; }
+        .hide-mobile { display: none !important; }
+        .inv-table tbody td, .inv-table thead th { padding: .45rem .5rem; }
+    }
+</style>
+}
+
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-0 text-white">
+            <i class="bi bi-arrow-left-right me-2 text-warning"></i>Inventory Movements
+        </h4>
+        <small class="text-muted">Gestión centralizada de todos los movimientos de inventario</small>
+    </div>
+    <button class="btn btn-inv btn-inv-primary px-3" id="btnNewMovement">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo Movimiento
+    </button>
+</div>
+
+<!-- ============================================================
+     KPI CHIPS
+============================================================ -->
+<div class="d-flex gap-2 mb-3 kpi-chips" id="kpiRow">
+    <div class="kpi-chip" data-filter-status="" title="Total">
+        <span class="kpi-icon">📦</span>
+        <div><div class="kpi-val" id="kpiTotal">—</div><div class="kpi-lbl">Total</div></div>
+    </div>
+    <div class="kpi-chip" data-filter-status="Draft">
+        <span class="kpi-icon">📝</span>
+        <div><div class="kpi-val" id="kpiDraft">—</div><div class="kpi-lbl">Borradores</div></div>
+    </div>
+    <div class="kpi-chip" data-filter-status="InTransit">
+        <span class="kpi-icon">🚛</span>
+        <div><div class="kpi-val" id="kpiTransit">—</div><div class="kpi-lbl">En Tránsito</div></div>
+    </div>
+    <div class="kpi-chip" data-filter-status="PartiallyReceived">
+        <span class="kpi-icon">⏳</span>
+        <div><div class="kpi-val" id="kpiPartial">—</div><div class="kpi-lbl">Parcial</div></div>
+    </div>
+    <div class="kpi-chip" data-filter-status="Completed">
+        <span class="kpi-icon">✅</span>
+        <div><div class="kpi-val" id="kpiCompleted">—</div><div class="kpi-lbl">Completados</div></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     FILTER BAR
+============================================================ -->
+<div class="filter-bar mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-3">
+            <input type="search" id="fSearch" class="form-control" placeholder="🔍  Número, referencia…">
+        </div>
+        <div class="col-6 col-md-2">
+            <select id="fType" class="form-select">
+                <option value="">Todos los tipos</option>
+                <option value="Transfer">Traslado</option>
+                <option value="TransitTransfer">Tránsito</option>
+                <option value="PurchaseReceipt">Entrada Compra</option>
+                <option value="SaleIssue">Salida Venta</option>
+                <option value="AdjustmentIn">Ajuste (+)</option>
+                <option value="AdjustmentOut">Ajuste (-)</option>
+                <option value="CustomerReturn">Dev. Cliente</option>
+                <option value="SupplierReturn">Dev. Proveedor</option>
+                <option value="WriteOff">Merma</option>
+                <option value="PhysicalCount">Conteo Físico</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select id="fStatus" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="Draft">Borrador</option>
+                <option value="Confirmed">Confirmado</option>
+                <option value="InTransit">En Tránsito</option>
+                <option value="PartiallyReceived">Parcialmente Recibido</option>
+                <option value="Completed">Completado</option>
+                <option value="Cancelled">Cancelado</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <input type="date" id="fDateFrom" class="form-control" title="Desde">
+        </div>
+        <div class="col-6 col-md-2">
+            <input type="date" id="fDateTo" class="form-control" title="Hasta">
+        </div>
+        <div class="col-12 col-md-1 d-flex gap-1">
+            <button class="btn btn-secondary btn-sm w-100" id="btnClearFilters" title="Limpiar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alert global -->
+<div id="invAlert" class="inv-alert alert d-none mb-2"></div>
+
+<!-- ============================================================
+     TABLA DE MOVIMIENTOS
+============================================================ -->
+<div class="card" style="background:var(--inv-card);border:1px solid var(--inv-border);border-radius:12px;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="inv-table">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
+                        <th class="hide-mobile">Referencia</th>
+                        <th style="width:110px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="invTableBody">
+                    <tr><td colspan="8" class="text-center py-4" style="color:#cbd5e1;">Cargando…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Paginación -->
+    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2"
+         style="background:transparent;border-top:1px solid var(--inv-border);">
+        <small class="text-muted" id="pageInfo">—</small>
+        <nav><ul class="pagination pagination-sm mb-0" id="pagination"></ul></nav>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL — CREAR / EDITAR MOVIMIENTO
+============================================================ -->
+<div class="modal fade" id="invModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="invModalTitle">
+                    <i class="bi bi-arrow-left-right me-2 text-warning"></i>Nuevo Movimiento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Alerta del modal -->
+                <div id="modalAlert" class="alert d-none mb-3"></div>
+
+                <!-- ---- ENCABEZADO ---- -->
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Número *</label>
+                        <input type="text" id="fldNumber" class="form-control" placeholder="Auto">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Fecha *</label>
+                        <input type="date" id="fldDate" class="form-control">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Tipo de Movimiento *</label>
+                        <select id="fldType" class="form-select">
+                            <option value="Transfer">📦 Traslado entre Bodegas</option>
+                            <option value="TransitTransfer">🚛 Traslado vía Tránsito (Vehículo)</option>
+                            <option value="PurchaseReceipt">🟢 Entrada por Compra</option>
+                            <option value="SaleIssue">🔴 Salida por Venta</option>
+                            <option value="AdjustmentIn">➕ Ajuste de Inventario (+)</option>
+                            <option value="AdjustmentOut">➖ Ajuste de Inventario (-)</option>
+                            <option value="CustomerReturn">↩️ Devolución de Cliente</option>
+                            <option value="SupplierReturn">↪️ Devolución a Proveedor</option>
+                            <option value="WriteOff">🗑️ Merma / Baja</option>
+                            <option value="PhysicalCount">📋 Conteo Físico</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="form-label">Bodega Origen *</label>
+                        <select id="fldOrigin" class="form-select">
+                            <option value="">— seleccione —</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-4" id="destGroup">
+                        <label class="form-label" id="destLabel">Bodega Destino</label>
+                        <select id="fldDest" class="form-select">
+                            <option value="">— seleccione —</option>
+                        </select>
+                        <small id="destHint"></small>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Fecha Esperada Llegada</label>
+                        <input type="date" id="fldArrival" class="form-control">
+                    </div>
+                    <div class="col-6 col-md-6">
+                        <label class="form-label">Referencia</label>
+                        <input type="text" id="fldReference" class="form-control" placeholder="Factura, OC, guía…">
+                    </div>
+                    <div class="col-6 col-md-6">
+                        <label class="form-label">Notas</label>
+                        <input type="text" id="fldNotes" class="form-control" placeholder="Observaciones generales">
+                    </div>
+                    <!-- Sello de Seguridad (solo visible en TransitTransfer) -->
+                    <div class="col-12 col-md-6 d-none" id="sealGroup">
+                        <label class="form-label text-warning">
+                            <i class="bi bi-shield-lock me-1"></i>Sello de Seguridad *
+                        </label>
+                        <input type="text" id="fldSecuritySeal" class="form-control"
+                               placeholder="Número único de sello…" maxlength="50" autocomplete="off">
+                        <small id="sealHint" style="color:#cbd5e1!important;">Debe ser único en el sistema — no puede reutilizarse en otro movimiento.</small>
+                        <div id="sealError" class="text-danger mt-1 d-none" style="font-size:.8rem;">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Este sello ya está en uso.
+                        </div>
+                    </div>
+                    <!-- Hora y Kilometraje de tránsito (solo visible en TransitTransfer) -->
+                    <div class="col-12 d-none" id="transitTimeKmGroup">
+                        <hr style="border-color:#2a3a5c;margin:.5rem 0;">
+                        <div class="row g-2">
+                             <div class="col-6 col-md-4">
+                                <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
+                                    <i class="bi bi-clock me-1 text-warning"></i>Hora Salida *
+                                 </label>
+                                 <input type="time" id="fldDepartureTime" class="form-control" step="60">
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
+                                    <i class="bi bi-clock-fill me-1 text-info"></i>Hora Llegada
+                                </label>
+                                <input type="time" id="fldArrivalTime" class="form-control" step="60">
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
+                                    <i class="bi bi-speedometer me-1 text-warning"></i>Km Salida *
+                                </label>
+                                <input type="number" id="fldOdometerOut" class="form-control" placeholder="0" min="0" step="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner: Modo Tránsito -->
+                <div id="transitBanner" class="transit-banner d-none">
+                    <i class="bi bi-truck text-warning me-2"></i>
+                    <strong class="text-warning">Modo Tránsito (Vehículo)</strong>
+                    <span class="text-light ms-2">— La mercancía viaja a través de una bodega de tránsito.
+                    Seleccione la Bodega Destino Final y luego agregue los artículos que van a esa bodega.</span>
+                </div>
+
+                <!-- Selector de Bodega Destino Final (solo TransitTransfer, arriba de los artículos) -->
+                <div id="finalDestGroup" class="d-none mb-3 p-3" style="background:#111827;border:1px solid var(--inv-orange);border-radius:10px;">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label text-warning fw-semibold">
+                                <i class="bi bi-geo-alt me-1"></i>Bodega Destino Final *
+                            </label>
+                            <select id="fldFinalDest" class="form-select">
+                                <option value="">— seleccione bodega destino —</option>
+                            </select>
+                            <small style="color:#cbd5e1!important;">Las bodegas ya usadas en este movimiento no aparecen.</small>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="d-flex flex-wrap gap-2 align-items-center" id="usedDestsDisplay">
+                                <small class="text-muted">Bodegas usadas en este movimiento:</small>
+                                <span id="usedDestsBadges" class="text-muted fst-italic" style="font-size:.78rem;">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---- LÍNEAS ---- -->
+                <div class="d-flex justify-content-between align-items-center mb-2" id="addLineHeader">
+                    <span class="fw-semibold text-white"><i class="bi bi-list-ul me-1"></i>Artículos</span>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="btnAddLine">
+                        <i class="bi bi-plus me-1"></i>Agregar Artículo
+                    </button>
+                </div>
+                <div class="lines-container" id="linesContainer">
+                    <div class="text-center py-3" id="linesEmpty" style="color:#94a3b8;">
+                        <i class="bi bi-inbox fs-3 d-block mb-1"></i>No hay artículos. Haga clic en "Agregar Artículo".
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-inv btn-inv-primary" id="btnSaveMovement">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+                <button type="button" class="btn btn-warning text-dark d-none" id="btnSaveConfirm">
+                    <i class="bi bi-check2-circle me-1"></i>Guardar y Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL — RECIBIR MOVIMIENTO (bodega por bodega)
+============================================================ -->
+<div class="modal fade" id="receiveModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="receiveModalTitle">
+                    <i class="bi bi-box-arrow-in-down me-2 text-success"></i>Recibir Movimiento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiveModalBody">
+                <div class="text-center py-4" style="color:#cbd5e1;">Cargando…</div>
+            </div>
+            <div class="modal-footer" id="receiveModalFooter">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL — DETALLE / RECEPCIÓN
+============================================================ -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="detailTitle">
+                    <i class="bi bi-file-earmark-text me-2 text-cyan-400"></i>Detalle del Movimiento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailBody">
+                <div class="text-center py-4" style="color:#cbd5e1;">Cargando…</div>
+            </div>
+            <div class="modal-footer" id="detailFooter">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL — CANCELAR
+============================================================ -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-x-circle me-2"></i>Cancelar Movimiento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-light">¿Está seguro que desea cancelar este movimiento? Esta acción revertirá los saldos de existencias si ya fue confirmado.</p>
+                <label class="form-label">Motivo de cancelación *</label>
+                <textarea id="cancelReason" class="form-control" rows="3" placeholder="Ingrese el motivo…"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmCancel">
+                    <i class="bi bi-x-circle me-1"></i>Sí, Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    window.INV_API  = '@Html.Raw(apiBaseUrl)';
+    window.INV_TOKEN = '@Html.Raw(apiToken)';
+</script>
+<script src="~/js/inventoryMovements.js" asp-append-version="true"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ['invModal','receiveModal','detailModal','cancelModal'].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+    });
+</script>
+}

@@ -966,6 +966,305 @@
         }
       }
     },
+    "/api/distributionroute": {
+      "get": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "frequency",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/distributionroute/{id}": {
+      "get": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/distributionroute/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/distributionroute/{id}/activate": {
+      "patch": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/distributionroute/{id}/stops": {
+      "get": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StopUpsertDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StopUpsertDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StopUpsertDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/distributionroute/check-code": {
+      "get": {
+        "tags": [
+          "DistributionRoute"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Documentation": {
       "get": {
         "tags": [
@@ -1164,6 +1463,177 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/drivers": {
+      "get": {
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Driver"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Driver"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Driver"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Driver"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/drivers/{id}": {
+      "get": {
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Driver"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Driver"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Driver"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Driver"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/drivers/system-users": {
+      "get": {
+        "tags": [
+          "Driver"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -2202,6 +2672,696 @@
         }
       }
     },
+    "/api/fleet-catalog/unit-types": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/unit-types/{id}": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/unit-statuses": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitStatusCatalog"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitStatusCatalog"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitStatusCatalog"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/unit-statuses/{id}": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitStatusCatalog"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitStatusCatalog"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitStatusCatalog"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/fuel-types": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelTypeCatalog"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelTypeCatalog"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelTypeCatalog"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/fuel-types/{id}": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelTypeCatalog"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelTypeCatalog"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelTypeCatalog"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/countries": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/brands": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitBrand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitBrand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitBrand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/brands/{id}": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitBrand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitBrand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitBrand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/models": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "brandId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/fleet-catalog/models/{id}": {
+      "get": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FleetCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -2213,10 +3373,691 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType42"
+                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType75"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/insurers": {
+      "get": {
+        "tags": [
+          "Insurer"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Insurer"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Insurer"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Insurer"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Insurer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/insurers/{id}": {
+      "get": {
+        "tags": [
+          "Insurer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Insurer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Insurer"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Insurer"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Insurer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Insurer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseOriginId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "warehouseDestId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryTransactionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryTransactionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInventoryTransactionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInventoryTransactionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInventoryTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}/lines": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/InventoryTransactionLineDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/InventoryTransactionLineDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/InventoryTransactionLineDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/next-number": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/check-number": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "number",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/check-seal": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "seal",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/check-any-seal": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "seal",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/existence/warehouse/{warehouseId}": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "warehouseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/existence/item/{itemId}": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}/confirm": {
+      "patch": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}/receive": {
+      "patch": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiveLinesDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiveLinesDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiveLinesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}/complete": {
+      "patch": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTransactionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTransactionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -2964,6 +4805,622 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationTypeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Location"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/by-type/{locationTypeId}": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "locationTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/{id}": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/geo/countries": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "filterCountryId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/geo/provinces": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "idCountry",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/geo/cantons": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "idProvince",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/geo/districts": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "idCanton",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/geo/neighborhoods": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "idDistrict",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Location/geo/postal-code": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "parameters": [
+          {
+            "name": "idCountry",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "idDivision1",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "idDivision2",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "idDivision3",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "idDivision4",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/LocationType": {
+      "get": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "LocationType"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/LocationType/{id}": {
+      "get": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/LocationType/check-code": {
+      "get": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/LocationType/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/LocationType/{id}/activate": {
+      "patch": {
+        "tags": [
+          "LocationType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -4511,6 +6968,293 @@
         }
       }
     },
+    "/api/StockTransfer": {
+      "get": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseOriginId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "warehouseDestId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockTransferUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockTransferUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockTransferUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/StockTransfer/{id}": {
+      "get": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockTransferUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockTransferUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockTransferUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/StockTransfer/next-number": {
+      "get": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/StockTransfer/{id}/approve": {
+      "post": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/StockTransfer/{id}/complete": {
+      "post": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTransferDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTransferDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/StockTransfer/{id}/cancel": {
+      "post": {
+        "tags": [
+          "StockTransfer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTransferDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTransferDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Support/request": {
       "post": {
         "tags": [
@@ -4535,6 +7279,432 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TransportUnit": {
+      "get": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TransportUnit/{id}": {
+      "get": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TransportUnit/{id}/status": {
+      "patch": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTransportUnitStatusDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTransportUnitStatusDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTransportUnitStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TransportUnit/{id}/odometer": {
+      "patch": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOdometerDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOdometerDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOdometerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TransportUnit/{id}/maintenance": {
+      "get": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitMaintenanceDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitMaintenanceDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitMaintenanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TransportUnit/{unitId}/maintenance/{maintenanceId}": {
+      "put": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "unitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "maintenanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitMaintenanceDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitMaintenanceDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportUnitMaintenanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TransportUnit"
+        ],
+        "parameters": [
+          {
+            "name": "unitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "maintenanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -4627,6 +7797,18 @@
       }
     },
     "/api/User/me": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/User/for-company": {
       "get": {
         "tags": [
           "User"
@@ -5993,6 +9175,285 @@
           }
         }
       }
+    },
+    "/api/Warehouse": {
+      "get": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseLevel",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Warehouse"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Warehouse/tree": {
+      "get": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Warehouse/{id}": {
+      "get": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Warehouse/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Warehouse/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Warehouse/check-code": {
+      "get": {
+        "tags": [
+          "Warehouse"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/warehousetype": {
+      "get": {
+        "tags": [
+          "WarehouseType"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6252,6 +9713,189 @@
         },
         "additionalProperties": false
       },
+      "BillingCycle": {
+        "required": [
+          "createdBy",
+          "description",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_BILLING_CYCLE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillingInvoice": {
+        "required": [
+          "createdBy",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_BILLING_INVOICE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_SUBSCRIPTION": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "billinG_DATE": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invoicE_DATE": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duE_DATE": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "tax": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "iD_CURRENCY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_PAYMENT_STATUS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paymenT_DATE": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "iD_PAYMENT_METHOD": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_EXTERNAL_INVOICE": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "paymentStatus": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "paymentMethod": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CancelTransactionDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CancelTransferDto": {
+        "type": "object",
+        "properties": {
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChangeTransportUnitStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ClassificationDto": {
         "type": "object",
         "properties": {
@@ -6297,6 +9941,355 @@
             "type": "array",
             "items": {
               "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Company": {
+        "required": [
+          "alloweD_HOSTS",
+          "companY_NAME",
+          "companY_SCHEMA",
+          "createdBy",
+          "logginG_ASP_NET_CORE",
+          "logginG_DEFAULT",
+          "logginG_EF_CORE",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentCompanyId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isTenant": {
+            "type": "boolean"
+          },
+          "typeIdId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "companY_SCHEMA": {
+            "maxLength": 10,
+            "minLength": 1,
+            "type": "string"
+          },
+          "companY_NAME": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "companY_TAX_ID": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "connectioN_STRING_DEVELOPMENT": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "connectioN_STRING_PRODUCTION": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "iS_PRODUCTION": {
+            "type": "boolean"
+          },
+          "azurE_AD_API_INSTANCE": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_API_TENANT_ID": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_API_CLIENT_ID": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_API_AUDIENCE": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_API_SCOPES": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_INSTANCE": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_TENANT_ID": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_DOMAIN": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_CLIENT_ID": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_CLIENT_SECRET": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_CALL_BACK_PATH": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_AD_UI_CALL_BACK_PATH_DEVELOPMENT": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "apI_DEVELOPMENT_BASE_URL": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "apI_PRODUCTION_BASE_URL": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "apI_SCOPES": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "uI_DEVELOPMENT_BASE_URL": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "uI_PRODUCTION_BASE_URL": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_ENVIRONMENT": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_RECEPTION_URL": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_TOKEN_URL": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_CLIENT_ID": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_USERNAME": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_PASSWORD": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_CERT_SECRET_NAME": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_CERT_PIN_SECRET_NAME": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_SCHEMA_VERSION": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "haciendA_ALLOW_V43_NOTES": {
+            "type": "boolean"
+          },
+          "haciendA_CALLBACK_URL": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "logginG_DEFAULT": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "logginG_ASP_NET_CORE": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "logginG_EF_CORE": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "useS_AZURE_AD": {
+            "type": "boolean"
+          },
+          "maX_FAILED_LOGIN_ATTEMPTS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lockouT_DURATION_MINUTES": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alloweD_HOSTS": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "iS_ADMIN_COMPANY": {
+            "type": "boolean"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "dashboarD_WELCOME_MESSAGE": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "idCountry": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "city": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "contacT_EMAIL": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "contacT_PHONE": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "manageR_NAME": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "logO_URL": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "logO_DATA": {
+            "type": "string",
+            "nullable": true
+          },
+          "industry": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "website": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "idSubscriptionStatus": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "triaL_END_DATE": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "parentCompany": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "childCompanies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Company"
+            },
+            "nullable": true
+          },
+          "typeId": {
+            "$ref": "#/components/schemas/TypeId"
+          },
+          "country": {
+            "$ref": "#/components/schemas/Country"
+          },
+          "subscriptionStatus": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
             },
             "nullable": true
           }
@@ -6594,6 +10587,33 @@
         },
         "additionalProperties": false
       },
+      "CompleteLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qtyTransferred": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompleteTransferDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompleteLineDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ContainerNumberResponse": {
         "type": "object",
         "properties": {
@@ -6604,6 +10624,141 @@
           "companyId": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Country": {
+        "required": [
+          "continent",
+          "createdBy",
+          "datE_FORMAT",
+          "isO2_CODE",
+          "isO3_CODE",
+          "name",
+          "namE_NATIVE",
+          "numeriC_CODE",
+          "officiaL_NAME",
+          "phonE_PREFIX",
+          "region",
+          "suB_REGION",
+          "timE_ZONE",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_COUNTRY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isO2_CODE": {
+            "maxLength": 2,
+            "minLength": 1,
+            "type": "string"
+          },
+          "isO3_CODE": {
+            "maxLength": 3,
+            "minLength": 1,
+            "type": "string"
+          },
+          "numeriC_CODE": {
+            "maxLength": 3,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "namE_NATIVE": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "officiaL_NAME": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "continent": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "region": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "suB_REGION": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iD_CURRENCY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "phonE_PREFIX": {
+            "maxLength": 10,
+            "minLength": 1,
+            "type": "string"
+          },
+          "timE_ZONE": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "datE_FORMAT": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iD_LANGUAGE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "haS_ELECTRONIC_INVOICE": {
+            "type": "boolean"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "language": {
+            "$ref": "#/components/schemas/Language"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6673,6 +10828,78 @@
           },
           "isPrivate": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateInventoryTransactionDto": {
+        "type": "object",
+        "properties": {
+          "transactionNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "movementType": {
+            "type": "string",
+            "nullable": true
+          },
+          "idWarehouseOrigin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idWarehouseDest": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idDistributionRoute": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "securitySeal": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expectedArrivalDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "isTransitTransfer": {
+            "type": "boolean"
+          },
+          "departureTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "arrivalTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "odometerOut": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryTransactionLineDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6806,6 +11033,92 @@
           },
           "printLabelBarcode": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Currency": {
+        "required": [
+          "createdBy",
+          "currencY_CODE",
+          "currencY_NAME",
+          "currencY_SYMBOL",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_CURRENCY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currencY_CODE": {
+            "maxLength": 3,
+            "minLength": 1,
+            "type": "string"
+          },
+          "currencY_NAME": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "currencY_SYMBOL": {
+            "maxLength": 10,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minoR_UNIT": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "roundinG_INCREMENT": {
+            "type": "number",
+            "format": "double"
+          },
+          "iS_CRYPTO": {
+            "type": "boolean"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Country"
+            },
+            "nullable": true
+          },
+          "billingInvoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingInvoice"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -7015,6 +11328,149 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Driver": {
+        "required": [
+          "code",
+          "createdBy",
+          "firstName",
+          "idNumber",
+          "lastName",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idSystemUser": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "firstName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "secondLastName": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "idNumber": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "idType": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "mobile": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "licenseNumber": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "licenseCategory": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "hireDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "position": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "emergencyContactName": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "emergencyContactPhone": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -7402,6 +11858,129 @@
         },
         "additionalProperties": false
       },
+      "FuelTypeCatalog": {
+        "required": [
+          "code",
+          "createdBy",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Gender": {
+        "required": [
+          "createdBy",
+          "description",
+          "gendeR_CODE",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_GENDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gendeR_CODE": {
+            "maxLength": 10,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "HashPasswordRequest": {
         "type": "object",
         "properties": {
@@ -7424,6 +12003,188 @@
           },
           "message": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Insurer": {
+        "required": [
+          "code",
+          "createdBy",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tradeName": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "taxId": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "phoneClaims": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "website": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "agentName": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "agentPhone": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "agentEmail": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryTransactionLineDto": {
+        "type": "object",
+        "properties": {
+          "idItem": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemName": {
+            "type": "string",
+            "nullable": true
+          },
+          "qtyRequested": {
+            "type": "number",
+            "format": "double"
+          },
+          "idWarehouseOriginLine": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idWarehouseDestLine": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idUnitOfMeasure": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "unitOfMeasureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitCost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lotNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "destSecuritySeal": {
+            "type": "string",
+            "nullable": true
+          },
+          "departureTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "arrivalTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "odometerOut": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
@@ -7669,7 +12430,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "idItem": {
             "type": "integer",
@@ -7714,6 +12475,170 @@
         },
         "additionalProperties": false
       },
+      "Language": {
+        "required": [
+          "createdBy",
+          "languagE_CODE",
+          "languagE_NAME",
+          "languagE_NAME_NATIVE",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_LANGUAGE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "languagE_CODE": {
+            "maxLength": 15,
+            "minLength": 1,
+            "type": "string"
+          },
+          "languagE_NAME": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "languagE_NAME_NATIVE": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_ISO_639_3": {
+            "type": "boolean"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Country"
+            },
+            "nullable": true
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicensePlan": {
+        "required": [
+          "createdBy",
+          "features",
+          "licensE_PLAN_DESCRIPTION",
+          "licensE_PLAN_NAME",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_LICENSE_PLAN": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "licensE_PLAN_NAME": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "licensE_PLAN_DESCRIPTION": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maX_USERS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maX_SUBSIDIARIES": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maX_STORAGE_GB": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maX_API_CALLS_PER_MONTH": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "monthlY_PRICE": {
+            "type": "number",
+            "format": "double"
+          },
+          "annuaL_PRICE": {
+            "type": "number",
+            "format": "double"
+          },
+          "features": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LocalTokenRequestDto": {
         "type": "object",
         "properties": {
@@ -7732,6 +12657,114 @@
           "companyId": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LocationTypeUpsertDto": {
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "maxLength": 60,
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LocationUpsertDto": {
+        "required": [
+          "idLocationType"
+        ],
+        "type": "object",
+        "properties": {
+          "idLocationType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idCountry": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idProvince": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idCanton": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idDistrict": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idNeighborhood": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "address": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "address2": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "postalCode": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "gpsLatitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "gpsLongitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -7852,6 +12885,277 @@
         },
         "additionalProperties": false
       },
+      "PaymentCategory": {
+        "required": [
+          "createdBy",
+          "description",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_PAYMENT_CATEGORY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "paymentMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentMethod": {
+        "required": [
+          "config",
+          "createdBy",
+          "description",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_PAYMENT_METHOD": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "iD_PAYMENT_CATEGORY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_PAYMENT_PROVIDER": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "iS_ONLINE": {
+            "type": "boolean"
+          },
+          "requireS_REFERENCE": {
+            "type": "boolean"
+          },
+          "requireS_CONFIRMATION": {
+            "type": "boolean"
+          },
+          "allowS_PARTIAL_PAYMENTS": {
+            "type": "boolean"
+          },
+          "allowS_REFUNDS": {
+            "type": "boolean"
+          },
+          "config": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "paymentCategory": {
+            "$ref": "#/components/schemas/PaymentCategory"
+          },
+          "paymentProvider": {
+            "$ref": "#/components/schemas/PaymentProvider"
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            },
+            "nullable": true
+          },
+          "billingInvoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingInvoice"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentProvider": {
+        "required": [
+          "createdBy",
+          "description",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_PAYMENT_PROVIDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "paymentMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentStatus": {
+        "required": [
+          "createdBy",
+          "description",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_PAYMENT_STATUS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "billingInvoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingInvoice"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PermissionAssignment": {
         "type": "object",
         "properties": {
@@ -7936,6 +13240,63 @@
           },
           "isAllowed": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiveLineQtyDto": {
+        "type": "object",
+        "properties": {
+          "lineId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qty": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiveLinesDto": {
+        "type": "object",
+        "properties": {
+          "lineIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "lineQtys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiveLineQtyDto"
+            },
+            "nullable": true
+          },
+          "arrivalTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "departureTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "odometerOut": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "nextDestSeal": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextWarehouseId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8665,6 +14026,101 @@
         },
         "additionalProperties": false
       },
+      "RouteUpsertDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "frequency": {
+            "type": "string",
+            "nullable": true
+          },
+          "operationDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "departureTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedDurationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "estimatedDistanceKm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "vehiclePlate": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "driverUserId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idOriginWarehouse": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxWeightKg": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "maxVolumeM3": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "requiresSignature": {
+            "type": "boolean"
+          },
+          "requiresPhoto": {
+            "type": "boolean"
+          },
+          "allowsPartialDelivery": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "stops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StopUpsertDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SelectOption": {
         "type": "object",
         "properties": {
@@ -8712,7 +14168,144 @@
         },
         "additionalProperties": false
       },
-      "StringStringStringStringDateTime<>f__AnonymousType42": {
+      "StockTransferLineUpsertDto": {
+        "type": "object",
+        "properties": {
+          "idItem": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemName": {
+            "type": "string",
+            "nullable": true
+          },
+          "qtyRequested": {
+            "type": "number",
+            "format": "double"
+          },
+          "idUnitOfMeasure": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "unitOfMeasureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "lotNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockTransferUpsertDto": {
+        "type": "object",
+        "properties": {
+          "transferNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "idWarehouseOrigin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idWarehouseDest": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "transferDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedBy": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockTransferLineUpsertDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StopUpsertDto": {
+        "type": "object",
+        "properties": {
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "gpsLatitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "gpsLongitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "contactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeWindowStart": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeWindowEnd": {
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedServiceMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StringStringStringStringDateTime<>f__AnonymousType75": {
         "type": "object",
         "properties": {
           "status": {
@@ -8734,6 +14327,255 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Subscription": {
+        "required": [
+          "createdBy",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_SUBSCRIPTION": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_COMPANY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_LICENSE_PLAN": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_SUBSCRIPTION_STATUS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_BILLING_CYCLE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currenT_PERIOD_START": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currenT_PERIOD_END": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nexT_BILLING_DATE": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "iD_PAYMENT_METHOD": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totaL_AMOUNT_PAID_USD": {
+            "type": "number",
+            "format": "double"
+          },
+          "autO_RENEW": {
+            "type": "boolean"
+          },
+          "canceL_AT_PERIOD_END": {
+            "type": "boolean"
+          },
+          "cancelleD_AT": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canceL_REASON": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "licensePlan": {
+            "$ref": "#/components/schemas/LicensePlan"
+          },
+          "subscriptionStatus": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "billingCycle": {
+            "$ref": "#/components/schemas/BillingCycle"
+          },
+          "paymentMethod": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "subscriptionFeatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionFeature"
+            },
+            "nullable": true
+          },
+          "billingInvoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingInvoice"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubscriptionFeature": {
+        "required": [
+          "createdBy",
+          "description",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_SUBSCRIPTION_FEATURE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_SUBSCRIPTION": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "usagE_CURRENT": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "usagE_LIMIT": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "usagE_PERCENTAGE": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubscriptionStatus": {
+        "required": [
+          "createdBy",
+          "description",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_SUBSCRIPTION_STATUS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            },
+            "nullable": true
+          },
+          "companies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Company"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8814,6 +14656,572 @@
           },
           "message": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransportUnitBrand": {
+        "required": [
+          "code",
+          "createdBy",
+          "idCountry",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "idCountry": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "country": {
+            "$ref": "#/components/schemas/Country"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransportUnitModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransportUnitDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "plateNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitType": {
+            "type": "string",
+            "nullable": true
+          },
+          "idVehicleBrand": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "brandName": {
+            "type": "string",
+            "nullable": true
+          },
+          "idVehicleModel": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "modelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "colorHex": {
+            "type": "string",
+            "nullable": true
+          },
+          "vinNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "engineNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "fuelType": {
+            "type": "string",
+            "nullable": true
+          },
+          "maxLoadKg": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "maxVolumeM3": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cargoLengthM": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cargoWidthM": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cargoHeightM": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "palletCapacity": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "currentOdometerKm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lastOdometerDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nextInspectionDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "insuranceExpiredDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "insuranceCompany": {
+            "type": "string",
+            "nullable": true
+          },
+          "insurancePolicyNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "idDriver": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "assignedDriverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "idInsurer": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "insurerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "idWarehouse": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransportUnitMaintenanceDto": {
+        "type": "object",
+        "properties": {
+          "maintenanceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "maintenanceDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "odometerAtServiceKm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "nextServiceDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextServiceKm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "invoiceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleOutOfService": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransportUnitModel": {
+        "required": [
+          "code",
+          "createdBy",
+          "idTransportUnitBrand",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idTransportUnitBrand": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "idTransportUnitType": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "brand": {
+            "$ref": "#/components/schemas/TransportUnitBrand"
+          },
+          "transportUnitType": {
+            "$ref": "#/components/schemas/TransportUnitTypeCatalog"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransportUnitStatusCatalog": {
+        "required": [
+          "code",
+          "createdBy",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "badgeColor": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransportUnitTypeCatalog": {
+        "required": [
+          "code",
+          "createdBy",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TypeId": {
+        "required": [
+          "createdBy",
+          "description",
+          "formaT_VALIDATION",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_TYPE_ID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iS_TAX_ID": {
+            "type": "boolean"
+          },
+          "iS_LEGAL_REGISTRATION": {
+            "type": "boolean"
+          },
+          "numbeR_CHARACTERS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alloW_LETTERS": {
+            "type": "boolean"
+          },
+          "formaT_VALIDATION": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sorT_ORDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "companies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Company"
+            },
             "nullable": true
           }
         },
@@ -8912,6 +15320,67 @@
           },
           "allowDownload": {
             "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateInventoryTransactionDto": {
+        "type": "object",
+        "properties": {
+          "movementType": {
+            "type": "string",
+            "nullable": true
+          },
+          "idWarehouseOrigin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idWarehouseDest": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idDistributionRoute": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "securitySeal": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expectedArrivalDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "isTransitTransfer": {
+            "type": "boolean"
+          },
+          "departureTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "arrivalTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "odometerOut": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
@@ -9180,6 +15649,21 @@
         },
         "additionalProperties": false
       },
+      "UpdateOdometerDto": {
+        "type": "object",
+        "properties": {
+          "odometerKm": {
+            "type": "number",
+            "format": "double"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdatePermissionsDto": {
         "type": "object",
         "properties": {
@@ -9203,6 +15687,181 @@
               "$ref": "#/components/schemas/ReportPermissionItem"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "User": {
+        "required": [
+          "createdBy",
+          "displaY_NAME",
+          "email",
+          "firsT_NAME",
+          "lasT_NAME",
+          "phonE_NUMBER",
+          "timE_ZONE",
+          "updatedBy",
+          "useR_NAME"
+        ],
+        "type": "object",
+        "properties": {
+          "iD_USER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "useR_NAME": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "azurE_OID": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "email": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "passworD_HASH": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "azurE_UPN": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "displaY_NAME": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iD_COUNTRY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iD_GENDER": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firsT_NAME": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "lasT_NAME": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "phonE_NUMBER": {
+            "maxLength": 15,
+            "minLength": 1,
+            "type": "string"
+          },
+          "timE_ZONE": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "iD_LANGUAGE": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iS_EMAIL_VERIFIED": {
+            "type": "boolean"
+          },
+          "iS_PHONE_VERIFIED": {
+            "type": "boolean"
+          },
+          "faileD_LOGIN_ATTEMPTS": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lockouT_END": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "passworD_RESET_TOKEN": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "passworD_RESET_TOKEN_EXPIRY": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "emaiL_VERIFICATION_TOKEN": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "emaiL_VERIFICATION_TOKEN_EXPIRY": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lasT_LOGIN": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lasT_PASSWORD_CHANGE": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "datE_OF_BIRTH": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "logiN_COUNT": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lasT_LOGIN_IP": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "iS_ACTIVE": {
+            "type": "boolean"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "language": {
+            "$ref": "#/components/schemas/Language"
+          },
+          "country": {
+            "$ref": "#/components/schemas/Country"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
           }
         },
         "additionalProperties": false
@@ -9696,6 +16355,89 @@
           "message": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WarehouseUpsertDto": {
+        "required": [
+          "code",
+          "name",
+          "warehouseType"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "warehouseType": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "warehouseLevel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idParentWarehouse": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "allowsNegativeStock": {
+            "type": "boolean"
+          },
+          "requiresLocation": {
+            "type": "boolean"
+          },
+          "requiresLotTracking": {
+            "type": "boolean"
+          },
+          "requiresExpiryDate": {
+            "type": "boolean"
+          },
+          "isManaged": {
+            "type": "boolean"
+          },
+          "maxCapacity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityUnit": {
+            "type": "string",
+            "nullable": true
+          },
+          "idLocation": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "responsibleUserId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

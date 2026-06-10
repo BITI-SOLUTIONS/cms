@@ -248,6 +248,28 @@
    - Siempre verificar que el texto sea legible sobre el fondo oscuro
    - Contraste mínimo recomendado: texto claro (#fff) sobre fondos oscuros (#1a1a2e, #16213e)
 
+4. **⚠️ TEXTOS DE AYUDA (help text / hint text) — REGLA CRÍTICA**:
+   - **TODOS los `<small>`, `.form-text`, texto de ayuda debajo de campos**, deben tener color explícito claro.
+   - **NUNCA** dejar textos de ayuda con la clase `text-muted` sola en formularios de fondo oscuro — resultan casi invisibles.
+   - **SIEMPRE** agregar en el bloque `<style>` de cada nueva vista:
+     ```css
+     small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+     ```
+   - Esto aplica a TODAS las vistas nuevas sin excepción.
+
+5. **⚠️ MODALES en páginas con sidebar — REGLA CRÍTICA**:
+   - Los modales de Bootstrap DEBEN ser movidos al final del `<body>` para evitar problemas de z-index con el sidebar fijo.
+   - **SIEMPRE** incluir en el `@section Scripts` de cada vista con modales:
+     ```javascript
+     document.addEventListener('DOMContentLoaded', function () {
+         ['miModal1', 'miModal2'].forEach(function (id) {
+             var el = document.getElementById(id);
+             if (el) document.body.appendChild(el);
+         });
+     });
+     ```
+   - Sin esto el sidebar (`z-index: 1000`) puede quedar por encima del modal y bloquear la interacción.
+
 ## Branching and Commit Conventions
 - Convenciones de branches CMS: main (producción), develop (desarrollo), feature/[nombre], fix/[nombre], hotfix/[nombre]. 
 - Commits: Conventional Commits (feat:, fix:, docs:, test:, refactor:, chore:, ci:, perf:)
@@ -328,3 +350,142 @@ Los menús principales tienen `id_parent = 0`. Los submenús tienen `id_parent` 
 │  └─────────────────────────┘     └─────────────────────────┘│
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
+
+## 🗄️ Estándares de Scripts SQL (CMS.Data/Scripts)
+
+### Estructura obligatoria de todo script de creación de tabla operacional
+
+Todos los scripts de creación de tablas en bases de datos de compañía **DEBEN** seguir esta estructura exacta. La tabla `sinai.warehouse` es el ejemplo de referencia canónico (`CMS.Data/Scripts/005_create_warehouse_table.sql`).
+
+### Reglas generales
+
+1. **Nombre de archivo**: `NNN_descripcion_snake_case.sql` (ej: `005_create_warehouse_table.sql`)
+2. **Ubicación**: `CMS.Data/Scripts/`
+3. **Schema**: Siempre usar el schema de la compañía como prefijo (ej: `{schema}.tabla`). En ejemplos concretos usar `sinai`.
+4. **Ejecución**: El script debe incluir instrucciones de ejecución con `psql` en el encabezado.
+5. **Borrado seguro**: Siempre comenzar con `DROP TABLE IF EXISTS {schema}.tabla CASCADE;`
+
+### Secciones obligatorias (en este orden)
+
+```
+1.  Bloque START  (comentario visual delimitador de = en 3 líneas)
+2.  Encabezado    (SCRIPT, PROPÓSITO, DESCRIPCIÓN, EJECUCIÓN, AUTOR, CREADO)
+3.  -- TABLA: nombre
+4.  DROP TABLE IF EXISTS … CASCADE
+5.  CREATE TABLE con columnas agrupadas por categoría (ver patrón)
+6.  -- ÍNDICES
+7.  -- COMENTARIOS  (COMMENT ON TABLE / COLUMN)
+8.  -- PERMISOS     (GRANT + SEQUENCE)
+9.  Función trigger  tr_{tabla}_update_fn()
+10. Trigger BEFORE UPDATE  tr_{tabla}_update
+11. Bloque END   (comentario visual delimitador de = en 3 líneas)
+```
+
+### Columnas de auditoría obligatorias (SIEMPRE las últimas columnas antes de los Constraints)
+
+```sql
+createdate      TIMESTAMP    NOT NULL DEFAULT now(),
+record_date     TIMESTAMP    NOT NULL DEFAULT now(),
+created_by      VARCHAR(30)  NOT NULL DEFAULT current_user,
+updated_by      VARCHAR(30)  NOT NULL DEFAULT current_user,
+rowpointer      UUID         NOT NULL DEFAULT gen_random_uuid(),
+```
+
+### Constraints obligatorios
+
+```sql
+CONSTRAINT {tabla}_pkey               PRIMARY KEY (id_{tabla}),
+CONSTRAINT rpix_{schema}_{tabla}      UNIQUE (rowpointer),
+CONSTRAINT uq_{schema}_{tabla}_code   UNIQUE (code),   -- si la tabla tiene campo code
+```
+
+### Nomenclatura de índices
+
+```sql
+-- Índice único sobre code:
+CREATE UNIQUE INDEX IF NOT EXISTS uix_{schema}_{tabla}_code    ON {schema}.{tabla}(code);
+-- Índices adicionales:
+CREATE INDEX        IF NOT EXISTS ix_{schema}_{tabla}_{campo}  ON {schema}.{tabla}({campo});
+```
+
+### Permisos estándar
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON {schema}.{tabla} TO PUBLIC;
+GRANT ALL ON {schema}.{tabla} TO cmssystem;
+GRANT USAGE, SELECT ON SEQUENCE {schema}.{tabla}_id_{tabla}_seq TO cmssystem;
+```
+
+### Trigger estándar de auditoría
+
+```sql
+CREATE OR REPLACE FUNCTION {schema}.tr_{tabla}_update_fn()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.updated_by  := current_user;
+    NEW.record_date := now();
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER tr_{tabla}_update
+BEFORE UPDATE ON {schema}.{tabla}
+FOR EACH ROW EXECUTE FUNCTION {schema}.tr_{tabla}_update_fn();
+```
+
+### Relaciones cross-database (FK lógicas — NO declarar FK real)
+
+Cuando una tabla operacional referencia la BD central (`cms.admin.*`), NO se declara FK real. Se documenta con un comentario estándar:
+
+```sql
+-- RELACIÓN LÓGICA CROSS-DB: campo_id referencia cms.admin.tabla.id
+--    No se puede declarar FK real porque esta tabla está en la BD de la compañía
+--    y admin.tabla está en la BD central (cms). La integridad se mantiene a nivel
+--    de aplicación en el Service / Controller correspondiente.
+campo_id   INTEGER,
+```
+
+### Patrón de columnas agrupadas por categoría
+
+```sql
+CREATE TABLE {schema}.{tabla} (
+    -- PK + campos base
+    id_{tabla}       SERIAL        NOT NULL,
+    code             VARCHAR(30)   NOT NULL,
+    name             VARCHAR(200)  NOT NULL,
+    description      VARCHAR(1000),
+
+    -- Clasificación / Tipo
+    {tipo_campo}     VARCHAR(30)   NOT NULL DEFAULT '{valor}',
+
+    -- Comportamiento / Flags operacionales
+    is_default       BOOLEAN       NOT NULL DEFAULT FALSE,
+    allows_x         BOOLEAN       NOT NULL DEFAULT FALSE,
+
+    -- Capacidad / Medidas  (si aplica)
+    max_capacity     DECIMAL(18,4),
+    capacity_unit    VARCHAR(20),
+
+    -- Relaciones: FK reales a tablas del MISMO schema
+    id_{rel_tabla}   INTEGER       REFERENCES {schema}.{rel_tabla}(id_{rel_tabla}) ON DELETE RESTRICT,
+
+    -- Relaciones lógicas cross-DB (sin FK real — ver regla arriba)
+    cross_db_id      INTEGER,
+
+    -- Estado
+    is_active        BOOLEAN       NOT NULL DEFAULT TRUE,
+    notes            VARCHAR(2000),
+
+    -- Auditoría (SIEMPRE AL FINAL, antes de Constraints)
+    createdate       TIMESTAMP     NOT NULL DEFAULT now(),
+    record_date      TIMESTAMP     NOT NULL DEFAULT now(),
+    created_by       VARCHAR(30)   NOT NULL DEFAULT current_user,
+    updated_by       VARCHAR(30)   NOT NULL DEFAULT current_user,
+    rowpointer       UUID          NOT NULL DEFAULT gen_random_uuid(),
+
+    -- Constraints
+    CONSTRAINT {tabla}_pkey              PRIMARY KEY (id_{tabla}),
+    CONSTRAINT rpix_{schema}_{tabla}     UNIQUE (rowpointer),
+    CONSTRAINT uq_{schema}_{tabla}_code  UNIQUE (code)
+);
+```

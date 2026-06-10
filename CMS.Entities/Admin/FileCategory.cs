@@ -60,7 +60,7 @@ namespace CMS.Entities.Admin
         /// <summary>
         /// ID de la categoría padre (para jerarquía)
         /// </summary>
-        [Column("parent_id")]
+        [Column("id_parent")]
         public int? ParentId { get; set; }
 
         /// <summary>
@@ -82,11 +82,11 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "system";
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "system";
 

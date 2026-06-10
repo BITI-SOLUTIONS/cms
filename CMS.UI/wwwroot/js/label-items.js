@@ -295,6 +295,16 @@ function resetColor(elementId, color) {
 function saveLabel() {
     var itemId = getElementValue('selectedItemId', '');
 
+    // Validar número de contenedor (obligatorio)
+    var containerNumberVal = (document.getElementById('containerNumber') ? document.getElementById('containerNumber').value : '').trim();
+    var containerFeedback = document.getElementById('containerNumberFeedback');
+    if (!containerNumberVal) {
+        if (containerFeedback) containerFeedback.classList.remove('d-none');
+        showContainerModal();
+        return;
+    }
+    if (containerFeedback) containerFeedback.classList.add('d-none');
+
     // Obtener el valor de decimales correctamente (puede ser 0)
     var decimalsEl = document.getElementById('labelPriceDecimals');
     var decimalsValue = decimalsEl ? parseInt(decimalsEl.value) : 2;
@@ -394,6 +404,8 @@ function saveLabel() {
             }
 
             alert('Etiqueta guardada exitosamente');
+            // Guardar el container number en la tabla de consecutivos de la compañía
+            saveCompanyContainerNumber(containerNumberVal);
         } else {
             alert('Error: ' + result.message);
         }
@@ -456,7 +468,7 @@ function printLabelDirect() {
 
     // Validar rango
     if (quantity < 1) quantity = 1;
-    if (quantity > 100) quantity = 100;
+    if (quantity > 10000) quantity = 10000;
 
     // Actualizar el campo si se corrigió
     if (quantityInput) {
@@ -673,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
         printQuantityInput.addEventListener('input', function(e) {
             var value = parseInt(this.value) || 1;
             if (value < 1) this.value = 1;
-            if (value > 100) this.value = 100;
+            if (value > 10000) this.value = 10000;
         });
 
         printQuantityInput.addEventListener('focus', function() {

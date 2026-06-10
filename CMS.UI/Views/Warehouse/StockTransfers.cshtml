@@ -1,0 +1,560 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Warehouse/StockTransfers.cshtml                          *@
+@* PROPÓSITO: Módulo de traslados de stock entre bodegas — pantalla principal     *@
+@* DISEÑO: Touch-first, responsive, tema oscuro. Optimizado para tablet/móvil.   *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                *@
+@* CREADO: 2026-06-12                                                             *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Stock Transfers";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? string.Empty;
+    var apiToken   = ViewBag.ApiToken   as string ?? string.Empty;
+}
+
+@section Styles {
+<style>
+/* ── Variables ── */
+:root {
+    --st-accent:   #6366f1;
+    --st-accent15: rgba(99,102,241,.15);
+    --st-accent30: rgba(99,102,241,.30);
+    --st-surface0: #0f172a;
+    --st-surface1: #1e293b;
+    --st-surface2: #334155;
+    --st-text:     #e2e8f0;
+    --st-muted:    #94a3b8;
+    --st-border:   rgba(255,255,255,.08);
+}
+
+/* ── Help text contrast ── */
+small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+
+/* ── Inputs ── */
+.form-select, .form-control {
+    background-color: var(--st-surface1) !important;
+    color: var(--st-text) !important;
+    border-color: rgba(255,255,255,.2) !important;
+    border-radius: 10px !important;
+}
+.form-select option { background-color: var(--st-surface1); color: var(--st-text); }
+.form-control::placeholder { color: var(--st-muted) !important; opacity: 1; }
+.form-select:focus, .form-control:focus {
+    border-color: var(--st-accent30) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.12) !important;
+}
+
+/* ── Cards ── */
+.st-card {
+    background: var(--st-surface1);
+    border: 1px solid var(--st-border);
+    border-radius: 16px;
+}
+
+/* ── KPI chips ── */
+.kpi-chip {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid var(--st-border);
+    background: var(--st-surface1);
+    min-width: 90px;
+    flex: 1;
+    cursor: pointer;
+    transition: transform .15s, border-color .15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+.kpi-chip:active { transform: scale(.96); }
+.kpi-chip.active { border-color: var(--st-accent) !important; background: var(--st-accent15) !important; }
+.kpi-num { font-size: 1.6rem; font-weight: 700; line-height: 1; color: #fff; }
+.kpi-label { font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--st-muted); margin-top: .35rem; }
+
+/* ── Touch-friendly table rows ── */
+.st-row {
+    cursor: pointer;
+    transition: background .12s;
+    -webkit-tap-highlight-color: transparent;
+}
+.st-row:hover, .st-row:active { background: rgba(99,102,241,.08) !important; }
+.st-row td { vertical-align: middle; padding: .85rem .75rem; border-color: var(--st-border); }
+thead th { color: #94a3b8; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; border-color: var(--st-border) !important; padding: .7rem .75rem; white-space: nowrap; background: var(--st-surface1) !important; }
+.table-dark { --bs-table-bg: var(--st-surface1); --bs-table-striped-bg: var(--st-surface1); --bs-table-hover-bg: rgba(99,102,241,.08); --bs-table-border-color: var(--st-border); color: var(--st-text); }
+.table-dark td, .table-dark th { border-color: var(--st-border) !important; }
+
+/* ── Action buttons (larger touch targets) ── */
+.action-btns .btn { min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 1rem; }
+
+/* ── Modal ── */
+.modal-content { background-color: var(--st-surface0); border: 1px solid var(--st-border); border-radius: 20px; }
+.modal-header { border-bottom: 1px solid var(--st-border); padding: 1.25rem 1.5rem; }
+.modal-footer { border-top: 1px solid var(--st-border); }
+.modal-body { padding: 1.25rem 1.5rem; }
+.modal-title { color: var(--st-text); font-weight: 600; }
+
+/* ── Section titles ── */
+.form-section-title {
+    color: #818cf8; font-size: .78rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    border-bottom: 1px solid rgba(99,102,241,.2);
+    padding-bottom: .4rem; margin-bottom: 1rem;
+}
+
+/* ── Item search list ── */
+#stItemResults { max-height: 180px; overflow-y: auto; border-radius: 8px; }
+#stItemResults .list-group-item { padding: .5rem .75rem; border-color: var(--st-border); font-size: .85rem; }
+#stItemResults .list-group-item:hover { background: var(--st-surface2) !important; }
+
+/* ── Lines table ── */
+#stLinesBody td { padding: .7rem .75rem; border-color: var(--st-border); color: var(--st-text); background: var(--st-surface1); }
+#stLinesBody tr:last-child td { border-bottom: none; }
+#stLinesBody tr:hover td { background: rgba(99,102,241,.08) !important; }
+
+/* ── Pagination ── */
+.page-link { background-color: var(--st-surface1); border-color: var(--st-border); color: var(--st-muted); border-radius: 8px !important; margin: 0 2px; min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+.page-link:hover { background-color: var(--st-surface2); color: var(--st-text); }
+.page-item.active .page-link { background-color: var(--st-accent); border-color: var(--st-accent); color: #fff; }
+.page-item.disabled .page-link { background-color: var(--st-surface0); color: #475569; }
+
+/* ── Detail labels ── */
+.detail-label { color: #64748b; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
+.detail-value { color: var(--st-text); font-size: .88rem; }
+
+/* ── Loader ── */
+#stLoader { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+/* ── Filters collapse on mobile ── */
+@@media (max-width: 767px) {
+    .st-row td:nth-child(3),
+    .st-row td:nth-child(4),
+    thead th:nth-child(3),
+    thead th:nth-child(4) { display: none; }
+
+    .kpi-num { font-size: 1.3rem; }
+    .kpi-chip { padding: .75rem .8rem; }
+    .modal-dialog { margin: .5rem; }
+    .modal-content { border-radius: 16px; }
+}
+
+/* ── Modals z-index ── */
+.modal-backdrop { z-index: 1055 !important; }
+.modal           { z-index: 1060 !important; }
+
+/* ── Btn primary ── */
+.btn-st-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; border: none; border-radius: 12px;
+    padding: .7rem 1.4rem; font-weight: 600;
+    transition: opacity .15s, transform .1s;
+}
+.btn-st-primary:hover { opacity: .9; color: #fff; }
+.btn-st-primary:active { transform: scale(.97); color: #fff; }
+
+/* ── Empty state ── */
+.empty-state { padding: 3rem 1rem; text-align: center; }
+.empty-state i { font-size: 3.5rem; color: #334155; display: block; margin-bottom: .75rem; }
+.empty-state p { color: #64748b; margin: 0; }
+</style>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- LOADER (overlay)                                                          -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="stLoader" class="d-none">
+    <div class="text-center">
+        <div class="spinner-border text-indigo mb-2" style="color:#818cf8;width:2.5rem;height:2.5rem;"></div>
+        <div style="color:#94a3b8;font-size:.9rem;">Cargando…</div>
+    </div>
+</div>
+
+<div class="content-container">
+
+    <!-- ── HEADER ────────────────────────────────────────────────────────── -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-arrow-left-right me-2" style="color:#818cf8;"></i>
+                Stock Transfers
+            </h1>
+            <p class="mb-0" style="color:#94a3b8;">Traslados internos de mercancía entre bodegas</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-st-primary" onclick="openCreate()" style="min-height:44px;">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo Traslado
+            </button>
+        </div>
+    </div>
+
+    <!-- ── ALERT ─────────────────────────────────────────────────────────── -->
+    <div id="stAlert" class="d-none mb-3 alert" role="alert"></div>
+
+    <!-- ── KPI CHIPS ─────────────────────────────────────────────────────── -->
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+        <div class="kpi-chip active" id="kpiAll" onclick="filterByStatus('')">
+            <span class="kpi-num" id="kpiAllNum">—</span>
+            <span class="kpi-label">Total</span>
+        </div>
+        <div class="kpi-chip" id="kpiPending" onclick="filterByStatus('Pending')" style="border-color:rgba(245,158,11,.3);">
+            <span class="kpi-num" id="kpiPendingNum" style="color:#f59e0b;">—</span>
+            <span class="kpi-label">Pendientes</span>
+        </div>
+        <div class="kpi-chip" id="kpiInProgress" onclick="filterByStatus('InProgress')" style="border-color:rgba(59,130,246,.3);">
+            <span class="kpi-num" id="kpiInProgressNum" style="color:#3b82f6;">—</span>
+            <span class="kpi-label">En Tránsito</span>
+        </div>
+        <div class="kpi-chip" id="kpiCompleted" onclick="filterByStatus('Completed')" style="border-color:rgba(34,197,94,.3);">
+            <span class="kpi-num" id="kpiCompletedNum" style="color:#22c55e;">—</span>
+            <span class="kpi-label">Completados</span>
+        </div>
+        <div class="kpi-chip" id="kpiCancelled" onclick="filterByStatus('Cancelled')" style="border-color:rgba(239,68,68,.3);">
+            <span class="kpi-num" id="kpiCancelledNum" style="color:#ef4444;">—</span>
+            <span class="kpi-label">Cancelados</span>
+        </div>
+    </div>
+
+    <!-- ── FILTROS ───────────────────────────────────────────────────────── -->
+    <div class="st-card mb-4 p-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4 col-lg-3">
+                <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-search me-1"></i>Buscar</label>
+                <input type="search" id="stSearch" class="form-control" placeholder="Número, referencia…" autocomplete="off" style="min-height:44px;">
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label text-white" style="font-size:.8rem;">Origen</label>
+                <select id="stFilterOrigin" class="form-select" style="min-height:44px;">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label text-white" style="font-size:.8rem;">Destino</label>
+                <select id="stFilterDest" class="form-select" style="min-height:44px;">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label text-white" style="font-size:.8rem;">Desde</label>
+                <input type="date" id="stDateFrom" class="form-control" style="min-height:44px;">
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label text-white" style="font-size:.8rem;">Hasta</label>
+                <input type="date" id="stDateTo" class="form-control" style="min-height:44px;">
+            </div>
+            <div class="col-6 col-md-2 col-lg-1">
+                <button class="btn w-100" style="background:rgba(99,102,241,.2);color:#818cf8;border:1px solid var(--st-accent30);border-radius:10px;min-height:44px;" onclick="clearFilters()" title="Limpiar filtros">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+        <!-- hidden status filter driven by KPI chips -->
+        <select id="stFilterStatus" class="d-none"></select>
+    </div>
+
+    <!-- ── TABLA ─────────────────────────────────────────────────────────── -->
+    <div class="st-card">
+        <!-- Header de tabla -->
+        <div class="d-flex align-items-center justify-content-between px-3 pt-3 pb-2">
+            <span id="stCount" style="color:var(--st-muted);font-size:.85rem;"></span>
+            <div class="d-flex gap-2">
+                <select id="stPageSize" class="form-select form-select-sm"
+                    style="width:auto;min-height:36px;"
+                    onchange="st.pageSize=parseInt(this.value);st.page=1;loadTransfers();">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0" style="border-collapse:separate;border-spacing:0;background:transparent;">
+                <thead>
+                    <tr>
+                        <th style="min-width:160px;">Número / Ref.</th>
+                        <th style="min-width:200px;">Origen → Destino</th>
+                        <th style="min-width:110px;">Fecha</th>
+                        <th style="min-width:130px;">Solicitado por</th>
+                        <th style="min-width:120px;">Estado</th>
+                        <th class="text-end" style="min-width:160px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="stTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-center py-3">
+            <ul id="stPagination" class="pagination mb-0"></ul>
+        </div>
+    </div>
+
+</div><!-- /content-container -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Crear / Editar Traslado                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="stModal" tabindex="-1" aria-labelledby="stModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="stModalTitle"><i class="bi bi-arrow-left-right me-2" style="color:#818cf8;"></i>Nuevo Traslado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="stForm" novalidate>
+
+                    <!-- ── Sección 1: Encabezado ── -->
+                    <div class="form-section-title"><i class="bi bi-file-earmark-text me-1"></i>Información General</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-4">
+                            <label class="form-label text-white">Número <span class="text-danger">*</span></label>
+                            <input type="text" id="stFormNumber" class="form-control" required maxlength="30" placeholder="TRF-2026-00001" autocomplete="off" style="min-height:44px;">
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <label class="form-label text-white">Fecha Traslado <span class="text-danger">*</span></label>
+                            <input type="date" id="stFormDate" class="form-control" required style="min-height:44px;">
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <label class="form-label text-white">Fecha Esperada</label>
+                            <input type="date" id="stFormExpected" class="form-control" style="min-height:44px;">
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label text-white">Referencia externa</label>
+                            <input type="text" id="stFormReference" class="form-control" maxlength="100" placeholder="Factura, contenedor, OC…" style="min-height:44px;">
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label text-white">Notas</label>
+                            <input type="text" id="stFormNotes" class="form-control" maxlength="500" placeholder="Instrucciones especiales…" style="min-height:44px;">
+                        </div>
+                    </div>
+
+                    <!-- ── Sección 2: Bodegas ── -->
+                    <div class="form-section-title"><i class="bi bi-building me-1"></i>Bodegas</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label text-white">
+                                <span style="color:#f59e0b;"><i class="bi bi-box-seam me-1"></i></span>
+                                Bodega Origen <span class="text-danger">*</span>
+                            </label>
+                            <select id="stFormOrigin" class="form-select" required style="min-height:44px;">
+                                <option value="">-- Seleccionar --</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label text-white">
+                                <span style="color:#22c55e;"><i class="bi bi-box-arrow-in-down me-1"></i></span>
+                                Bodega Destino <span class="text-danger">*</span>
+                            </label>
+                            <select id="stFormDest" class="form-select" required style="min-height:44px;">
+                                <option value="">-- Seleccionar --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ── Sección 3: Artículos ── -->
+                    <div class="form-section-title d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-list-ul me-1"></i>Artículos a Trasladar</span>
+                        <span id="stLinesCount" style="font-size:.78rem;color:#94a3b8;text-transform:none;letter-spacing:0;">0 artículos</span>
+                    </div>
+
+                    <!-- Buscador de ítem -->
+                    <div class="st-card p-3 mb-3" style="background:rgba(255,255,255,.03);">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-sm-5">
+                                <label class="form-label text-white" style="font-size:.82rem;"><i class="bi bi-search me-1"></i>Buscar artículo</label>
+                                <input type="search" id="stItemSearch" class="form-control" placeholder="Código o descripción…" autocomplete="off" style="min-height:44px;">
+                                <div id="stItemResults" class="list-group mt-1 position-absolute" style="z-index:100;min-width:260px;"></div>
+                                <input type="hidden" id="stLineItemId">
+                                <input type="hidden" id="stLineItemCode">
+                                <input type="hidden" id="stLineItemName">
+                                <input type="hidden" id="stLineUomCode">
+                                <input type="hidden" id="stLineUomId">
+                            </div>
+                            <div class="col-6 col-sm-2">
+                                <label class="form-label text-white" style="font-size:.82rem;">Cantidad</label>
+                                <input type="text" inputmode="decimal" id="stLineQty" class="form-control text-end fw-bold" placeholder="0" autocomplete="off" style="min-height:52px;font-size:1.1rem;" onfocus="this.select()">
+                            </div>
+                            <div class="col-6 col-sm-2">
+                                <label class="form-label text-white" style="font-size:.82rem;">Lote (opcional)</label>
+                                <input type="text" id="stLineLot" class="form-control" maxlength="50" placeholder="N/A" style="min-height:44px;">
+                            </div>
+                            <div class="col-12 col-sm-2">
+                                <label class="form-label text-white" style="font-size:.82rem;">Nota línea</label>
+                                <input type="text" id="stLineNotes" class="form-control" maxlength="200" placeholder="Obs." style="min-height:44px;">
+                            </div>
+                            <div class="col-12 col-sm-1">
+                                <button type="button" id="stAddLineBtn" class="btn w-100 btn-st-primary" style="min-height:44px;padding:.5rem;" title="Agregar artículo">
+                                    <i class="bi bi-plus-lg fs-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de líneas -->
+                    <div class="table-responsive" style="border-radius:10px;border:1px solid var(--st-border);overflow:hidden;">
+                        <table class="table table-sm mb-0" style="background:var(--st-surface1);">
+                            <thead style="background:var(--st-surface2);">
+                                <tr style="color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">
+                                    <th style="padding:.65rem .75rem;border-color:var(--st-border);">Artículo</th>
+                                    <th class="text-end" style="padding:.65rem .75rem;border-color:var(--st-border);">Cantidad</th>
+                                    <th style="padding:.65rem .75rem;border-color:var(--st-border);">Lote</th>
+                                    <th class="text-center" style="width:52px;padding:.65rem .75rem;border-color:var(--st-border);"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="stLinesBody"></tbody>
+                        </table>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer gap-2">
+                <button type="button" class="btn" style="color:#94a3b8;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:10px;min-height:44px;padding:.5rem 1.2rem;" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </button>
+                <button type="button" id="stSaveBtn" class="btn btn-st-primary" onclick="saveTransfer()" style="min-height:44px;min-width:140px;">
+                    <i class="bi bi-check-lg me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Detalle del Traslado                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="stDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="bi bi-arrow-left-right me-2" style="color:#818cf8;"></i>Detalle del Traslado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="stDetailBody"></div>
+            <div class="modal-footer gap-2">
+                <div id="stDetailActions" class="d-flex gap-2 flex-wrap"></div>
+                <button type="button" class="btn ms-auto" style="color:#94a3b8;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:10px;min-height:44px;" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Completar Traslado (ingresar cantidades reales)                    -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="stCompleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white" id="stCompleteTitle"><i class="bi bi-box-arrow-in-down me-2" style="color:#22c55e;"></i>Confirmar Recepción</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#94a3b8;font-size:.88rem;">Ingrese las cantidades reales recibidas en la bodega destino. Si coinciden con lo solicitado, no cambie los valores.</p>
+                <input type="hidden" id="stCompleteId">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr style="color:#64748b;font-size:.78rem;">
+                                <th>Artículo</th>
+                                <th class="text-end">Solicitado</th>
+                                <th class="text-end">Recibido</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stCompleteLinesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer gap-2">
+                <button type="button" class="btn" style="color:#94a3b8;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:10px;min-height:44px;" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:12px;min-height:44px;padding:.5rem 1.4rem;font-weight:600;" onclick="confirmComplete()">
+                    <i class="bi bi-check-lg me-2"></i>Confirmar Recepción
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Cancelar Traslado                                                  -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="stCancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="bi bi-x-circle me-2" style="color:#ef4444;"></i>Cancelar Traslado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="stCancelId">
+                <label class="form-label text-white">Motivo de cancelación <span class="text-danger">*</span></label>
+                <textarea id="stCancelReason" class="form-control" rows="3" maxlength="500" placeholder="Indique el motivo…" required style="min-height:80px;"></textarea>
+            </div>
+            <div class="modal-footer gap-2">
+                <button type="button" class="btn" style="color:#94a3b8;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:10px;min-height:44px;" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:12px;min-height:44px;padding:.5rem 1.4rem;font-weight:600;" onclick="confirmCancel()">
+                    <i class="bi bi-x-lg me-2"></i>Cancelar Traslado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/stockTransfers.js"></script>
+<script>
+    const _apiBase  = '@Html.Raw(apiBaseUrl)';
+    const _apiToken = '@Html.Raw(apiToken)';
+
+    // ── KPI chips ────────────────────────────────────────────────────────────
+    function filterByStatus(status) {
+        document.getElementById('stFilterStatus').value = status;
+        st.filter.status = status;
+        st.page = 1;
+
+        document.querySelectorAll('.kpi-chip').forEach(c => c.classList.remove('active'));
+        const map = { '': 'kpiAll', Pending: 'kpiPending', InProgress: 'kpiInProgress', Completed: 'kpiCompleted', Cancelled: 'kpiCancelled' };
+        document.getElementById(map[status] || 'kpiAll')?.classList.add('active');
+
+        loadTransfers();
+    }
+
+    function clearFilters() {
+        ['stSearch','stFilterOrigin','stFilterDest','stDateFrom','stDateTo'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        st.filter = { search: '', status: '', warehouseOrigin: '', warehouseDest: '', dateFrom: '', dateTo: '' };
+        st.page = 1;
+        loadTransfers();
+    }
+
+    async function updateKpiChips() {
+        const statuses = ['Pending', 'InProgress', 'Completed', 'Cancelled'];
+        const chipMap  = { Pending: 'kpiPendingNum', InProgress: 'kpiInProgressNum', Completed: 'kpiCompletedNum', Cancelled: 'kpiCancelledNum' };
+
+        try {
+            const all = await apiFetch('/api/stocktransfer?pageSize=1');
+            const allEl = document.getElementById('kpiAllNum');
+            if (allEl) allEl.textContent = all.totalCount ?? '—';
+        } catch {}
+
+        for (const s of statuses) {
+            try {
+                const data = await apiFetch(`/api/stocktransfer?pageSize=1&status=${s}`);
+                const el = document.getElementById(chipMap[s]);
+                if (el) el.textContent = data.totalCount ?? '0';
+            } catch { }
+        }
+    }
+
+    // ── Move modals out of sidebar z-index context ───────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        ['stModal','stDetailModal','stCompleteModal','stCancelModal'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+
+        initStockTransfers(_apiBase, _apiToken);
+    });
+</script>
+}

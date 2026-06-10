@@ -1,0 +1,254 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Localization/Localization.cshtml                         *@
+@* PROPÓSITO: Mantenimiento de localizaciones físicas del sistema                 *@
+@* RUTA: Settings/Localization                                                     *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Localizaciones";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? string.Empty;
+    var apiToken   = ViewBag.ApiToken   as string ?? string.Empty;
+}
+
+@section Styles {
+<style>
+.form-select, .form-control {
+    background-color: #1e293b !important;
+    color: #f0f0f0 !important;
+    border-color: rgba(255,255,255,.2) !important;
+}
+.form-select:focus, .form-control:focus {
+    border-color: rgba(99,102,241,.6) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15) !important;
+}
+.modal-content { background-color: #0f172a; border: 1px solid rgba(255,255,255,.1); }
+.modal-header  { border-bottom: 1px solid rgba(255,255,255,.08); }
+.modal-footer  { border-top:    1px solid rgba(255,255,255,.08); }
+.loc-card { transition: transform .15s, box-shadow .15s; }
+.loc-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.35) !important; }
+.nav-tabs-loc { border-bottom: 1px solid rgba(255,255,255,.1); }
+.nav-tabs-loc .nav-link { color: #94a3b8; border: none; padding: .5rem 1rem; border-radius: 0; }
+.nav-tabs-loc .nav-link.active { color: #818cf8; border-bottom: 2px solid #6366f1; background: transparent; }
+.nav-tabs-loc .nav-link:hover  { color: #e2e8f0; }
+.form-section-title { color: #818cf8; font-size: .8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; border-bottom: 1px solid rgba(99,102,241,.2);
+    padding-bottom: .4rem; margin-bottom: 1rem; }
+.page-link { background-color: #1e293b; border-color: rgba(255,255,255,.1); color: #94a3b8; }
+.page-link:hover { background-color: #334155; color: #f0f0f0; }
+.page-item.active .page-link { background-color: #6366f1; border-color: #6366f1; color: #fff; }
+.page-item.disabled .page-link { background-color: #0f172a; color: #475569; }
+</style>
+}
+
+<div class="content-container">
+
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-geo-alt me-2" style="color:#818cf8;"></i>
+                Localizaciones
+            </h1>
+            <p class="mb-0" style="color:#94a3b8;">
+                Gestión de ubicaciones físicas centralizadas —
+                utilizadas por bodegas, empleados, clientes, proveedores y más
+            </p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-tech-primary" onclick="LOC.openCreate()">
+                <i class="bi bi-plus-lg me-2"></i>Nueva Localización
+            </button>
+        </div>
+    </div>
+
+    <div id="pageAlert" class="d-none mb-3" role="alert"></div>
+
+    <!-- Filtros -->
+    <div class="card bg-dark-card border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-search me-1"></i>Buscar</label>
+                    <input type="text" id="locSearch" class="form-control" placeholder="Código, nombre, ciudad…">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-tags me-1"></i>Tipo</label>
+                    <select id="locTypeFilter" class="form-select">
+                        <option value="">Todos los tipos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-toggle-on me-1"></i>Estado</label>
+                    <select id="locStatus" class="form-select">
+                        <option value="true">Activas</option>
+                        <option value="false">Inactivas</option>
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button class="btn btn-tech-primary flex-grow-1" onclick="LOC.applyFilters()">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="LOC.clearFilters()" title="Limpiar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <span class="text-muted" style="font-size:.85rem;"><span id="locTotal">0</span> localizaciones encontradas</span>
+        <div id="locSpinner" class="d-none"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+    </div>
+
+    <div id="locContainer"></div>
+
+    <div id="locEmpty" class="d-none text-center py-5">
+        <i class="bi bi-geo-alt" style="font-size:3rem; color:#334155;"></i>
+        <p class="text-muted mt-3">No se encontraron localizaciones</p>
+        <button class="btn btn-tech-primary mt-2" onclick="LOC.openCreate()"><i class="bi bi-plus-lg me-2"></i>Crear localización</button>
+    </div>
+
+    <div id="locPagination" class="mt-4">
+        <nav><ul class="pagination pagination-sm justify-content-center flex-wrap" id="locPager"></ul></nav>
+    </div>
+
+</div>
+
+@* ── MODAL DETALLE ── *@
+<div class="modal fade" id="locDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="bi bi-geo-alt me-2" style="color:#818cf8;"></i>Detalle de Localización</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">Tipo</div>
+                        <div class="text-light" id="dType"></div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">Estado</div>
+                        <div id="dStatus"></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">Dirección</div>
+                        <div class="text-light fw-semibold" id="dAddress"></div>
+                    </div>
+                    <div class="col-md-3"><div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">C.P.</div><div class="text-light" id="dPostal"></div></div>
+                    <div class="col-12"><div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">GPS</div><div class="text-light" id="dGps"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-tech-primary" id="locDetailEditBtn"><i class="bi bi-pencil me-2"></i>Editar</button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── MODAL CREAR / EDITAR ── *@
+<div class="modal fade" id="locModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title text-white mb-0" id="locModalTitle">Nueva Localización</h5>
+                    <small class="text-muted" id="locModalSubtitle">Complete los datos de la localización.</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="locForm" novalidate>
+
+                    <div class="form-section-title"><i class="bi bi-tags me-2"></i>Clasificación</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Tipo <span class="text-danger">*</span></label>
+                            <select id="fLocType" class="form-select" required>
+                                <option value="">— Seleccionar tipo —</option>
+                            </select>
+                            <div class="invalid-feedback" id="fLocTypeFb"></div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch ms-2">
+                                <input class="form-check-input" type="checkbox" id="fLocIsActive" checked>
+                                <label class="form-check-label text-light" for="fLocIsActive">Activa</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title"><i class="bi bi-map me-2"></i>Dirección</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="form-label text-light">Dirección línea 1</label>
+                            <input type="text" id="fLocAddress" class="form-control" maxlength="500" placeholder="Calle, número, zona…">
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label text-light">Dirección línea 2</label>
+                            <input type="text" id="fLocAddress2" class="form-control" maxlength="200" placeholder="Apartamento, suite, edificio…">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Código Postal</label>
+                            <input type="text" id="fLocPostalCode" class="form-control" maxlength="20" placeholder="40101">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">País</label>
+                            <select id="fLocCountry" class="form-select" onchange="LOC.loadProvinces(this.value ? parseInt(this.value) : null)">
+                                <option value="">-- Seleccione país --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Provincia</label>
+                            <select id="fLocProvince" class="form-select" onchange="LOC.loadCantons(this.value ? parseInt(this.value) : null)">
+                                <option value="">-- Provincia --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Cantón</label>
+                            <select id="fLocCanton" class="form-select" onchange="LOC.loadDistricts(this.value ? parseInt(this.value) : null)">
+                                <option value="">-- Cantón --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Distrito <small style="color:#94a3b8">(incluye C.P.)</small></label>
+                            <select id="fLocDistrict" class="form-select" onchange="LOC.loadNeighborhoods(this.value ? parseInt(this.value) : null)">
+                                <option value="">-- Distrito --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Barrio</label>
+                            <select id="fLocNeighborhood" class="form-select">
+                                <option value="">-- Barrio --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Latitud GPS</label>
+                            <input type="number" id="fLocLat" class="form-control" step="0.0000001" placeholder="9.9281">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Longitud GPS</label>
+                            <input type="number" id="fLocLon" class="form-control" step="0.0000001" placeholder="-84.0907">
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-tech-primary" onclick="LOC.save()"><i class="bi bi-check-lg me-2"></i>Guardar</button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/location.js" asp-append-version="true"></script>
+<script>
+    LOC_CFG.apiBase = '@apiBaseUrl';
+    LOC_CFG.token   = '@apiToken';
+</script>
+}

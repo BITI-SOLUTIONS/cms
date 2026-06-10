@@ -27,10 +27,10 @@ namespace CMS.Entities
         [MaxLength(50)]
         public string? ICON { get; set; }
 
-        [Column("menu_order")]
+        [Column("sort_order")]
         public int ORDER { get; set; }
 
-        [Column("permission_key")]
+        [Column("code")]
         [MaxLength(150)]
         public string? PERMISSION_KEY { get; set; }
 
@@ -48,12 +48,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         [NotMapped]

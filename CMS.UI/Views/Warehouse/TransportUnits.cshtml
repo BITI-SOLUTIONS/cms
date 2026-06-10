@@ -1,0 +1,733 @@
+@{
+    ViewData["Title"] = "Unidades de Transporte";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "";
+    var apiToken   = ViewBag.ApiToken   as string ?? "";
+}
+
+@section Styles {
+<style>
+    /* ============================================================
+       FLEET MANAGEMENT — Estilos (tema oscuro)
+    ============================================================ */
+    :root {
+        --fl-bg:        #0f1629;
+        --fl-card:      #1a2340;
+        --fl-border:    #2a3a5c;
+        --fl-accent:    #6c63ff;
+        --fl-green:     #22c55e;
+        --fl-yellow:    #f59e0b;
+        --fl-red:       #ef4444;
+        --fl-blue:      #3b82f6;
+        --fl-orange:    #f97316;
+        --fl-cyan:      #06b6d4;
+        --fl-text:      #e2e8f0;
+        --fl-muted:     #94a3b8;
+        --fl-row-hover: #1e2d4a;
+    }
+
+    body { background: var(--fl-bg); color: var(--fl-text); }
+
+    .fl-header {
+        background: linear-gradient(135deg, #1a2340 0%, #0f1629 100%);
+        border-bottom: 1px solid var(--fl-border);
+        padding: 1.25rem 1.5rem;
+    }
+    .fl-title { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    .fl-subtitle { font-size: .82rem; color: var(--fl-muted); }
+
+    /* KPI cards */
+    .fl-kpi-card {
+        background: var(--fl-card);
+        border: 1px solid var(--fl-border);
+        border-radius: .75rem;
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        transition: border-color .2s;
+    }
+    .fl-kpi-card:hover { border-color: var(--fl-accent); }
+    .fl-kpi-icon { font-size: 1.8rem; }
+    .fl-kpi-value { font-size: 1.5rem; font-weight: 700; color: #fff; line-height:1; }
+    .fl-kpi-label { font-size: .75rem; color: var(--fl-muted); margin-top: .15rem; }
+
+    /* Toolbar */
+    .fl-toolbar {
+        background: var(--fl-card);
+        border: 1px solid var(--fl-border);
+        border-radius: .75rem;
+        padding: .75rem 1rem;
+    }
+    .fl-toolbar .form-control,
+    .fl-toolbar .form-select {
+        background: #0d1117;
+        border-color: var(--fl-border);
+        color: var(--fl-text);
+        font-size: .85rem;
+    }
+    .fl-toolbar .form-control::placeholder { color: var(--fl-muted); }
+    .fl-toolbar .form-control:focus,
+    .fl-toolbar .form-select:focus {
+        border-color: var(--fl-accent);
+        box-shadow: 0 0 0 .15rem rgba(108,99,255,.25);
+    }
+    .fl-toolbar .form-select option { background: #1a2340; }
+
+    /* Table */
+    .fl-table-wrap {
+        background: var(--fl-card);
+        border: 1px solid var(--fl-border);
+        border-radius: .75rem;
+        overflow: hidden;
+    }
+    .fl-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .fl-table thead th {
+        background: #0d1117;
+        color: var(--fl-muted);
+        font-weight: 600;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: .65rem .9rem;
+        border-bottom: 1px solid var(--fl-border);
+        white-space: nowrap;
+    }
+    .fl-table tbody tr {
+        border-bottom: 1px solid rgba(42,58,92,.5);
+        transition: background .15s;
+        cursor: pointer;
+    }
+    .fl-table tbody tr:hover { background: var(--fl-row-hover); }
+    .fl-table tbody tr:last-child { border-bottom: none; }
+    .fl-table tbody td { padding: .6rem .9rem; color: var(--fl-text); vertical-align: middle; }
+
+    /* Status badge */
+    .status-badge {
+        display: inline-flex; align-items: center; gap: .3rem;
+        padding: .2rem .6rem; border-radius: 999px;
+        font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .status-active      { background: rgba(34,197,94,.15);  color: #22c55e; }
+    .status-maintenance { background: rgba(245,158,11,.15); color: #f59e0b; }
+    .status-outofservice{ background: rgba(239,68,68,.15);  color: #ef4444; }
+    .status-retired     { background: rgba(148,163,184,.15);color: #94a3b8; }
+
+    /* Type badge */
+    .type-badge {
+        display: inline-flex; align-items: center; gap: .25rem;
+        padding: .18rem .55rem; border-radius: .4rem;
+        font-size: .72rem; background: rgba(59,130,246,.15); color: #60a5fa;
+        font-weight: 500;
+    }
+
+    /* Empty / Loading */
+    .fl-empty { padding: 3rem 1rem; text-align: center; color: var(--fl-muted); }
+    .fl-empty i { font-size: 2.5rem; display: block; margin-bottom: .75rem; opacity: .4; }
+
+    /* Modal */
+    .fl-modal .modal-content {
+        background: #131d33;
+        border: 1px solid var(--fl-border);
+        border-radius: .9rem;
+        color: var(--fl-text);
+    }
+    .fl-modal .modal-header {
+        background: linear-gradient(90deg, #1a2340, #0f1629);
+        border-bottom: 1px solid var(--fl-border);
+        padding: 1rem 1.4rem;
+    }
+    .fl-modal .modal-header .modal-title { font-weight: 700; color: #fff; }
+    .fl-modal .modal-header .btn-close { filter: invert(1) brightness(2); }
+    .fl-modal .modal-body { padding: 1.25rem 1.4rem; }
+    .fl-modal .modal-footer {
+        border-top: 1px solid var(--fl-border);
+        padding: .75rem 1.4rem;
+    }
+
+    .fl-modal .form-label { color: var(--fl-muted); font-size: .78rem; margin-bottom: .3rem; }
+    .fl-modal .form-control,
+    .fl-modal .form-select {
+        background: #0d1117;
+        border-color: var(--fl-border);
+        color: var(--fl-text);
+        font-size: .88rem;
+    }
+    .fl-modal .form-control:focus,
+    .fl-modal .form-select:focus {
+        border-color: var(--fl-accent);
+        box-shadow: 0 0 0 .15rem rgba(108,99,255,.25);
+    }
+    .fl-modal .form-control::placeholder { color: var(--fl-muted); }
+    .fl-modal .form-select option { background: #1a2340; }
+    .fl-modal .input-group-text { background: #0d1117; border-color: var(--fl-border); color: var(--fl-muted); }
+
+    /* Tabs inside modal */
+    .fl-nav-tabs .nav-link {
+        color: var(--fl-muted); border: none; border-bottom: 2px solid transparent;
+        padding: .5rem .85rem; font-size: .83rem; background: transparent;
+    }
+    .fl-nav-tabs .nav-link:hover { color: #fff; }
+    .fl-nav-tabs .nav-link.active {
+        color: var(--fl-accent); border-bottom-color: var(--fl-accent);
+        background: transparent; font-weight: 600;
+    }
+
+    /* Maintenance table inside modal */
+    .maint-table { font-size: .82rem; }
+    .maint-table th { color: var(--fl-muted); font-size: .73rem; text-transform: uppercase; background: #0d1117; padding: .5rem .7rem; }
+    .maint-table td { padding: .5rem .7rem; vertical-align: middle; color: var(--fl-text); border-top: 1px solid rgba(42,58,92,.5); }
+    .maint-type-badge {
+        padding: .15rem .5rem; border-radius: .35rem; font-size: .7rem; font-weight: 600;
+        background: rgba(108,99,255,.15); color: #a78bfa;
+    }
+
+    /* Section separator in modal */
+    .fl-section-header {
+        font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--fl-accent);
+        border-bottom: 1px solid var(--fl-border);
+        padding-bottom: .4rem; margin-bottom: .9rem; margin-top: .5rem;
+    }
+
+    /* Alert pills */
+    .fl-alert-pill {
+        display: inline-flex; align-items: center; gap: .35rem;
+        padding: .25rem .65rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
+    }
+    .fl-alert-danger  { background: rgba(239,68,68,.15); color: #f87171; }
+    .fl-alert-warning { background: rgba(245,158,11,.15); color: #fbbf24; }
+
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+
+    /* Pagination */
+    .fl-pagination .page-link {
+        background: var(--fl-card); border-color: var(--fl-border);
+        color: var(--fl-muted); font-size: .82rem;
+    }
+    .fl-pagination .page-link:hover { background: var(--fl-row-hover); color: #fff; }
+    .fl-pagination .page-item.active .page-link { background: var(--fl-accent); border-color: var(--fl-accent); color: #fff; }
+    .fl-pagination .page-item.disabled .page-link { opacity: .4; }
+</style>
+}
+
+<div class="fl-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+        <div class="fl-title"><i class="bi bi-truck me-2 text-warning"></i>Unidades de Transporte</div>
+        <div class="fl-subtitle">Gestión de unidades, kilometraje y mantenimiento de la flota</div>
+    </div>
+    <button class="btn btn-sm px-3" style="background:var(--fl-accent);color:#fff;" id="btnNewUnit">
+        <i class="bi bi-plus-lg me-1"></i>Nueva Unidad
+    </button>
+</div>
+
+<div class="container-fluid py-3 px-3">
+
+    <!-- KPI cards -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="fl-kpi-card">
+                <span class="fl-kpi-icon text-success"><i class="bi bi-truck"></i></span>
+                <div>
+                    <div class="fl-kpi-value" id="kpiTotal">—</div>
+                    <div class="fl-kpi-label">Unidades Totales</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="fl-kpi-card">
+                <span class="fl-kpi-icon text-success"><i class="bi bi-check-circle"></i></span>
+                <div>
+                    <div class="fl-kpi-value" id="kpiActive">—</div>
+                    <div class="fl-kpi-label">Activas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="fl-kpi-card">
+                <span class="fl-kpi-icon text-warning"><i class="bi bi-wrench"></i></span>
+                <div>
+                    <div class="fl-kpi-value" id="kpiMaintenance">—</div>
+                    <div class="fl-kpi-label">En Mantenimiento</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="fl-kpi-card">
+                <span class="fl-kpi-icon text-danger"><i class="bi bi-exclamation-circle"></i></span>
+                <div>
+                    <div class="fl-kpi-value" id="kpiAlerts">—</div>
+                    <div class="fl-kpi-label">Con Alertas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="fl-toolbar d-flex align-items-center flex-wrap gap-2 mb-3">
+        <div class="flex-grow-1" style="min-width:200px;max-width:320px;">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text" style="background:#0d1117;border-color:var(--fl-border);color:var(--fl-muted);"><i class="bi bi-search"></i></span>
+                <input type="text" id="flSearch" class="form-control" placeholder="Buscar código, placa, nombre, marca…">
+            </div>
+        </div>
+        <select id="flFilterType" class="form-select form-select-sm" style="width:auto;">
+            <option value="">Todos los tipos</option>
+            <option value="Truck">Camión</option>
+            <option value="Van">Van / Furgoneta</option>
+            <option value="Car">Automóvil</option>
+            <option value="Pickup">Pickup / Camioneta</option>
+            <option value="Motorcycle">Motocicleta</option>
+            <option value="Forklift">Montacargas</option>
+            <option value="Trailer">Remolque</option>
+            <option value="Other">Otro</option>
+        </select>
+        <select id="flFilterStatus" class="form-select form-select-sm" style="width:auto;">
+            <option value="">Todos los estados</option>
+            <option value="Active">Activo</option>
+            <option value="Maintenance">En Mantenimiento</option>
+            <option value="OutOfService">Fuera de Servicio</option>
+            <option value="Retired">Retirado</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary ms-auto" id="btnRefreshUnits" title="Refrescar">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="fl-table-wrap">
+        <div class="table-responsive">
+            <table class="fl-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Placa</th>
+                        <th>Nombre / Unidad</th>
+                        <th>Tipo</th>
+                        <th>Marca / Modelo</th>
+                        <th>Año</th>
+                        <th>Carga Máx (kg)</th>
+                        <th>Km Actual</th>
+                        <th>Próx. Revisión</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="flTableBody">
+                    <tr><td colspan="11" class="fl-empty"><i class="bi bi-truck"></i>Cargando unidades de transporte…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-top:1px solid var(--fl-border);">
+            <small id="flPaginInfo" style="color:var(--fl-muted);"></small>
+            <nav><ul class="pagination pagination-sm mb-0 fl-pagination" id="flPagination"></ul></nav>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Crear / Editar Unidad de Transporte
+============================================================ -->
+<div class="modal fade fl-modal" id="unitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="unitModalTitle"><i class="bi bi-truck me-2 text-warning"></i>Nueva Unidad de Transporte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fldUnitId">
+
+                <!-- Nav tabs -->
+                <ul class="nav fl-nav-tabs mb-3">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabIdentification"><i class="bi bi-card-text me-1"></i>Identificación</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabCapacity"><i class="bi bi-box-seam me-1"></i>Capacidad</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabOperation"><i class="bi bi-speedometer me-1"></i>Operación</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabInsurance"><i class="bi bi-shield-check me-1"></i>Seguro</button></li>
+                    <li class="nav-item" id="tabMaintenanceNavItem" style="display:none;">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabMaintenanceLog"><i class="bi bi-wrench me-1"></i>Mantenimiento</button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+
+                    <!-- TAB: Identificación -->
+                    <div class="tab-pane fade show active" id="tabIdentification">
+                        <div class="fl-section-header">Datos Generales</div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Código *</label>
+                                <input type="text" id="fldCode" class="form-control" maxlength="30" placeholder="TU-001">
+                                <small>Código único interno</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Placa *</label>
+                                <input type="text" id="fldPlate" class="form-control" maxlength="30" placeholder="ABC-123">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre de la Unidad *</label>
+                                <input type="text" id="fldName" class="form-control" maxlength="200" placeholder="Camión Refrigerado Norte">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo *</label>
+                                <select id="fldType" class="form-select">
+                                    <option value="">Cargando…</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado</label>
+                                <select id="fldStatus" class="form-select">
+                                    <option value="">Cargando…</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Color</label>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="color" id="fldColorPicker" class="form-control form-control-color border-secondary"
+                                           style="width:50px;height:38px;" value="#6b7280"
+                                           oninput="document.getElementById('fldColorHex').value=this.value">
+                                    <input type="text" id="fldColorHex" class="form-control" maxlength="20"
+                                           placeholder="#rrggbb" style="font-family:monospace;"
+                                           oninput="if(this.value.startsWith('#'))document.getElementById('fldColorPicker').value=this.value">
+                                </div>
+                                <small>Seleccione de la paleta o ingrese código HEX</small>
+                            </div>
+                        </div>
+                        <div class="fl-section-header mt-3">Marca y Modelo</div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Marca</label>
+                                <select id="fldBrand" class="form-select">
+                                    <option value="">Cargando…</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Modelo</label>
+                                <select id="fldModel" class="form-select">
+                                    <option value="">Seleccione marca primero</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Año</label>
+                                <input type="number" id="fldYear" class="form-control" min="1970" max="2099" placeholder="2024">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo de Combustible</label>
+                                <select id="fldFuel" class="form-select">
+                                    <option value="">Cargando…</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Número de Chasis / VIN</label>
+                                <input type="text" id="fldVin" class="form-control" maxlength="50">
+                                <small>Debe ser único en la compañía</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Número de Motor</label>
+                                <input type="text" id="fldEngine" class="form-control" maxlength="50">
+                                <small>Debe ser único en la compañía</small>
+                            </div>
+                        </div>
+                        <div class="fl-section-header mt-3">Asignación</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Conductor Asignado</label>
+                                <select id="fldDriver" class="form-select">
+                                    <option value="">— Sin conductor asignado —</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Aseguradora</label>
+                                <select id="fldInsurer" class="form-select">
+                                    <option value="">— Sin aseguradora —</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notas</label>
+                                <textarea id="fldNotes" class="form-control" rows="2" maxlength="2000" placeholder="Observaciones adicionales…"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Capacidad -->
+                    <div class="tab-pane fade" id="tabCapacity">
+                        <div class="fl-section-header">Capacidad de Carga</div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Carga Máxima (kg)</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldMaxLoad" class="form-control" min="0" step="0.01" placeholder="0.00">
+                                    <span class="input-group-text">kg</span>
+                                </div>
+                                <small>Peso máximo permitido</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Volumen Máximo (m³)</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldMaxVol" class="form-control" min="0" step="0.01" placeholder="0.00">
+                                    <span class="input-group-text">m³</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Paletas</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldPallets" class="form-control" min="0" step="1" placeholder="0">
+                                    <span class="input-group-text">paletas</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="fl-section-header mt-3">Dimensiones del Área de Carga</div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Largo (m)</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldCargoL" class="form-control" min="0" step="0.01" placeholder="0.00">
+                                    <span class="input-group-text">m</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Ancho (m)</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldCargoW" class="form-control" min="0" step="0.01" placeholder="0.00">
+                                    <span class="input-group-text">m</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Alto (m)</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldCargoH" class="form-control" min="0" step="0.01" placeholder="0.00">
+                                    <span class="input-group-text">m</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <div id="volCalc" class="text-muted small ps-1" style="color:#94a3b8!important;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Operación -->
+                    <div class="tab-pane fade" id="tabOperation">
+                        <div class="fl-section-header">Kilometraje</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Kilometraje Actual (km)</label>
+                                <div class="input-group">
+                                    <input type="number" id="fldOdometer" class="form-control" min="0" step="1" placeholder="0">
+                                    <span class="input-group-text">km</span>
+                                </div>
+                                <small>Lectura actual del odómetro</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Última Lectura</label>
+                                <input type="date" id="fldOdometerDate" class="form-control">
+                            </div>
+                        </div>
+                        <div class="fl-section-header mt-3">Revisión Técnica</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Próxima Revisión Técnica</label>
+                                <input type="date" id="fldInspection" class="form-control">
+                                <div id="inspectionAlert" class="mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Seguro -->
+                    <div class="tab-pane fade" id="tabInsurance">
+                        <div class="fl-section-header">Datos del Seguro</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Vencimiento del Seguro</label>
+                                <input type="date" id="fldInsuranceExpiry" class="form-control">
+                                <div id="insuranceAlert" class="mt-1"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Aseguradora</label>
+                                <input type="text" id="fldInsuranceCo" class="form-control" maxlength="100" placeholder="INS, Qualitas…">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Número de Póliza</label>
+                                <input type="text" id="fldPolicy" class="form-control" maxlength="50">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Mantenimiento (solo en edición) -->
+                    <div class="tab-pane fade" id="tabMaintenanceLog">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="fl-section-header mb-0">Historial de Mantenimiento</div>
+                            <button class="btn btn-sm px-3" style="background:var(--fl-accent);color:#fff;" id="btnAddMaintenance">
+                                <i class="bi bi-plus-lg me-1"></i>Registrar
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table maint-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Tipo</th>
+                                        <th>Descripción</th>
+                                        <th>Km al Servicio</th>
+                                        <th>Próx. Servicio</th>
+                                        <th>Costo</th>
+                                        <th>Taller</th>
+                                        <th class="text-center">Acc.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="maintTableBody">
+                                    <tr><td colspan="8" class="text-center" style="padding:1.5rem;color:var(--fl-muted);">Sin registros de mantenimiento</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div><!-- /.tab-content -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-sm px-4" style="background:var(--fl-accent);color:#fff;" id="btnSaveUnit">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Registrar Mantenimiento
+============================================================ -->
+<div class="modal fade fl-modal" id="maintModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="maintModalTitle"><i class="bi bi-wrench me-2 text-warning"></i>Registrar Mantenimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fldMaintId">
+                <input type="hidden" id="fldMaintUnitId">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de Mantenimiento *</label>
+                        <select id="fldMaintType" class="form-select">
+                            <option value="OilChange">🛢 Cambio de Aceite</option>
+                            <option value="TireChange">🔵 Cambio de Llantas</option>
+                            <option value="TireRotation">🔄 Rotación de Llantas</option>
+                            <option value="BrakeService">🛑 Servicio de Frenos</option>
+                            <option value="FilterChange">🔧 Cambio de Filtros</option>
+                            <option value="BatteryReplacement">🔋 Cambio de Batería</option>
+                            <option value="Inspection">🔍 Inspección Técnica</option>
+                            <option value="Revision">⚙ Revisión General</option>
+                            <option value="Repair">🔨 Reparación</option>
+                            <option value="Wash">💧 Lavado / Limpieza</option>
+                            <option value="Insurance">📋 Renovación de Seguro</option>
+                            <option value="Other">📌 Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha del Servicio *</label>
+                        <input type="date" id="fldMaintDate" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Km al Momento del Servicio</label>
+                        <div class="input-group">
+                            <input type="number" id="fldMaintKm" class="form-control" min="0" step="1" placeholder="0">
+                            <span class="input-group-text">km</span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripción del Trabajo Realizado *</label>
+                        <textarea id="fldMaintDesc" class="form-control" rows="3" maxlength="1000" placeholder="Detalle el trabajo realizado…"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Próxima Fecha de Servicio</label>
+                        <input type="date" id="fldMaintNextDate" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Próximo Servicio por Km</label>
+                        <div class="input-group">
+                            <input type="number" id="fldMaintNextKm" class="form-control" min="0" step="1" placeholder="0">
+                            <span class="input-group-text">km</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Costo</label>
+                        <div class="input-group">
+                            <input type="number" id="fldMaintCost" class="form-control" min="0" step="0.01" placeholder="0.00">
+                            <select id="fldMaintCurrency" class="form-select" style="max-width:80px;">
+                                <option value="USD">USD</option>
+                                <option value="CRC">CRC</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Taller / Proveedor</label>
+                        <input type="text" id="fldMaintSupplier" class="form-control" maxlength="200" placeholder="Nombre del taller o proveedor">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Número de Factura</label>
+                        <input type="text" id="fldMaintInvoice" class="form-control" maxlength="50">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="fldMaintOutOfService">
+                            <label class="form-check-label" for="fldMaintOutOfService" style="color:var(--fl-muted);font-size:.85rem;">
+                                La unidad estuvo fuera de servicio durante este mantenimiento
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notas</label>
+                        <textarea id="fldMaintNotes" class="form-control" rows="2" maxlength="2000" placeholder="Observaciones adicionales…"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm px-4" style="background:var(--fl-accent);color:#fff;" id="btnSaveMaint">
+                    <i class="bi bi-floppy me-1"></i>Guardar Mantenimiento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Confirmar eliminación
+============================================================ -->
+<div class="modal fade fl-modal" id="deleteUnitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Eliminar Unidad</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="color:var(--fl-muted);">¿Deseas dar de baja esta unidad de transporte? Quedará marcada como <strong style="color:#f87171;">Retirada</strong>.</p>
+                <p id="deleteUnitName" class="fw-bold text-light"></p>
+                <input type="hidden" id="deleteUnitId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm px-3" id="btnConfirmDeleteUnit">
+                    <i class="bi bi-trash me-1"></i>Dar de Baja
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    window.FL_API   = '@Html.Raw(apiBaseUrl)';
+    window.FL_TOKEN = '@Html.Raw(apiToken)';
+</script>
+<script src="~/js/transportUnits.js" asp-append-version="true"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    ['unitModal','maintModal','deleteUnitModal'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) document.body.appendChild(el);
+    });
+});
+</script>
+}

@@ -19,12 +19,12 @@ namespace CMS.Entities.Reports
         [Column("id_report_definition")]
         public int Id { get; set; }
 
-        [Column("report_code")]
+        [Column("code")]
         [Required]
         [MaxLength(50)]
         public string ReportCode { get; set; } = string.Empty;
 
-        [Column("report_name")]
+        [Column("name")]
         [Required]
         [MaxLength(200)]
         public string ReportName { get; set; } = string.Empty;
@@ -96,11 +96,11 @@ namespace CMS.Entities.Reports
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
         [Column("created_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? CreatedBy { get; set; }
 
         [Column("updated_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? UpdatedBy { get; set; }
     }
 }

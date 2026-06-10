@@ -36,6 +36,10 @@ namespace CMS.Data
         public DbSet<DataTranslation> DataTranslations { get; set; }
         public DbSet<Currency> Currencies { get; set; }
         public DbSet<Country> Countries { get; set; }
+        public DbSet<GeographicDivision1> GeographicDivisions1 { get; set; }
+        public DbSet<GeographicDivision2> GeographicDivisions2 { get; set; }
+        public DbSet<GeographicDivision3> GeographicDivisions3 { get; set; }
+        public DbSet<GeographicDivision4> GeographicDivisions4 { get; set; }
         public DbSet<Gender> Genders { get; set; }
         public DbSet<TypeId> TypeIds { get; set; }
 
@@ -74,6 +78,11 @@ namespace CMS.Data
         /// </summary>
         public DbSet<UnitOfMeasure> UnitsOfMeasure { get; set; }
 
+        /// <summary>
+        /// Tipos de bodega - Tabla CENTRAL compartida por todas las compañías
+        /// </summary>
+        public DbSet<WarehouseType> WarehouseTypes { get; set; }
+
         // ===== TABLAS NUEVAS: SISTEMA DE REPORTES =====
         public DbSet<ReportCategory> ReportCategories { get; set; }
         public DbSet<ReportDefinition> ReportDefinitions { get; set; }
@@ -94,6 +103,13 @@ namespace CMS.Data
         // ===== TABLAS NUEVAS: DOCUMENTACIÓN DEL SISTEMA =====
         public DbSet<SystemDocumentation> SystemDocumentations { get; set; }
 
+        // ===== CATÁLOGOS FLEET MANAGEMENT (admin schema) =====
+        public DbSet<TransportUnitTypeCatalog> TransportUnitTypes { get; set; }
+        public DbSet<TransportUnitStatusCatalog> TransportUnitStatuses { get; set; }
+        public DbSet<FuelTypeCatalog> FuelTypes { get; set; }
+        public DbSet<TransportUnitBrand> TransportUnitBrands { get; set; }
+        public DbSet<TransportUnitModel> TransportUnitModels { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -109,7 +125,7 @@ namespace CMS.Data
                 entity.HasKey(e => e.ID_LANGUAGE);
                 entity.Property(e => e.IS_ACTIVE).HasDefaultValue(true);
                 entity.Property(e => e.IS_ISO_639_3).HasDefaultValue(true);
-                entity.HasIndex(e => e.LANGUAGE_CODE).IsUnique();
+                entity.HasIndex(e => e.LANGUAGE_CODE).IsUnique().HasDatabaseName("uix_admin_language_code");
             });
 
             modelBuilder.Entity<Currency>(entity =>
@@ -120,7 +136,7 @@ namespace CMS.Data
                 entity.Property(e => e.MINOR_UNIT).HasDefaultValue(2);
                 entity.Property(e => e.ROUNDING_INCREMENT).HasDefaultValue(0);
                 entity.Property(e => e.SORT_ORDER).HasDefaultValue(0);
-                entity.HasIndex(e => e.CURRENCY_CODE).IsUnique();
+                entity.HasIndex(e => e.CURRENCY_CODE).IsUnique().HasDatabaseName("uk_admin_currency_code");
             });
 
             modelBuilder.Entity<Country>(entity =>
@@ -140,11 +156,75 @@ namespace CMS.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<GeographicDivision1>(entity =>
+            {
+                entity.HasKey(e => e.IdGeographicDivision1);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.HasOne(e => e.Country)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdCountry)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<GeographicDivision2>(entity =>
+            {
+                entity.HasKey(e => e.IdGeographicDivision2);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.HasOne(e => e.Country)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdCountry)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Division1)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdGeographicDivision1)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<GeographicDivision3>(entity =>
+            {
+                entity.HasKey(e => e.IdGeographicDivision3);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.HasOne(e => e.Country)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdCountry)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Division1)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdGeographicDivision1)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Division2)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdGeographicDivision2)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<GeographicDivision4>(entity =>
+            {
+                entity.HasKey(e => e.IdGeographicDivision4);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.HasOne(e => e.Country)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdCountry)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Division1)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdGeographicDivision1)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Division2)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdGeographicDivision2)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Division3)
+                    .WithMany()
+                    .HasForeignKey(e => e.IdGeographicDivision3)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             modelBuilder.Entity<Gender>(entity =>
             {
                 entity.HasKey(e => e.ID_GENDER);
                 entity.Property(e => e.IS_ACTIVE).HasDefaultValue(true);
-                entity.HasIndex(e => e.GENDER_CODE).IsUnique();
+                entity.HasIndex(e => e.GENDER_CODE).IsUnique().HasDatabaseName("uix_admin_gender_code");
             });
 
             modelBuilder.Entity<TypeId>(entity =>
@@ -406,7 +486,7 @@ namespace CMS.Data
             {
                 entity.HasKey(e => e.ID_SP);
                 entity.Property(e => e.IS_ACTIVE).HasDefaultValue(true);
-                entity.HasIndex(e => e.SP_CODE).IsUnique();
+                entity.HasIndex(e => e.SP_CODE).IsUnique().HasDatabaseName("uix_admin_stored_procedure_code");
                 entity.HasIndex(e => e.IS_ACTIVE);
             });
 
@@ -459,14 +539,14 @@ namespace CMS.Data
             {
                 entity.HasKey(e => e.ID_ROLE);
                 entity.Property(e => e.IS_ACTIVE).HasDefaultValue(true);
-                entity.HasIndex(e => e.ROLE_NAME).IsUnique();
+                entity.HasIndex(e => e.ROLE_NAME).IsUnique().HasDatabaseName("uix_admin_role_name");
             });
 
             modelBuilder.Entity<Permission>(entity =>
             {
                 entity.HasKey(e => e.ID_PERMISSION);
                 entity.Property(e => e.IS_ACTIVE).HasDefaultValue(true);
-                entity.HasIndex(e => e.PERMISSION_KEY).IsUnique();
+                entity.HasIndex(e => e.PERMISSION_KEY).IsUnique().HasDatabaseName("uix_admin_permission_code");
             });
 
             modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
@@ -614,6 +694,67 @@ namespace CMS.Data
 
             // Ajustar defaults audit PostgreSQL
             ConfigureAuditDefaults(modelBuilder);
+
+            // =====================================================================
+            // CATÁLOGOS FLEET MANAGEMENT
+            // =====================================================================
+            modelBuilder.Entity<TransportUnitTypeCatalog>(entity =>
+            {
+                entity.ToTable("transport_unit_type", "admin");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<TransportUnitStatusCatalog>(entity =>
+            {
+                entity.ToTable("transport_unit_status", "admin");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<FuelTypeCatalog>(entity =>
+            {
+                entity.ToTable("fuel_type", "admin");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<TransportUnitBrand>(entity =>
+            {
+                entity.ToTable("transport_unit_brand", "admin");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+                entity.HasMany(e => e.Models)
+                      .WithOne(m => m.Brand)
+                      .HasForeignKey(m => m.IdTransportUnitBrand)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Country)
+                      .WithMany()
+                      .HasForeignKey(e => e.IdCountry)
+                      .HasPrincipalKey(c => c.ID_COUNTRY)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<TransportUnitModel>(entity =>
+            {
+                entity.ToTable("transport_unit_model", "admin");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+                entity.HasOne(e => e.TransportUnitType)
+                      .WithMany()
+                      .HasForeignKey(e => e.IdTransportUnitType)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
         }
 
         private static void ConfigureAuditDefaults(ModelBuilder modelBuilder)

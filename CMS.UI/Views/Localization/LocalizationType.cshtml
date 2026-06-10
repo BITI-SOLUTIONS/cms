@@ -1,0 +1,184 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Localization/LocalizationType.cshtml                     *@
+@* PROPÓSITO: Catálogo de tipos de localización (Bodega, Cliente, Empleado, etc.) *@
+@* RUTA: Settings/LocalizationType                                                 *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Tipos de Localización";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? string.Empty;
+    var apiToken   = ViewBag.ApiToken   as string ?? string.Empty;
+}
+
+@section Styles {
+<style>
+.form-select, .form-control {
+    background-color: #1e293b !important;
+    color: #f0f0f0 !important;
+    border-color: rgba(255,255,255,.2) !important;
+}
+.form-select:focus, .form-control:focus {
+    border-color: rgba(99,102,241,.6) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15) !important;
+}
+.modal-content { background-color: #0f172a; border: 1px solid rgba(255,255,255,.1); }
+.modal-header  { border-bottom: 1px solid rgba(255,255,255,.08); }
+.modal-footer  { border-top:    1px solid rgba(255,255,255,.08); }
+.lt-card { transition: transform .15s, box-shadow .15s; cursor: pointer; }
+.lt-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.35) !important; }
+.color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+/* Textos de ayuda e información visibles en fondo oscuro */
+small, .form-text { color: #cbd5e1 !important; }
+.form-control::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
+.form-select option { color: #f0f0f0; background-color: #1e293b; }
+</style>
+}
+
+<div class="content-container">
+
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-tags me-2" style="color:#818cf8;"></i>
+                Tipos de Localización
+            </h1>
+            <p class="mb-0" style="color:#94a3b8;">
+                Catálogo de categorías para clasificar las localizaciones del sistema
+                (Bodega, Cliente, Empleado, Proveedor, etc.)
+            </p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-tech-primary" onclick="LT.openCreate()">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo Tipo
+            </button>
+        </div>
+    </div>
+
+    <div id="pageAlert" class="d-none mb-3" role="alert"></div>
+
+    <!-- Filtros -->
+    <div class="card bg-dark-card border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-search me-1"></i>Buscar</label>
+                    <input type="text" id="ltSearch" class="form-control" placeholder="Código, nombre…">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-toggle-on me-1"></i>Estado</label>
+                    <select id="ltStatus" class="form-select">
+                        <option value="true">Activos</option>
+                        <option value="false">Inactivos</option>
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-5 d-flex gap-2">
+                    <button class="btn btn-tech-primary flex-grow-1" onclick="LT.load()">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="LT.clearFilters()" title="Limpiar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <span style="color:#cbd5e1; font-size:.85rem;"><span id="ltTotal">0</span> tipos encontrados</span>
+        <div id="ltSpinner" class="d-none"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+    </div>
+
+    <div id="ltContainer" class="row g-3"></div>
+    <div id="ltEmpty" class="d-none text-center py-5">
+        <i class="bi bi-tags" style="font-size:3rem; color:#334155;"></i>
+        <p style="color:#cbd5e1;" class="mt-3">No se encontraron tipos de localización</p>
+        <button class="btn btn-tech-primary mt-2" onclick="LT.openCreate()"><i class="bi bi-plus-lg me-2"></i>Crear tipo</button>
+    </div>
+
+</div>
+
+@* ── MODAL CREAR / EDITAR ── *@
+<div class="modal fade" id="ltModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-md modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white" id="ltModalTitle">Nuevo Tipo de Localización</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="ltForm" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Código <span class="text-danger">*</span></label>
+                            <input type="text" id="fLtCode" class="form-control text-uppercase" maxlength="30" placeholder="WAREHOUSE" required>
+                            <div class="invalid-feedback" id="fLtCodeFb"></div>
+                            <small style="color:#cbd5e1;">Máx. 30 chars. Mayúsculas.</small>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label text-light">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" id="fLtName" class="form-control" maxlength="100" placeholder="Bodega" required>
+                            <div class="invalid-feedback" id="fLtNameFb"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-light">Descripción</label>
+                            <textarea id="fLtDescription" class="form-control" rows="2" maxlength="500" placeholder="Descripción del tipo…"></textarea>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label text-light">Ícono Bootstrap Icons</label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background:#1e293b; border-color:rgba(255,255,255,.2);">
+                                    <i id="ltIconPreview" class="bi bi-geo-alt text-white"></i>
+                                </span>
+                                <input type="text" id="fLtIcon" class="form-control" maxlength="60" placeholder="bi-geo-alt"
+                                    oninput="document.getElementById('ltIconPreview').className='bi '+this.value">
+                            </div>
+                            <small style="color:#cbd5e1;">Ejemplo: bi-building, bi-person, bi-truck</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Color</label>
+                            <div class="input-group">
+                                <input type="color" id="fLtColorPicker" class="form-control form-control-color"
+                                    value="#6366f1" title="Seleccionar color"
+                                    oninput="document.getElementById('fLtColor').value=this.value">
+                                <input type="text" id="fLtColor" class="form-control" maxlength="20" placeholder="#6366f1"
+                                    oninput="try{document.getElementById('fLtColorPicker').value=this.value}catch(e){}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Orden</label>
+                            <input type="number" id="fLtSortOrder" class="form-control" min="0" value="0">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="fLtIsActive" checked>
+                                <label class="form-check-label text-light" for="fLtIsActive">Activo</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-tech-primary" onclick="LT.save()"><i class="bi bi-check-lg me-2"></i>Guardar</button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/location-type.js" asp-append-version="true"></script>
+<script>
+    LT_CFG.apiBase = '@apiBaseUrl';
+    LT_CFG.token   = '@apiToken';
+
+    // Mover el modal al body para evitar problemas de z-index y overflow del content-container
+    document.addEventListener('DOMContentLoaded', function () {
+        var modal = document.getElementById('ltModal');
+        if (modal && modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+    });
+</script>
+}

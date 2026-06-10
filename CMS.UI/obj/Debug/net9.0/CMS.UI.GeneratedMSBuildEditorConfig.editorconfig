@@ -17,6 +17,7 @@ build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.TargetFrameworkIdentifier = .NETCoreApp
 build_property.TargetFrameworkVersion = v9.0
+build_property.EntryPointFilePath = 
 build_property.RootNamespace = CMS.UI
 build_property.RootNamespace = CMS.UI
 build_property.ProjectDir = C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\
@@ -186,6 +187,18 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSW52ZW50b3J5XExhYmVsUHJpbnRIaXN0b3J5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Localization/Localization.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTG9jYWxpemF0aW9uXExvY2FsaXphdGlvbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Localization/LocalizationType.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTG9jYWxpemF0aW9uXExvY2FsaXphdGlvblR5cGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Localization/Locations.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTG9jYWxpemF0aW9uXExvY2F0aW9ucy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Menus/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWVudXNcQ3JlYXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -238,6 +251,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUm9sZXNcTWFuYWdlUGVybWlzc2lvbnMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Settings/FleetCatalogs.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2V0dGluZ3NcRmxlZXRDYXRhbG9ncy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Settings/Users.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2V0dGluZ3NcVXNlcnMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
@@ -272,6 +289,38 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Users/ReportPermissions.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVXNlcnNcUmVwb3J0UGVybWlzc2lvbnMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/DistributionRoutes.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXERpc3RyaWJ1dGlvblJvdXRlcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/Drivers.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXERyaXZlcnMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/Insurers.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXEluc3VyZXJzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/InventoryMovements.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXEludmVudG9yeU1vdmVtZW50cy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/Locations.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXExvY2F0aW9ucy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/StockTransfers.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXFN0b2NrVHJhbnNmZXJzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/TransportUnits.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXFRyYW5zcG9ydFVuaXRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/Warehouse/Warehouses.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV2FyZWhvdXNlXFdhcmVob3VzZXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Disco/BITI Solutions S.A/BITI Solutions/Proyectos/CMS/CMS/CMS.UI/Views/_ViewImports.cshtml]

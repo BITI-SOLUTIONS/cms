@@ -1,0 +1,228 @@
+@* ================================================================================
+   VISTA: CMS.UI/Views/Warehouse/Insurers.cshtml
+   PROPÓSITO: Gestión de aseguradoras de la flota
+   ================================================================================ *@
+@{
+    ViewData["Title"] = "Aseguradoras";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h4 class="text-white mb-0"><i class="bi bi-shield-check me-2 text-warning"></i>Aseguradoras</h4>
+            <small class="text-muted">Registro de aseguradoras y contactos de agentes para la flota</small>
+        </div>
+        <button class="btn btn-primary" onclick="INS.openModal()">
+            <i class="bi bi-plus-lg me-1"></i>Nueva Aseguradora
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card bg-dark border-secondary mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary"
+                           id="insSearch" placeholder="Buscar por nombre, código, RUC/cédula jurídica…"
+                           oninput="INS.debounceSearch()">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="insFilterActive" onchange="INS.load()">
+                        <option value="">Todos</option>
+                        <option value="true" selected>Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-md-auto">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="INS.load()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Nombre Comercial</th>
+                            <th>ID Tributario</th>
+                            <th>Teléfono</th>
+                            <th>Siniestros</th>
+                            <th>Agente</th>
+                            <th class="text-center">Activo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="insBody">
+                        <tr><td colspan="9" class="text-center text-muted py-4">
+                            <i class="bi bi-hourglass-split"></i> Cargando…
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-2">
+            <small class="text-muted" id="insPagInfo"></small>
+            <div id="insPagNav"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL ASEGURADORA
+     ============================================================ -->
+<div class="modal fade" id="insModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="insModalTitle">Aseguradora</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="insFormTabs">
+                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#insTabGeneral"><i class="bi bi-building me-1"></i>General</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#insTabContact"><i class="bi bi-telephone me-1"></i>Contacto</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#insTabAgent"><i class="bi bi-person-lines-fill me-1"></i>Agente</a></li>
+                </ul>
+                <div class="tab-content">
+
+                    <!-- General -->
+                    <div class="tab-pane fade show active" id="insTabGeneral">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Código *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insCode" maxlength="30">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label text-light">Nombre Legal *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insName" maxlength="200">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Nombre Comercial</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insTradeName" maxlength="200">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">ID Tributario / Cédula Jurídica</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insTaxId" maxlength="50">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label text-light">Sitio Web</label>
+                                <input type="url" class="form-control bg-dark text-white border-secondary" id="insWebsite" maxlength="200">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-light">Dirección</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insAddress" maxlength="500">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-light">Notas</label>
+                                <textarea class="form-control bg-dark text-white border-secondary" id="insNotes" rows="2" maxlength="2000"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="insIsActive" checked>
+                                    <label class="form-check-label text-light" for="insIsActive">Activo</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contacto -->
+                    <div class="tab-pane fade" id="insTabContact">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Teléfono Principal</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insPhone" maxlength="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Teléfono Siniestros / Reclamos</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insPhoneClaims" maxlength="30">
+                                <small>Línea directa para reportar siniestros</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Correo Electrónico</label>
+                                <input type="email" class="form-control bg-dark text-white border-secondary" id="insEmail" maxlength="150">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Agente -->
+                    <div class="tab-pane fade" id="insTabAgent">
+                        <p class="text-muted"><i class="bi bi-info-circle me-1"></i>Datos del agente o corredor asignado a esta póliza.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-light">Nombre del Agente</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insAgentName" maxlength="200">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Teléfono Agente</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="insAgentPhone" maxlength="30">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Email Agente</label>
+                                <input type="email" class="form-control bg-dark text-white border-secondary" id="insAgentEmail" maxlength="150">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="insBtnSave" onclick="INS.save()">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Desactivar -->
+<div class="modal fade" id="insDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-danger text-light">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Desactivar</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Desea desactivar la aseguradora <strong id="insDeleteName"></strong>?</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="INS.confirmDelete()">
+                    <i class="bi bi-trash me-1"></i>Desactivar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    window.INS_API   = '@ViewBag.ApiBaseUrl';
+    window.INS_TOKEN = '@ViewBag.ApiToken';
+</script>
+<script src="~/js/insurers.js" asp-append-version="true"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ['insModal','insDeleteModal'].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+    });
+</script>
+}

@@ -120,6 +120,8 @@ namespace CMS.UI.Controllers
             HttpContext.Session.SetString("SelectedCompanySchema", company.COMPANY_SCHEMA);
             HttpContext.Session.SetString("SelectedCompanyName", company.COMPANY_NAME);
             HttpContext.Session.SetString("UsesAzureAD", company.USES_AZURE_AD.ToString());
+            if (company.IdCountry.HasValue)
+                HttpContext.Session.SetInt32("SelectedCompanyCountryId", company.IdCountry.Value);
 
             // Guardar timezone de la compañía para conversión de fechas en la UI
             if (!string.IsNullOrEmpty(result.CompanyTimezone))

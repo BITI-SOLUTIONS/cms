@@ -1,0 +1,543 @@
+@* ================================================================================ *@
+@* ARCHIVO: CMS.UI/Views/Warehouse/Warehouses.cshtml                              *@
+@* PROPÓSITO: Gestión de bodegas físicas y lógicas (WMS)                          *@
+@* AUTOR: EAMR, BITI SOLUTIONS S.A                                                *@
+@* CREADO: 2026-06-03                                                             *@
+@* ================================================================================ *@
+
+@{
+    ViewData["Title"] = "Bodegas";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? string.Empty;
+    var apiToken   = ViewBag.ApiToken   as string ?? string.Empty;
+}
+
+@section Styles {
+<style>
+/* ── Warehouse page styles ── */
+.warehouse-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.35) !important;
+}
+.btn-view-mode.active {
+    background: rgba(99,102,241,.25) !important;
+    color: #818cf8 !important;
+    border-color: rgba(99,102,241,.5) !important;
+}
+.page-link {
+    background-color: #1e293b;
+    border-color: rgba(255,255,255,.1);
+    color: #94a3b8;
+}
+.page-link:hover { background-color: #334155; color: #f0f0f0; }
+.page-item.active .page-link { background-color: #6366f1; border-color: #6366f1; color: #fff; }
+.page-item.disabled .page-link { background-color: #0f172a; color: #475569; }
+.form-select, .form-control {
+    background-color: #1e293b !important;
+    color: #f0f0f0 !important;
+    border-color: rgba(255,255,255,.2) !important;
+}
+.form-select option { background-color: #1e293b; color: #f0f0f0; }
+.form-control::placeholder { color: #94a3b8 !important; opacity: 1; }
+.form-select:focus, .form-control:focus {
+    border-color: rgba(99,102,241,.6) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15) !important;
+}
+.form-check-input:checked { background-color: #6366f1; border-color: #6366f1; }
+.modal-content { background-color: #0f172a; border: 1px solid rgba(255,255,255,.1); }
+.modal-header { border-bottom: 1px solid rgba(255,255,255,.08); }
+.modal-footer { border-top: 1px solid rgba(255,255,255,.08); }
+.nav-tabs-wh { border-bottom: 1px solid rgba(255,255,255,.1); }
+.nav-tabs-wh .nav-link { color: #94a3b8; border: none; padding: .5rem 1rem; border-radius: 0; }
+.nav-tabs-wh .nav-link.active { color: #818cf8; border-bottom: 2px solid #6366f1; background: transparent; }
+.nav-tabs-wh .nav-link:hover { color: #e2e8f0; }
+.detail-label { color: #64748b; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+.detail-value { color: #e2e8f0; font-size: .875rem; }
+.wh-tree { font-size: .875rem; }
+.form-section-title { color: #818cf8; font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid rgba(99,102,241,.2); padding-bottom: .4rem; margin-bottom: 1rem; }
+.badge-flag { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .5rem; border-radius: 6px; font-size: .72rem; font-weight: 500; }
+/* ── Help/hint text contrast (tema oscuro) ── */
+small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+/* ── Asegurar que el modal quede por encima del sidebar ── */
+.modal-backdrop { z-index: 1055 !important; }
+.modal           { z-index: 1060 !important; }
+</style>
+}
+
+<div class="content-container">
+
+    <!-- ===== HEADER ===== -->
+    <div class="page-header mb-4">
+        <div class="page-header-content">
+            <h1 class="text-white">
+                <i class="bi bi-truck me-2" style="color:#818cf8;"></i>
+                Bodegas
+            </h1>
+            <p class="mb-0" style="color:#94a3b8;">Gestión de bodegas físicas y lógicas — Warehouse Management System</p>
+        </div>
+        <div class="page-header-actions d-flex gap-2">
+            <button class="btn btn-tech-primary" onclick="openCreate()">
+                <i class="bi bi-plus-lg me-2"></i>Nueva Bodega
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== ALERTA ===== -->
+    <div id="pageAlert" class="d-none mb-3" role="alert"></div>
+
+    <!-- ===== FILTROS ===== -->
+    <div class="card bg-dark-card border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4 col-lg-3">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-search me-1"></i>Buscar</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Código, nombre, ciudad…">
+                </div>
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-building me-1"></i>Tipo</label>
+                    <select id="filterType" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Physical">Física</option>
+                        <option value="Logical">Lógica</option>
+                        <option value="Transit">Tránsito</option>
+                        <option value="CrossDock">Cross-Dock</option>
+                        <option value="Returns">Devoluciones</option>
+                        <option value="Manufacturing">Manufactura</option>
+                        <option value="Quarantine">Cuarentena</option>
+                        <option value="Damaged">Dañados</option>
+                        <option value="Consignment">Consignación</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 col-lg-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-layers me-1"></i>Nivel</label>
+                    <select id="filterLevel" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="0">Bodega</option>
+                        <option value="1">Zona</option>
+                        <option value="2">Pasillo</option>
+                        <option value="3">Rack</option>
+                        <option value="4">Bin</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 col-lg-2">
+                    <label class="form-label text-white" style="font-size:.8rem;"><i class="bi bi-toggle-on me-1"></i>Estado</label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="true">Activas</option>
+                        <option value="false">Inactivas</option>
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3 col-lg-3 d-flex gap-2">
+                    <button class="btn btn-tech-primary flex-grow-1" onclick="applyFilters()">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="clearFilters()" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BARRA SUPERIOR RESULTADOS ===== -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div class="text-muted" style="font-size:.85rem;">
+            <span id="totalCount">0</span> bodegas encontradas
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <!-- Spinner -->
+            <div id="loadingSpinner" class="d-none">
+                <span class="spinner-border spinner-border-sm text-primary"></span>
+            </div>
+            <!-- Modos de vista -->
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary btn-view-mode active" data-view="grid" onclick="setViewMode('grid')" title="Vista tarjetas">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-view-mode" data-view="list" onclick="setViewMode('list')" title="Vista lista">
+                    <i class="bi bi-list-ul"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-view-mode" data-view="tree" onclick="setViewMode('tree')" title="Vista árbol (jerarquía)">
+                    <i class="bi bi-diagram-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONTENEDOR PRINCIPAL ===== -->
+    <div id="warehouseContainer" style="transition: opacity .2s;"></div>
+
+    <!-- Estado vacío -->
+    <div id="emptyState" class="d-none text-center py-5">
+        <i class="bi bi-building" style="font-size:3.5rem; color:#334155;"></i>
+        <p class="text-muted mt-3 mb-2" style="font-size:1.05rem;">No se encontraron bodegas</p>
+        <p class="text-muted" style="font-size:.875rem;">Ajusta los filtros o crea una nueva bodega.</p>
+        <button class="btn btn-tech-primary mt-2" onclick="openCreate()">
+            <i class="bi bi-plus-lg me-2"></i>Nueva Bodega
+        </button>
+    </div>
+
+    <!-- ===== PAGINACIÓN ===== -->
+    <div id="paginationSection" class="mt-4">
+        <nav><ul class="pagination pagination-sm justify-content-center flex-wrap" id="pagination"></ul></nav>
+    </div>
+
+</div>
+
+@* ============================================================ *@
+@* MODAL DETALLE                                                 *@
+@* ============================================================ *@
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="bi bi-building me-2" style="color:#818cf8;"></i>Detalle de Bodega</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Identidad -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Código</div>
+                        <code class="detail-value fs-6" id="detailCode"></code>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Estado</div>
+                        <div id="detailStatus"></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Tipo</div>
+                        <div class="detail-value" id="detailType"></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Nivel</div>
+                        <div class="detail-value" id="detailLevel"></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="detail-label">Nombre</div>
+                        <div class="detail-value fw-semibold" id="detailName"></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="detail-label">Descripción</div>
+                        <div class="detail-value" id="detailDescription"></div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs-wh mb-3">
+                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#dtab-operacional">Operacional</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#dtab-ubicacion">Ubicación</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#dtab-contacto">Contacto</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#dtab-auditoria">Auditoría</a></li>
+                </ul>
+                <div class="tab-content">
+
+                    <!-- Tab Operacional -->
+                    <div class="tab-pane fade show active" id="dtab-operacional">
+                        <div class="row g-3">
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Default</div>
+                                <div class="detail-value" id="detailDefault"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Gestionada (WMS)</div>
+                                <div class="detail-value" id="detailManaged"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Stock Negativo</div>
+                                <div class="detail-value" id="detailNegStock"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Control de Lotes</div>
+                                <div class="detail-value" id="detailLotTracking"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Fecha Vencimiento</div>
+                                <div class="detail-value" id="detailExpiry"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Ubicación Requerida</div>
+                                <div class="detail-value" id="detailRequiresLoc"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Capacidad</div>
+                                <div class="detail-value" id="detailCapacity"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Sub-ubicaciones</div>
+                                <div class="detail-value" id="detailChildren"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Ubicación -->
+                    <div class="tab-pane fade" id="dtab-ubicacion">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="detail-label">Dirección</div>
+                                <div class="detail-value" id="detailAddress"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">Ciudad</div>
+                                <div class="detail-value" id="detailCity"></div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="detail-label">País</div>
+                                <div class="detail-value" id="detailCountry"></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="detail-label">GPS</div>
+                                <div class="detail-value" id="detailGps"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Contacto -->
+                    <div class="tab-pane fade" id="dtab-contacto">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="detail-label">Responsable</div>
+                                <div class="detail-value" id="detailResponsible"></div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="detail-label">Teléfono</div>
+                                <div class="detail-value" id="detailPhone"></div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="detail-label">Email</div>
+                                <div class="detail-value" id="detailEmail"></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="detail-label">Notas</div>
+                                <div class="detail-value" id="detailNotes" style="white-space:pre-wrap;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Auditoría -->
+                    <div class="tab-pane fade" id="dtab-auditoria">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="detail-label">Creado por</div>
+                                <div class="detail-value" id="detailCreatedBy"></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="detail-label">Última modificación</div>
+                                <div class="detail-value" id="detailUpdatedBy"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-tech-primary" id="detailEditBtn"><i class="bi bi-pencil me-2"></i>Editar</button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ============================================================ *@
+@* MODAL CREAR / EDITAR                                          *@
+@* ============================================================ *@
+<div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title text-white mb-0" id="formModalTitle">Nueva Bodega</h5>
+                    <small class="text-muted" id="formModalSubtitle">Complete los datos para registrar una nueva bodega.</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="warehouseForm" novalidate>
+
+                    <!-- ── Sección 1: Identidad ── -->
+                    <div class="form-section-title"><i class="bi bi-fingerprint me-2"></i>Identificación</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Código <span class="text-danger">*</span></label>
+                            <input type="text" id="fCode" class="form-control text-uppercase" maxlength="30" placeholder="BG-001" required>
+                            <div class="invalid-feedback" id="fCodeFeedback"></div>
+                            <small class="text-muted">Máx. 30 caracteres. Se almacena en mayúsculas.</small>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label text-light">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" id="fName" class="form-control" maxlength="200" placeholder="Bodega Principal" required>
+                            <div class="invalid-feedback" id="fNameFeedback"></div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-light">Tipo <span class="text-danger">*</span></label>
+                            <select id="fWarehouseType" class="form-select">
+                                <option value="Physical">Física</option>
+                                <option value="Logical">Lógica</option>
+                                <option value="Transit">Tránsito</option>
+                                <option value="CrossDock">Cross-Dock</option>
+                                <option value="Returns">Devoluciones</option>
+                                <option value="Manufacturing">Manufactura</option>
+                                <option value="Quarantine">Cuarentena</option>
+                                <option value="Damaged">Dañados/Merma</option>
+                                <option value="Consignment">Consignación</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-light">Nivel jerárquico</label>
+                            <select id="fWarehouseLevel" class="form-select">
+                                <option value="0">0 — Bodega</option>
+                                <option value="1">1 — Zona</option>
+                                <option value="2">2 — Pasillo</option>
+                                <option value="3">3 — Rack</option>
+                                <option value="4">4 — Bin</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-light">Descripción</label>
+                            <textarea id="fDescription" class="form-control" rows="2" maxlength="1000" placeholder="Descripción breve de la bodega…"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Bodega padre (jerarquía)</label>
+                            <select id="fParentWarehouse" class="form-select" onchange="">
+                                <option value="">— Sin padre (nivel raíz) —</option>
+                            </select>
+                            <small class="text-muted">Seleccione si esta ubicación pertenece a otra bodega.</small>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end gap-4 pb-1">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="fIsActive" checked>
+                                <label class="form-check-label text-light" for="fIsActive">Activa</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="fIsDefault">
+                                <label class="form-check-label text-light" for="fIsDefault">Bodega predeterminada</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Sección 2: Comportamiento operacional ── -->
+                    <div class="form-section-title"><i class="bi bi-cpu me-2"></i>Comportamiento Operacional</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="fIsManaged">
+                                    <label class="form-check-label text-light" for="fIsManaged">
+                                        <i class="bi bi-cpu me-1 text-info"></i>Bodega gestionada (WMS activo)
+                                    </label>
+                                    <div><small class="text-muted">Cada movimiento pasa por flujo WMS.</small></div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="fAllowsNegativeStock">
+                                    <label class="form-check-label text-light" for="fAllowsNegativeStock">
+                                        <i class="bi bi-dash-circle me-1 text-danger"></i>Permite stock negativo
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="fRequiresLocation">
+                                    <label class="form-check-label text-light" for="fRequiresLocation">
+                                        <i class="bi bi-geo-alt me-1 text-success"></i>Requiere ubicación exacta (bin)
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="fRequiresLotTracking">
+                                    <label class="form-check-label text-light" for="fRequiresLotTracking">
+                                        <i class="bi bi-upc-scan me-1 text-info"></i>Requiere control de lote/serie
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="fRequiresExpiryDate">
+                                    <label class="form-check-label text-light" for="fRequiresExpiryDate">
+                                        <i class="bi bi-calendar-x me-1 text-warning"></i>Requiere fecha de vencimiento
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Capacidad máxima</label>
+                            <input type="number" id="fMaxCapacity" class="form-control" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-light">Unidad de capacidad</label>
+                            <input type="text" id="fCapacityUnit" class="form-control" maxlength="20" placeholder="m2, m3, pallets, kg…">
+                        </div>
+                    </div>
+
+                    <!-- ── Sección 3: Ubicación física ── -->
+                    <div class="form-section-title"><i class="bi bi-map me-2"></i>Ubicación Física</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label text-light">Localización <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <select id="fIdLocation" class="form-select" required>
+                                    <option value="">— Sin localización asignada —</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" title="Recargar localizaciones" onclick="loadLocationOptions(document.getElementById('fIdLocation').value || undefined)">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback" id="fIdLocationFeedback">La localización es obligatoria.</div>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Seleccione o
+                                <a href="/Settings/Locations" target="_blank" class="text-info">cree una localización</a>
+                                de tipo <strong>Bodega</strong> (WAREHOUSE) para asignar dirección y GPS.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- ── Sección 4: Contacto / Responsable ── -->
+                    <div class="form-section-title"><i class="bi bi-person-badge me-2"></i>Responsable</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label text-light">Usuario responsable</label>
+                            <select id="fResponsibleUserId" class="form-select">
+                                <option value="">— Sin responsable asignado —</option>
+                            </select>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Seleccione un usuario del sistema. El nombre, teléfono y email se resolverán automáticamente desde la tabla central de usuarios.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- ── Sección 5: Notas ── -->
+                    <div class="form-section-title"><i class="bi bi-card-text me-2"></i>Notas</div>
+                    <div class="mb-2">
+                        <textarea id="fNotes" class="form-control" rows="3" maxlength="2000" placeholder="Notas adicionales sobre esta bodega…"></textarea>
+                    </div>
+
+                </form>
+            </div>
+            <div id="modalAlert" class="d-none mx-3 mb-2" role="alert"></div>
+            <div class="modal-footer">
+                <button class="btn btn-tech-primary" id="saveBtnModal" onclick="saveWarehouse()">
+                    <i class="bi bi-check-lg me-2"></i>Guardar Bodega
+                </button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/warehouses.js" asp-append-version="true"></script>
+<script>
+    // Inyectar configuración desde Razor al JS
+    WH.apiBase = '@apiBaseUrl';
+    WH.token   = '@apiToken';
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Mover modales al final del body para evitar problemas de z-index con el sidebar
+        ['formModal', 'detailModal'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+
+        // Pre-cargar opciones del select de padre al abrir el form
+        document.getElementById('formModal').addEventListener('show.bs.modal', function () {
+            if (!WH.editingId) loadParentOptions();
+        });
+    });
+</script>
+}

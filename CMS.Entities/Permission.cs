@@ -10,12 +10,12 @@ namespace CMS.Entities
         [Column("id_permission")]
         public int ID_PERMISSION { get; set; }
 
-        [Column("permission_key")]
+        [Column("code")]
         [Required]
         [MaxLength(150)]
         public string PERMISSION_KEY { get; set; } = default!;
 
-        [Column("permission_name")]
+        [Column("name")]
         [Required]
         [MaxLength(150)]
         public string PERMISSION_NAME { get; set; } = default!;
@@ -44,12 +44,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
