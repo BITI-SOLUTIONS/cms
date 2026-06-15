@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "7tlju4Y+wIo=",
+  "dgSpecHash": "TRaX9ZVRlG0=",
   "success": true,
   "projectFilePath": "C:\\Disco\\BITI Solutions S.A\\BITI Solutions\\Proyectos\\CMS\\CMS\\CMS.Entities\\CMS.Entities.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.16\\microsoft.windowsdesktop.app.ref.9.0.16.nupkg.sha512",
-    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.16\\microsoft.netcore.app.ref.9.0.16.nupkg.sha512",
-    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.16\\microsoft.aspnetcore.app.ref.9.0.16.nupkg.sha512"
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.17\\microsoft.windowsdesktop.app.ref.9.0.17.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.17\\microsoft.netcore.app.ref.9.0.17.nupkg.sha512",
+    "C:\\Users\\ErnestoMartínezRojas\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.17\\microsoft.aspnetcore.app.ref.9.0.17.nupkg.sha512"
   ],
   "logs": []
 }

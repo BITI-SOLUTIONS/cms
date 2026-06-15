@@ -174,7 +174,7 @@ function renderTable(units) {
                 ${alerts ? `<div class="mt-1" style="font-size:.75rem;">${alerts}</div>` : ''}
             </td>
             <td>${typeBadge(u.unitType)}</td>
-            <td>${u.brand || '—'}${u.model ? ` <span style="color:var(--fl-muted);">${u.model}</span>` : ''}</td>
+            <td>${u.brandName || '—'}${u.modelName ? ` <span style="color:var(--fl-muted);">${u.modelName}</span>` : ''}</td>
             <td class="text-center">${u.year || '—'}</td>
             <td class="text-end">${u.maxLoadKg ? flFmt(u.maxLoadKg, 0) + ' kg' : '—'}</td>
             <td class="text-end"><span style="color:#06b6d4;">${flFmt(u.currentOdometerKm, 0)} km</span></td>
@@ -257,9 +257,9 @@ async function openUnitModal(id = null, activeTab = 'info') {
         maintNavItem.style.display = '';
         try {
             const u = await flFetch(`/api/transportunit/${id}`);
-            FL.currentUnit = u;
-            populateUnitForm(u);
-            renderMaintenanceTable(u.maintenance || []);
+                FL.currentUnit = u;
+                await populateUnitForm(u);
+                renderMaintenanceTable(u.maintenance || []);
             if (activeTab === 'maint') {
                 const tabBtn = document.querySelector('[data-bs-target="#tabMaintenanceLog"]');
                 if (tabBtn) new bootstrap.Tab(tabBtn).show();
@@ -278,17 +278,26 @@ async function openUnitModal(id = null, activeTab = 'info') {
 }
 
 function resetUnitForm() {
-    ['fldUnitId','fldCode','fldPlate','fldName','fldColor','fldBrand','fldModel',
-     'fldYear','fldVin','fldEngine','fldDriverName','fldNotes',
+    ['fldUnitId','fldCode','fldPlate','fldName','fldColor',
+     'fldYear','fldVin','fldEngine','fldNotes',
      'fldMaxLoad','fldMaxVol','fldPallets','fldCargoL','fldCargoW','fldCargoH',
      'fldOdometer','fldOdometerDate','fldInspection',
-     'fldInsuranceExpiry','fldInsuranceCo','fldPolicy'].forEach(id => {
+     'fldInsuranceExpiry','fldPolicy'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
-    document.getElementById('fldType').value   = 'Truck';
-    document.getElementById('fldStatus').value = 'Active';
-    document.getElementById('fldFuel').value   = '';
+    const drvSel = document.getElementById('fldDriver');
+    if (drvSel) drvSel.value = '';
+    const insSel = document.getElementById('fldInsurer');
+    if (insSel) insSel.value = '';
+    // Default to first available option in catalog-driven selects
+    const typeSel   = document.getElementById('fldType');
+    const statusSel = document.getElementById('fldStatus');
+    if (typeSel)   typeSel.selectedIndex   = typeSel.options.length > 1 ? 1 : 0;
+    if (statusSel) statusSel.selectedIndex = statusSel.options.length > 1 ? 1 : 0;
+    document.getElementById('fldFuel').value  = '';
+    document.getElementById('fldBrand').value = '';
+    loadModelsByBrand(null, null);
     document.getElementById('volCalc').textContent = '';
     document.getElementById('inspectionAlert').innerHTML = '';
     document.getElementById('insuranceAlert').innerHTML  = '';
@@ -296,7 +305,7 @@ function resetUnitForm() {
     if (firstTab) new bootstrap.Tab(firstTab).show();
 }
 
-function populateUnitForm(u) {
+async function populateUnitForm(u) {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
     set('fldUnitId',       u.id);
     set('fldCode',         u.code);
@@ -304,14 +313,13 @@ function populateUnitForm(u) {
     set('fldName',         u.name);
     set('fldType',         u.unitType);
     set('fldStatus',       u.status);
-    set('fldColor',        u.color);
-    set('fldBrand',        u.brand);
-    set('fldModel',        u.model);
+    set('fldColor',        u.colorHex);
     set('fldYear',         u.year);
     set('fldFuel',         u.fuelType);
     set('fldVin',          u.vinNumber);
     set('fldEngine',       u.engineNumber);
-    set('fldDriverName',   u.assignedDriverName);
+    const drvSel = document.getElementById('fldDriver');
+    if (drvSel) drvSel.value = u.idDriver ?? '';
     set('fldNotes',        u.notes);
     set('fldMaxLoad',      u.maxLoadKg);
     set('fldMaxVol',       u.maxVolumeM3);
@@ -323,8 +331,13 @@ function populateUnitForm(u) {
     set('fldOdometerDate', u.lastOdometerDate?.substring(0, 10));
     set('fldInspection',   u.nextInspectionDate?.substring(0, 10));
     set('fldInsuranceExpiry', u.insuranceExpiredDate?.substring(0, 10));
-    set('fldInsuranceCo',  u.insuranceCompany);
     set('fldPolicy',       u.insurancePolicyNumber);
+    // Brand + dependent model
+    set('fldBrand', u.idVehicleBrand);
+    await loadModelsByBrand(u.idVehicleBrand, u.idVehicleModel);
+    // Insurer
+    const insSel = document.getElementById('fldInsurer');
+    if (insSel) insSel.value = u.idInsurer ?? '';
     updateVolCalc();
     updateDateAlerts();
 }
@@ -332,20 +345,26 @@ function populateUnitForm(u) {
 function buildUnitDto() {
     const gv = id => document.getElementById(id)?.value?.trim() || null;
     const gn = id => { const v = document.getElementById(id)?.value; return v !== '' && v != null ? +v : null; };
+    const brandSel  = document.getElementById('fldBrand');
+    const modelSel  = document.getElementById('fldModel');
+    const insurSel  = document.getElementById('fldInsurer');
     return {
         code:                  gv('fldCode')         || '',
         plateNumber:           gv('fldPlate')        || '',
         name:                  gv('fldName')         || '',
         unitType:              document.getElementById('fldType').value,
         status:                document.getElementById('fldStatus').value,
-        color:                 gv('fldColor'),
-        brand:                 gv('fldBrand'),
-        model:                 gv('fldModel'),
+        colorHex:              gv('fldColor'),
+        idVehicleBrand:        brandSel?.value ? +brandSel.value : null,
+        brandName:             brandSel?.selectedOptions[0]?.textContent?.trim() || null,
+        idVehicleModel:        modelSel?.value ? +modelSel.value : null,
+        modelName:             modelSel?.selectedOptions[0]?.textContent?.trim() || null,
         year:                  gn('fldYear'),
         fuelType:              document.getElementById('fldFuel').value || null,
         vinNumber:             gv('fldVin'),
         engineNumber:          gv('fldEngine'),
-        assignedDriverName:    gv('fldDriverName'),
+        idDriver:              gn('fldDriver') || null,
+        assignedDriverName:    document.getElementById('fldDriver')?.selectedOptions[0]?.textContent?.trim() || null,
         notes:                 gv('fldNotes'),
         maxLoadKg:             gn('fldMaxLoad'),
         maxVolumeM3:           gn('fldMaxVol'),
@@ -357,9 +376,46 @@ function buildUnitDto() {
         lastOdometerDate:      gv('fldOdometerDate')    ? new Date(gv('fldOdometerDate')).toISOString()    : null,
         nextInspectionDate:    gv('fldInspection')      ? new Date(gv('fldInspection')).toISOString()      : null,
         insuranceExpiredDate:  gv('fldInsuranceExpiry') ? new Date(gv('fldInsuranceExpiry')).toISOString() : null,
-        insuranceCompany:      gv('fldInsuranceCo'),
+        idInsurer:             insurSel?.value ? +insurSel.value : null,
+        insurerName:           insurSel?.selectedOptions[0]?.textContent?.trim() || null,
         insurancePolicyNumber: gv('fldPolicy'),
     };
+}
+
+// ── Validation ────────────────────────────────────────────────
+
+function validateUnitForm(dto) {
+    // Each rule: [condition, message, tabTarget]
+    // tabTarget = data-bs-target value of the tab that contains the field
+    const rules = [
+        // Identification tab
+        [!dto.code,              'El Código es obligatorio.',                      '#tabIdentification'],
+        [!dto.plateNumber,       'La Placa es obligatoria.',                       '#tabIdentification'],
+        [!dto.name,              'El Nombre de la Unidad es obligatorio.',         '#tabIdentification'],
+        [!dto.unitType,          'El Tipo es obligatorio.',                        '#tabIdentification'],
+        [!dto.status,            'El Estado es obligatorio.',                      '#tabIdentification'],
+        [!dto.idVehicleBrand,    'La Marca es obligatoria.',                       '#tabIdentification'],
+        [!dto.idVehicleModel,    'El Modelo es obligatorio.',                      '#tabIdentification'],
+        [!dto.year,              'El Año es obligatorio.',                         '#tabIdentification'],
+        [!dto.fuelType,          'El Tipo de Combustible es obligatorio.',         '#tabIdentification'],
+        [!dto.vinNumber,         'El Número de Chasis / VIN es obligatorio.',      '#tabIdentification'],
+        [!dto.engineNumber,      'El Número de Motor es obligatorio.',             '#tabIdentification'],
+        [!dto.idDriver,          'El Conductor Asignado es obligatorio.',          '#tabIdentification'],
+        // Operation tab
+        [dto.currentOdometerKm === null, 'El Kilometraje Actual es obligatorio.', '#tabOperation'],
+        [!dto.lastOdometerDate,  'La Fecha Última Lectura es obligatoria.',        '#tabOperation'],
+    ];
+
+    for (const [fail, msg, tabTarget] of rules) {
+        if (fail) {
+            // Switch to the tab that contains the failing field
+            const tabBtn = document.querySelector(`[data-bs-target="${tabTarget}"]`);
+            if (tabBtn) new bootstrap.Tab(tabBtn).show();
+            showFlAlert(msg, 'warning');
+            return false;
+        }
+    }
+    return true;
 }
 
 // ── Save unit ─────────────────────────────────────────────────
@@ -369,9 +425,7 @@ async function saveUnit() {
     const id  = document.getElementById('fldUnitId').value;
     const dto = buildUnitDto();
 
-    if (!dto.code)        { showFlAlert('El Código es obligatorio.', 'warning'); return; }
-    if (!dto.plateNumber) { showFlAlert('La Placa es obligatoria.', 'warning');  return; }
-    if (!dto.name)        { showFlAlert('El Nombre es obligatorio.', 'warning'); return; }
+    if (!validateUnitForm(dto)) return;
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
@@ -587,6 +641,83 @@ function onSearchInput() {
     _searchTimer = setTimeout(() => { FL.search = document.getElementById('flSearch').value.trim(); loadUnits(1); }, 350);
 }
 
+// ── Load driver catalog ──────────────────────────────────────
+async function loadDriverCatalog() {
+    try {
+        const drivers = await flFetch('/api/employees/drivers');
+        const sel = document.getElementById('fldDriver');
+        if (!sel) return;
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— Sin conductor asignado —</option>' +
+            (drivers || []).map(d => `<option value="${d.id}">${d.fullName} (${d.code})</option>`).join('');
+        if (cur) sel.value = cur;
+    } catch { /* no crítico */ }
+}
+
+// ── Fleet catalog loaders ────────────────────────────────────
+
+function fillSelect(selId, items, valueFn, textFn, emptyLabel) {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${emptyLabel}</option>` +
+        items.map(i => `<option value="${valueFn(i)}">${textFn(i)}</option>`).join('');
+    if (cur) sel.value = cur;
+}
+
+async function loadFleetCatalogs() {
+    try {
+        const [types, statuses, fuels, brands] = await Promise.all([
+            flFetch('/api/fleet-catalog/unit-types?isActive=true'),
+            flFetch('/api/fleet-catalog/unit-statuses?isActive=true'),
+            flFetch('/api/fleet-catalog/fuel-types?isActive=true'),
+            flFetch('/api/fleet-catalog/brands?isActive=true'),
+        ]);
+
+        // Modal selects
+        fillSelect('fldType',   types,    t => t.code, t => t.name, '— Seleccione tipo —');
+        fillSelect('fldStatus', statuses, s => s.code, s => s.name, '— Seleccione estado —');
+        fillSelect('fldFuel',   fuels,    f => f.code, f => f.name, '— Seleccione combustible —');
+        fillSelect('fldBrand',  brands,   b => b.id,   b => b.name, '— Seleccione marca —');
+
+        // Toolbar filters
+        fillSelect('flFilterType',   types,    t => t.code, t => t.name, 'Todos los tipos');
+        fillSelect('flFilterStatus', statuses, s => s.code, s => s.name, 'Todos los estados');
+
+        // Restore toolbar filter values that may already be set
+        if (FL.type)   document.getElementById('flFilterType').value   = FL.type;
+        if (FL.status) document.getElementById('flFilterStatus').value = FL.status;
+    } catch (e) {
+        console.warn('Error cargando catálogos fleet:', e.message);
+    }
+}
+
+async function loadModelsByBrand(brandId, currentModelId) {
+    const sel = document.getElementById('fldModel');
+    if (!sel) return;
+    if (!brandId) {
+        sel.innerHTML = '<option value="">— Seleccione marca primero —</option>';
+        return;
+    }
+    sel.innerHTML = '<option value="">Cargando…</option>';
+    try {
+        const models = await flFetch(`/api/fleet-catalog/models?isActive=true&brandId=${brandId}`);
+        sel.innerHTML = '<option value="">— Seleccione modelo —</option>' +
+            (models || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        if (currentModelId) sel.value = currentModelId;
+    } catch {
+        sel.innerHTML = '<option value="">— Error cargando modelos —</option>';
+    }
+}
+
+async function loadInsurerCatalog() {
+    try {
+        const data = await flFetch('/api/insurers?isActive=true&pageSize=200');
+        const items = data.items || [];
+        fillSelect('fldInsurer', items, i => i.id, i => i.name, '— Sin aseguradora —');
+    } catch { /* no crítico */ }
+}
+
 // ── Bootstrap initialization ──────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -610,5 +741,14 @@ document.addEventListener('DOMContentLoaded', () => {
     ['fldInspection','fldInsuranceExpiry'].forEach(id =>
         document.getElementById(id).addEventListener('change', updateDateAlerts));
 
+    // Brand → Model dependency
+    document.getElementById('fldBrand').addEventListener('change', e => {
+        loadModelsByBrand(e.target.value || null, null);
+    });
+
+    // Load all catalogs on page load
+    loadFleetCatalogs();
+    loadDriverCatalog();
+    loadInsurerCatalog();
     loadUnits(1);
 });

@@ -547,6 +547,12 @@ app.MapControllerRoute(
     name: "warehouse",
     pattern: "Warehouse/{action=Warehouses}/{id?}",
     defaults: new { controller = "Warehouse" });
+
+// Human Resources
+app.MapControllerRoute(
+    name: "hr",
+    pattern: "HR/{action=Employees}/{id?}",
+    defaults: new { controller = "HR" });
 app.MapControllerRoute(
     name: "settings-localization-type",
     pattern: "Settings/LocalizationType",

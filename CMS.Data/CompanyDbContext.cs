@@ -89,11 +89,8 @@ namespace CMS.Data
         public DbSet<StockTransferLine> StockTransferLines { get; set; } = null!;
 
         // ===== LOCALIZATION =====
-
-        /// <summary>
-        /// Tipos de localización (Bodega, Empleado, Cliente, Proveedor, etc.)
-        /// </summary>
-        public DbSet<LocationType> LocationTypes { get; set; } = null!;
+        // Nota: LocationType es un catálogo CENTRAL en admin.location_type (BD cms).
+        // No se expone aquí; acceder via AppDbContext.LocationTypes.
 
         /// <summary>
         /// Localizaciones físicas centralizadas (dirección, GPS, contacto)
@@ -140,14 +137,24 @@ namespace CMS.Data
         public DbSet<TransportUnitMaintenance> TransportUnitMaintenances { get; set; } = null!;
 
         /// <summary>
-        /// Conductores de la flota de la compañía
-        /// </summary>
-        public DbSet<Driver> Drivers { get; set; } = null!;
-
-        /// <summary>
         /// Aseguradoras registradas por la compañía
         /// </summary>
         public DbSet<Insurer> Insurers { get; set; } = null!;
+
+        /// <summary>
+        /// Departamentos organizacionales del módulo Human Resources
+        /// </summary>
+        public DbSet<Department> Departments { get; set; } = null!;
+
+        /// <summary>
+        /// Puestos/Cargos laborales del módulo Human Resources
+        /// </summary>
+        public DbSet<JobPosition> JobPositions { get; set; } = null!;
+
+        /// <summary>
+        /// Empleados del módulo Human Resources
+        /// </summary>
+        public DbSet<Employee> Employees { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -289,6 +296,7 @@ namespace CMS.Data
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.IsDefault);
                 entity.HasIndex(e => e.IdLocation);
+                entity.HasIndex(e => e.IdTransportUnit);
             });
 
             modelBuilder.Entity<StockTransfer>(entity =>
@@ -311,14 +319,8 @@ namespace CMS.Data
             });
 
             // ===== LOCALIZATION =====
-
-            modelBuilder.Entity<LocationType>(entity =>
-            {
-                entity.ToTable("location_type", _schema);
-                entity.HasIndex(e => e.Code).IsUnique();
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.SortOrder);
-            });
+            // Nota: LocationType está en AppDbContext (admin.location_type, BD central cms).
+            // id_location_type en location es FK lógica cross-DB.
 
             modelBuilder.Entity<Location>(entity =>
             {
@@ -326,15 +328,12 @@ namespace CMS.Data
                 entity.HasIndex(e => e.IdLocationType);
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.IdCountry);
-                entity.HasIndex(e => e.IdProvince);
-                entity.HasIndex(e => e.IdCanton);
-                entity.HasIndex(e => e.IdDistrict);
-                entity.HasIndex(e => e.IdNeighborhood);
-
-                entity.HasOne(e => e.LocationType)
-                    .WithMany()
-                    .HasForeignKey(e => e.IdLocationType)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.IdGeographicDivision1);
+                entity.HasIndex(e => e.IdGeographicDivision2);
+                entity.HasIndex(e => e.IdGeographicDivision3);
+                entity.HasIndex(e => e.IdGeographicDivision4);
+                // IdLocationType es FK lógica cross-DB a admin.location_type (BD cms)
+                // No se configura HasOne porque LocationType vive en AppDbContext
             });
 
             // Configurar la tabla FileFileTag (relación muchos a muchos)
@@ -441,18 +440,6 @@ namespace CMS.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<Driver>(entity =>
-            {
-                entity.ToTable("driver", _schema);
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).HasColumnName("id_driver");
-                entity.HasIndex(e => e.Code).IsUnique();
-                entity.HasIndex(e => e.IdNumber).IsUnique();
-                entity.HasIndex(e => e.IdSystemUser);
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.LicenseNumber);
-            });
-
             modelBuilder.Entity<Insurer>(entity =>
             {
                 entity.ToTable("insurer", _schema);
@@ -460,6 +447,55 @@ namespace CMS.Data
                 entity.Property(e => e.Id).HasColumnName("id_insurer");
                 entity.HasIndex(e => e.Code).IsUnique();
                 entity.HasIndex(e => e.IsActive);
+            });
+
+            modelBuilder.Entity<Department>(entity =>
+            {
+                entity.ToTable("department", _schema);
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id_department");
+                entity.HasIndex(e => e.Code).IsUnique().HasDatabaseName($"uix_{_schema}_department_code");
+                entity.HasIndex(e => e.IsActive).HasDatabaseName($"ix_{_schema}_department_active");
+                entity.HasIndex(e => e.SortOrder).HasDatabaseName($"ix_{_schema}_department_sort");
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<JobPosition>(entity =>
+            {
+                entity.ToTable("job_position", _schema);
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id_job_position");
+                entity.HasIndex(e => e.Code).IsUnique().HasDatabaseName($"uix_{_schema}_job_position_code");
+                entity.HasIndex(e => e.IsActive).HasDatabaseName($"ix_{_schema}_job_position_active");
+                entity.HasIndex(e => e.SortOrder).HasDatabaseName($"ix_{_schema}_job_position_sort");
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.ToTable("employee", _schema);
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id_employee");
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.IdNumber).IsUnique();
+                entity.HasIndex(e => e.IdSystemUser);
+                entity.HasIndex(e => e.IdDepartment);
+                entity.HasIndex(e => e.IdJobPosition);
+                entity.HasIndex(e => e.IdLocation);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.HireDate);
+                // FK lógicas cross-DB: ignorar propiedades de display
+                entity.Ignore(e => e.DepartmentName);
+                entity.Ignore(e => e.DepartmentIcon);
+                entity.Ignore(e => e.DepartmentColor);
+                entity.Ignore(e => e.JobPositionName);
+                entity.Ignore(e => e.LocationDisplay);
+                entity.Ignore(e => e.TypeIdDescription);
+                entity.Ignore(e => e.GenderDescription);
+                entity.Ignore(e => e.CurrencyCode);
+                entity.Ignore(e => e.CurrencySymbol);
             });
         }
     }

@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/UserSettings.cs
 // PROPÓSITO: Entidad para configuración/preferencias personales del usuario
 // AUTOR: EAMR, BITI SOLUTIONS S.A
@@ -103,11 +103,11 @@ namespace CMS.Entities
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Column("created_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? CreatedBy { get; set; } = "SYSTEM";
 
         [Column("updated_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string? UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]

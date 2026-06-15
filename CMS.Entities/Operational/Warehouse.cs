@@ -217,6 +217,19 @@ namespace CMS.Entities.Operational
         [NotMapped]
         public string? ResponsiblePhone { get; set; }
 
+        // ===== UNIDAD DE TRANSPORTE (solo para tipo Transit) =====
+
+        /// <summary>
+        /// FK a sinai.transport_unit — unidad de transporte que actúa como bodega en tránsito.
+        /// Obligatorio cuando warehouse_type = 'Transit'; NULL en cualquier otro tipo.
+        /// </summary>
+        [Column("id_transport_unit")]
+        public int? IdTransportUnit { get; set; }
+
+        /// <summary>Nombre/placa de la unidad de transporte (resuelto en servicio — NotMapped).</summary>
+        [NotMapped]
+        public string? TransportUnitName { get; set; }
+
         // ===== ESTADO =====
 
         [Column("is_active")]

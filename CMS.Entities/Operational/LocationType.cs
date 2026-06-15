@@ -1,9 +1,9 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/LocationType.cs
 // PROPÓSITO: Entidad que define los tipos de localización del sistema
-// DESCRIPCIÓN: Tabla de catálogo que clasifica las localizaciones por su uso:
+// DESCRIPCIÓN: Tabla de catálogo CENTRAL que clasifica las localizaciones por su uso:
 //              Bodega, Empleado, Cliente, Proveedor, etc.
-//              Se almacena en la BD de cada compañía (ej: sinai.location_type)
+//              Se almacena en la BD CENTRAL (cms, schema admin): admin.location_type
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-06-03
 // ================================================================================
@@ -17,7 +17,7 @@ namespace CMS.Entities.Operational
     /// Catálogo de tipos de localización.
     /// Permite clasificar una Location según el uso: Bodega, Empleado, Cliente, etc.
     /// </summary>
-    [Table("location_type")]
+    [Table("location_type", Schema = "admin")]
     public class LocationType
     {
         [Key]
@@ -62,22 +62,22 @@ namespace CMS.Entities.Operational
         [Column("createdate")]
         public DateTime CreateDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = string.Empty;
 
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = string.Empty;
 
         [Column("rowpointer")]
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
-        // ── Navegación ──
-        [NotMapped]
-        public ICollection<Location> Locations { get; set; } = new List<Location>();
+        // Nota: la colección de Location no se expone como navegación EF
+        // porque Location reside en la BD de compañía (cross-DB).
+        // La relación es lógica y se resuelve a nivel de aplicación.
     }
 }

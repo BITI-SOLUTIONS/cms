@@ -371,42 +371,14 @@
                         <label class="form-label">Notas</label>
                         <input type="text" id="fldNotes" class="form-control" placeholder="Observaciones generales">
                     </div>
-                    <!-- Sello de Seguridad (solo visible en TransitTransfer) -->
-                    <div class="col-12 col-md-6 d-none" id="sealGroup">
-                        <label class="form-label text-warning">
-                            <i class="bi bi-shield-lock me-1"></i>Sello de Seguridad *
-                        </label>
-                        <input type="text" id="fldSecuritySeal" class="form-control"
-                               placeholder="Número único de sello…" maxlength="50" autocomplete="off">
-                        <small id="sealHint" style="color:#cbd5e1!important;">Debe ser único en el sistema — no puede reutilizarse en otro movimiento.</small>
-                        <div id="sealError" class="text-danger mt-1 d-none" style="font-size:.8rem;">
-                            <i class="bi bi-exclamation-triangle me-1"></i>Este sello ya está en uso.
-                        </div>
-                    </div>
-                    <!-- Hora y Kilometraje de tránsito (solo visible en TransitTransfer) -->
-                    <div class="col-12 d-none" id="transitTimeKmGroup">
-                        <hr style="border-color:#2a3a5c;margin:.5rem 0;">
-                        <div class="row g-2">
-                             <div class="col-6 col-md-4">
-                                <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                                    <i class="bi bi-clock me-1 text-warning"></i>Hora Salida *
-                                 </label>
-                                 <input type="time" id="fldDepartureTime" class="form-control" step="60">
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                                    <i class="bi bi-clock-fill me-1 text-info"></i>Hora Llegada
-                                </label>
-                                <input type="time" id="fldArrivalTime" class="form-control" step="60">
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                                    <i class="bi bi-speedometer me-1 text-warning"></i>Km Salida *
-                                </label>
-                                <input type="number" id="fldOdometerOut" class="form-control" placeholder="0" min="0" step="1">
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Sello y campos de tránsito — hidden permanentemente en el encabezado; se ingresan por parada/grupo -->
+                    <input type="hidden" id="fldSecuritySeal">
+                    <input type="hidden" id="fldDepartureTime">
+                    <input type="hidden" id="fldArrivalTime">
+                    <input type="hidden" id="fldOdometerOut">
+                    <div id="sealGroup" class="d-none"></div>
+                    <div id="transitTimeKmGroup" class="d-none"></div>
+                    <div id="sealError" class="d-none"></div>
                 </div>
 
                 <!-- Banner: Modo Tránsito -->

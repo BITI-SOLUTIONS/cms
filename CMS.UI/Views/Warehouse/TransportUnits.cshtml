@@ -273,21 +273,9 @@
         </div>
         <select id="flFilterType" class="form-select form-select-sm" style="width:auto;">
             <option value="">Todos los tipos</option>
-            <option value="Truck">Camión</option>
-            <option value="Van">Van / Furgoneta</option>
-            <option value="Car">Automóvil</option>
-            <option value="Pickup">Pickup / Camioneta</option>
-            <option value="Motorcycle">Motocicleta</option>
-            <option value="Forklift">Montacargas</option>
-            <option value="Trailer">Remolque</option>
-            <option value="Other">Otro</option>
         </select>
         <select id="flFilterStatus" class="form-select form-select-sm" style="width:auto;">
             <option value="">Todos los estados</option>
-            <option value="Active">Activo</option>
-            <option value="Maintenance">En Mantenimiento</option>
-            <option value="OutOfService">Fuera de Servicio</option>
-            <option value="Retired">Retirado</option>
         </select>
         <button class="btn btn-sm btn-outline-secondary ms-auto" id="btnRefreshUnits" title="Refrescar">
             <i class="bi bi-arrow-clockwise"></i>
@@ -370,13 +358,13 @@
                             <div class="col-md-3">
                                 <label class="form-label">Tipo *</label>
                                 <select id="fldType" class="form-select">
-                                    <option value="">Cargando…</option>
+                                    <option value="">— Seleccione tipo —</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Estado</label>
+                                <label class="form-label">Estado *</label>
                                 <select id="fldStatus" class="form-select">
-                                    <option value="">Cargando…</option>
+                                    <option value="">— Seleccione estado —</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -395,34 +383,34 @@
                         <div class="fl-section-header mt-3">Marca y Modelo</div>
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Marca</label>
+                                <label class="form-label">Marca *</label>
                                 <select id="fldBrand" class="form-select">
-                                    <option value="">Cargando…</option>
+                                    <option value="">— Seleccione marca —</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Modelo</label>
+                                <label class="form-label">Modelo *</label>
                                 <select id="fldModel" class="form-select">
                                     <option value="">Seleccione marca primero</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Año</label>
+                                <label class="form-label">Año *</label>
                                 <input type="number" id="fldYear" class="form-control" min="1970" max="2099" placeholder="2024">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Tipo de Combustible</label>
+                                <label class="form-label">Tipo de Combustible *</label>
                                 <select id="fldFuel" class="form-select">
-                                    <option value="">Cargando…</option>
+                                    <option value="">— Seleccione combustible —</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Número de Chasis / VIN</label>
+                                <label class="form-label">Número de Chasis / VIN *</label>
                                 <input type="text" id="fldVin" class="form-control" maxlength="50">
                                 <small>Debe ser único en la compañía</small>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Número de Motor</label>
+                                <label class="form-label">Número de Motor *</label>
                                 <input type="text" id="fldEngine" class="form-control" maxlength="50">
                                 <small>Debe ser único en la compañía</small>
                             </div>
@@ -430,15 +418,9 @@
                         <div class="fl-section-header mt-3">Asignación</div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Conductor Asignado</label>
+                                <label class="form-label">Conductor Asignado *</label>
                                 <select id="fldDriver" class="form-select">
                                     <option value="">— Sin conductor asignado —</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Aseguradora</label>
-                                <select id="fldInsurer" class="form-select">
-                                    <option value="">— Sin aseguradora —</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -509,7 +491,7 @@
                         <div class="fl-section-header">Kilometraje</div>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Kilometraje Actual (km)</label>
+                                <label class="form-label">Kilometraje Actual (km) *</label>
                                 <div class="input-group">
                                     <input type="number" id="fldOdometer" class="form-control" min="0" step="1" placeholder="0">
                                     <span class="input-group-text">km</span>
@@ -517,7 +499,7 @@
                                 <small>Lectura actual del odómetro</small>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Fecha Última Lectura</label>
+                                <label class="form-label">Fecha Última Lectura *</label>
                                 <input type="date" id="fldOdometerDate" class="form-control">
                             </div>
                         </div>
@@ -542,7 +524,9 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Aseguradora</label>
-                                <input type="text" id="fldInsuranceCo" class="form-control" maxlength="100" placeholder="INS, Qualitas…">
+                                <select id="fldInsurer" class="form-select">
+                                    <option value="">— Sin aseguradora —</option>
+                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Número de Póliza</label>

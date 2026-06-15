@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/UserCompany.cs
 // PROPÓSITO: Entidad que relaciona usuarios con compañías (multi-tenant)
 // DESCRIPCIÓN: Un usuario puede tener acceso a múltiples compañías.
@@ -80,12 +80,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         // ===== NAVEGACIÓN =====

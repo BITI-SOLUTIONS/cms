@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Admin/FileMimeType.cs
 // PROPÓSITO: Entidad para tipos MIME permitidos (BD Central)
 // AUTOR: EAMR - BITI Solutions S.A
@@ -81,11 +81,11 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "system";
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "system";
 

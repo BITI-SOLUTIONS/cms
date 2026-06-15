@@ -26,5 +26,14 @@ namespace CMS.Data.Services
         Task<bool> DeactivateAsync(int companyId, int id, string updatedBy);
         Task<bool> ActivateAsync(int companyId, int id, string updatedBy);
         Task<bool> DeleteAsync(int companyId, int id);
+
+        /// <summary>Asigna id_location_catalog en la localización indicada.</summary>
+        Task SetLocationCatalogAsync(int companyId, int locationId, int catalogEntityId, string updatedBy);
+
+        /// <summary>Limpia id_location_catalog (NULL) en la localización indicada.</summary>
+        Task ClearLocationCatalogAsync(int companyId, int locationId, string updatedBy);
+
+        /// <summary>Retorna ubicaciones disponibles (id_location_catalog IS NULL) más la actualmente asignada.</summary>
+        Task<IEnumerable<Location>> GetAvailableByTypeAsync(int companyId, int locationTypeId, int? currentLocationId = null);
     }
 }

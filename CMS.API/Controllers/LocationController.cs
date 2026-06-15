@@ -71,13 +71,23 @@ namespace CMS.API.Controllers
             });
         }
 
-        // GET /api/location/by-type/{locationTypeId}
+        // GET /api/location/by-type/{locationTypeId}?availableOnly=true&currentLocationId=5
         [HttpGet("by-type/{locationTypeId:int}")]
-        public async Task<IActionResult> GetByType(int locationTypeId, [FromQuery] bool? isActive = null)
+        public async Task<IActionResult> GetByType(
+            int locationTypeId,
+            [FromQuery] bool? isActive = null,
+            [FromQuery] bool availableOnly = false,
+            [FromQuery] int? currentLocationId = null)
         {
             var companyId = GetCompanyId();
             if (companyId == 0) return Unauthorized();
-            var items = await _service.GetByTypeAsync(companyId, locationTypeId, isActive);
+
+            IEnumerable<Location> items;
+            if (availableOnly)
+                items = await _service.GetAvailableByTypeAsync(companyId, locationTypeId, currentLocationId);
+            else
+                items = await _service.GetByTypeAsync(companyId, locationTypeId, isActive);
+
             return Ok(items.Select(MapToDto));
         }
 
@@ -281,11 +291,11 @@ namespace CMS.API.Controllers
             LocationTypeName = x.LocationType?.Name,
             LocationTypeIcon = x.LocationType?.Icon,
             LocationTypeColor = x.LocationType?.Color,
-            IdCountry        = x.IdCountry,
-            IdProvince       = x.IdProvince,
-            IdCanton         = x.IdCanton,
-            IdDistrict       = x.IdDistrict,
-            IdNeighborhood   = x.IdNeighborhood,
+            IdCountry              = x.IdCountry,
+            IdGeographicDivision1  = x.IdGeographicDivision1,
+            IdGeographicDivision2  = x.IdGeographicDivision2,
+            IdGeographicDivision3  = x.IdGeographicDivision3,
+            IdGeographicDivision4  = x.IdGeographicDivision4,
             Address          = x.Address,
             Address2         = x.Address2,
             PostalCode       = x.PostalCode,
@@ -300,12 +310,12 @@ namespace CMS.API.Controllers
 
         private static Location MapFromDto(LocationUpsertDto dto) => new()
         {
-            IdLocationType  = dto.IdLocationType,
-            IdCountry       = dto.IdCountry,
-            IdProvince      = dto.IdProvince,
-            IdCanton        = dto.IdCanton,
-            IdDistrict      = dto.IdDistrict,
-            IdNeighborhood  = dto.IdNeighborhood,
+            IdLocationType         = dto.IdLocationType,
+            IdCountry              = dto.IdCountry,
+            IdGeographicDivision1  = dto.IdGeographicDivision1,
+            IdGeographicDivision2  = dto.IdGeographicDivision2,
+            IdGeographicDivision3  = dto.IdGeographicDivision3,
+            IdGeographicDivision4  = dto.IdGeographicDivision4,
             Address         = dto.Address?.Trim(),
             Address2        = dto.Address2?.Trim(),
             PostalCode      = dto.PostalCode?.Trim(),
@@ -325,10 +335,10 @@ namespace CMS.API.Controllers
         public string? LocationTypeIcon { get; set; }
         public string? LocationTypeColor { get; set; }
         public int? IdCountry { get; set; }
-        public int? IdProvince { get; set; }
-        public int? IdCanton { get; set; }
-        public int? IdDistrict { get; set; }
-        public int? IdNeighborhood { get; set; }
+        public int? IdGeographicDivision1 { get; set; }
+        public int? IdGeographicDivision2 { get; set; }
+        public int? IdGeographicDivision3 { get; set; }
+        public int? IdGeographicDivision4 { get; set; }
         public string? Address { get; set; }
         public string? Address2 { get; set; }
         public string? PostalCode { get; set; }
@@ -347,10 +357,10 @@ namespace CMS.API.Controllers
         public int IdLocationType { get; set; }
 
         public int? IdCountry { get; set; }
-        public int? IdProvince { get; set; }
-        public int? IdCanton { get; set; }
-        public int? IdDistrict { get; set; }
-        public int? IdNeighborhood { get; set; }
+        public int? IdGeographicDivision1 { get; set; }
+        public int? IdGeographicDivision2 { get; set; }
+        public int? IdGeographicDivision3 { get; set; }
+        public int? IdGeographicDivision4 { get; set; }
 
         [System.ComponentModel.DataAnnotations.MaxLength(500)]
         public string? Address { get; set; }

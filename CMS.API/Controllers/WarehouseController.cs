@@ -21,11 +21,16 @@ namespace CMS.API.Controllers
     public class WarehouseController : ControllerBase
     {
         private readonly IWarehouseService _warehouseService;
+        private readonly ILocationService _locationService;
         private readonly ILogger<WarehouseController> _logger;
 
-        public WarehouseController(IWarehouseService warehouseService, ILogger<WarehouseController> logger)
+        public WarehouseController(
+            IWarehouseService warehouseService,
+            ILocationService locationService,
+            ILogger<WarehouseController> logger)
         {
             _warehouseService = warehouseService;
+            _locationService  = locationService;
             _logger = logger;
         }
 
@@ -143,6 +148,10 @@ namespace CMS.API.Controllers
                 var warehouse = MapFromDto(dto);
                 var created = await _warehouseService.CreateAsync(companyId, warehouse, user);
 
+                // Vincular localización con esta bodega
+                if (created.IdLocation.HasValue)
+                    await _locationService.SetLocationCatalogAsync(companyId, created.IdLocation.Value, created.Id, user);
+
                 return CreatedAtAction(nameof(GetById), new { id = created.Id }, MapToDto(created));
             }
             catch (Exception ex)
@@ -174,6 +183,8 @@ namespace CMS.API.Controllers
                 if (!await _warehouseService.ValidateResponsibleUserAsync(dto.ResponsibleUserId))
                     return BadRequest(new { error = $"El usuario responsable con ID {dto.ResponsibleUserId} no existe." });
 
+                var oldLocationId = existing.IdLocation;
+
                 // Prevenir ciclos jerárquicos
                 if (dto.IdParentWarehouse.HasValue && dto.IdParentWarehouse.Value == id)
                     return BadRequest(new { error = "Una bodega no puede ser su propio padre" });
@@ -181,6 +192,15 @@ namespace CMS.API.Controllers
                 var warehouse = MapFromDto(dto);
                 warehouse.Id = id;
                 var updated = await _warehouseService.UpdateAsync(companyId, warehouse, user);
+
+                // Gestionar vinculación de localización
+                if (oldLocationId != dto.IdLocation)
+                {
+                    if (oldLocationId.HasValue)
+                        await _locationService.ClearLocationCatalogAsync(companyId, oldLocationId.Value, user);
+                    if (dto.IdLocation.HasValue)
+                        await _locationService.SetLocationCatalogAsync(companyId, dto.IdLocation.Value, id, user);
+                }
 
                 return Ok(MapToDto(updated));
             }
@@ -288,6 +308,8 @@ namespace CMS.API.Controllers
             ResponsiblePhone = w.ResponsiblePhone,  // resuelto cross-DB [NotMapped]
             Notes = w.Notes,
             IsActive = w.IsActive,
+            IdTransportUnit  = w.IdTransportUnit,
+            TransportUnitName = w.TransportUnitName,
             CreatedAt = w.CreatedAt,
             CreatedBy = w.CreatedBy,
             UpdatedAt = w.UpdatedAt,
@@ -326,7 +348,8 @@ namespace CMS.API.Controllers
             IdLocation = dto.IdLocation,
             ResponsibleUserId = dto.ResponsibleUserId,
             Notes = dto.Notes?.Trim(),
-            IsActive = dto.IsActive
+            IsActive = dto.IsActive,
+            IdTransportUnit = dto.IdTransportUnit,
         };
     }
 
@@ -372,6 +395,10 @@ namespace CMS.API.Controllers
         /// <summary>Resuelto desde cms.admin.user (PHONE_NUMBER)</summary>
         public string? ResponsiblePhone { get; set; }
         public string? Notes { get; set; }
+        /// <summary>FK a sinai.transport_unit. Solo aplica cuando WarehouseType = 'Transit'.</summary>
+        public int? IdTransportUnit { get; set; }
+        /// <summary>Nombre/placa de la unidad de transporte (resuelto en la respuesta).</summary>
+        public string? TransportUnitName { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
@@ -425,5 +452,7 @@ namespace CMS.API.Controllers
         public int? ResponsibleUserId { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
+        /// <summary>FK a sinai.transport_unit. Obligatorio cuando WarehouseType = 'Transit'.</summary>
+        public int? IdTransportUnit { get; set; }
     }
 }

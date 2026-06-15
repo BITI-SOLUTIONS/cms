@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/TransportUnit.cs
 // PROPÓSITO: Entidades para la gestión de unidades de transporte (Fleet Management)
 // DESCRIPCIÓN: Soporta cualquier tipo de unidad (camión, carro, moto, etc.)
@@ -243,12 +243,12 @@ namespace CMS.Entities.Operational
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
@@ -355,12 +355,12 @@ namespace CMS.Entities.Operational
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 

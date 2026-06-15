@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/Insurer.cs
 // PROPÓSITO: Entidad Aseguradora para Fleet Management (por compañía)
 // DESCRIPCIÓN: Almacena datos de aseguradoras con las que opera la compañía.
@@ -78,10 +78,10 @@ namespace CMS.Entities.Operational
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Required][MaxLength(30)][Column("created_by")]
+        [Required][MaxLength(150)][Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
-        [Required][MaxLength(30)][Column("updated_by")]
+        [Required][MaxLength(150)][Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]

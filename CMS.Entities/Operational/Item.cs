@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/Item.cs
 // PROPÓSITO: Entidad que representa un artículo/producto en el inventario
 // DESCRIPCIÓN: Esta entidad se almacena en la BD de cada compañía, NO en la BD central
@@ -344,7 +344,7 @@ namespace CMS.Entities.Operational
         /// Usuario que creó el registro
         /// </summary>
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
@@ -352,7 +352,7 @@ namespace CMS.Entities.Operational
         /// Usuario que modificó el registro
         /// </summary>
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 

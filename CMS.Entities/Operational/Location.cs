@@ -1,9 +1,9 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/Location.cs
 // PROPÓSITO: Entidad centralizada de localizaciones físicas
 // DESCRIPCIÓN: Tabla única para almacenar la información de ubicación geográfica
 //              de cualquier entidad del sistema (Bodega, Empleado, Cliente, Proveedor, etc.)
-//              Relacionada con LocationType para clasificar su uso.
+//              IdLocationType es FK lógica cross-DB → admin.location_type (BD central cms).
 //              Se almacena en la BD de cada compañía (ej: sinai.location)
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-06-03
@@ -26,7 +26,7 @@ namespace CMS.Entities.Operational
         [Column("id_location")]
         public int Id { get; set; }
 
-        /// <summary>FK a location_type — define el uso de la localización</summary>
+        /// <summary>FK lógica cross-DB a admin.location_type (BD central cms)</summary>
         [Required]
         [Column("id_location_type")]
         public int IdLocationType { get; set; }
@@ -38,20 +38,20 @@ namespace CMS.Entities.Operational
         public int? IdCountry { get; set; }
 
         /// <summary>FK a admin.geographic_division1</summary>
-        [Column("id_province")]
-        public int? IdProvince { get; set; }
+        [Column("id_geographic_division1")]
+        public int? IdGeographicDivision1 { get; set; }
 
         /// <summary>FK a admin.geographic_division2</summary>
-        [Column("id_canton")]
-        public int? IdCanton { get; set; }
+        [Column("id_geographic_division2")]
+        public int? IdGeographicDivision2 { get; set; }
 
         /// <summary>FK a admin.geographic_division3</summary>
-        [Column("id_district")]
-        public int? IdDistrict { get; set; }
+        [Column("id_geographic_division3")]
+        public int? IdGeographicDivision3 { get; set; }
 
         /// <summary>FK a admin.geographic_division4</summary>
-        [Column("id_neighborhood")]
-        public int? IdNeighborhood { get; set; }
+        [Column("id_geographic_division4")]
+        public int? IdGeographicDivision4 { get; set; }
 
         // ── Dirección ──
 
@@ -81,19 +81,28 @@ namespace CMS.Entities.Operational
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// ID del registro del catálogo que usa esta localización (empleado, bodega, cliente, etc.).
+        /// NULL = dirección disponible (sin asignar).
+        /// Se actualiza automáticamente al crear/editar el registro propietario.
+        /// Junto con IdLocationType identifica qué tipo de entidad es la propietaria.
+        /// </summary>
+        [Column("id_location_catalog")]
+        public int? IdLocationCatalog { get; set; }
+
         // ── Auditoría ──
 
         [Column("createdate")]
         public DateTime CreateDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = string.Empty;
 
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = string.Empty;
 
@@ -101,8 +110,10 @@ namespace CMS.Entities.Operational
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
         // ── Navegación ──
-
-        [ForeignKey("IdLocationType")]
+        // RELACIÓN LÓGICA CROSS-DB: IdLocationType referencia admin.location_type (BD central cms).
+        // No se puede declarar FK real ni navegación EF porque Location está en la BD de compañía.
+        // Cargar por separado desde AppDbContext cuando se requiera.
+        [NotMapped]
         public LocationType? LocationType { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Admin/UnitOfMeasure.cs
 // PROPÓSITO: Entidad que representa una unidad de medida (tabla CENTRAL)
 // DESCRIPCIÓN: Esta entidad se almacena en la BD central (cms) en el schema admin
@@ -88,12 +88,12 @@ namespace CMS.Entities.Admin
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 

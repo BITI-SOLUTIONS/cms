@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/InventoryTransaction.cs
 // PROPÓSITO: Entidad que representa un movimiento de inventario (entrada, salida,
 //            traslado, ajuste, recepción de ruta de distribución, etc.)
@@ -199,12 +199,12 @@ namespace CMS.Entities.Operational
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = string.Empty;
 
@@ -348,6 +348,10 @@ namespace CMS.Entities.Operational
         [Column("odometer_out")]
         public decimal? OdometerOut { get; set; }
 
+        /// <summary>Firma digital del receptor (base64 PNG data URI) capturada en dispositivo táctil.</summary>
+        [Column("signature")]
+        public string? Signature { get; set; }
+
         // ===== AUDITORÍA =====
 
         [Column("createdate")]
@@ -357,12 +361,12 @@ namespace CMS.Entities.Operational
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = string.Empty;
 
@@ -442,12 +446,12 @@ namespace CMS.Entities.Operational
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = string.Empty;
 

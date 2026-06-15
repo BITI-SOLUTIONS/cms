@@ -161,21 +161,6 @@ namespace CMS.UI.Controllers
         public IActionResult Vehicles() => TransportUnits();
 
         // ============================================================
-        // GET /Warehouse/Drivers
-        // ============================================================
-        [HttpGet]
-        public IActionResult Drivers()
-        {
-            ConfigureAuthHeader();
-            var apiBaseUrl = GetApiBaseUrl();
-            ViewBag.ApiBaseUrl = apiBaseUrl;
-            ViewBag.ApiToken = _httpContextAccessor.HttpContext?.Session.GetString("ApiToken")
-                             ?? _httpContextAccessor.HttpContext?.Session.GetString("JwtToken")
-                             ?? string.Empty;
-            return View("Drivers");
-        }
-
-        // ============================================================
         // GET /Warehouse/Insurers
         // ============================================================
         [HttpGet]

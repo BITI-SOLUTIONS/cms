@@ -36,7 +36,52 @@ const WAREHOUSE_LEVELS = {
 document.addEventListener('DOMContentLoaded', () => {
     loadWarehouseTypes().then(() => loadWarehouses());
     initSearch();
+
+    // Toggle transport unit select when warehouse type changes
+    document.getElementById('fWarehouseType')?.addEventListener('change', function () {
+        toggleTransportUnit(this.value);
+    });
 });
+
+// Habilita/deshabilita el selector de unidad de transporte según el tipo de bodega
+function toggleTransportUnit(typeValue) {
+    const sel  = document.getElementById('fTransportUnit');
+    const wrap = document.getElementById('fTransportUnitWrap');
+    if (!sel) return;
+    const isTransit = typeValue === 'Transit';
+    sel.disabled = !isTransit;
+    if (!isTransit) {
+        sel.value = '';
+        sel.classList.remove('is-invalid');
+    } else {
+        // Recargar siempre para reflejar disponibilidad actualizada
+        loadTransportUnitOptions();
+    }
+}
+
+// Carga unidades de transporte activas para el selector
+// Solo muestra unidades NO asignadas a otra bodega (availableOnly=true).
+// currentWarehouseId: si se está editando, la unidad de esa bodega sí aparece en la lista.
+async function loadTransportUnitOptions(selectedId) {
+    try {
+        const currentWarehouseId = WH.editingId ?? null;
+        let url = '/api/transportunit?isActive=true&pageSize=200&availableOnly=true';
+        if (currentWarehouseId) url += `&currentWarehouseId=${currentWarehouseId}`;
+        const res = await apiFetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = data.items || [];
+        const select = document.getElementById('fTransportUnit');
+        if (!select) return;
+        const current = selectedId ?? select.value;
+        select.innerHTML = '<option value="">— Seleccione una unidad —</option>';
+        for (const u of items) {
+            const label = `${u.plateNumber} — ${u.name}`;
+            select.appendChild(new Option(label, u.id));
+        }
+        if (current) select.value = current;
+    } catch { /* silencioso */ }
+}
 
 // Carga tipos de bodega desde la BD central y rellena los selects de filtro y formulario
 async function loadWarehouseTypes() {
@@ -458,7 +503,7 @@ async function openEdit(id) {
         // Cargar opciones primero para que los selects tengan las opciones antes de pre-seleccionar
         await Promise.all([
             loadUserOptions(w.responsibleUserId ?? null),
-            loadLocationOptions(w.idLocation ?? null),
+            loadLocationOptions(w.idLocation ?? null, id),
             loadParentOptions()
         ]);
         populateForm(w);
@@ -513,6 +558,13 @@ function populateForm(w) {
     }
     document.getElementById('fNotes').value = w.notes || '';
     document.getElementById('fIsActive').checked = w.isActive;
+    // Transport unit (Transit warehouses only)
+    toggleTransportUnit(w.warehouseType);
+    if (w.warehouseType === 'Transit' && w.idTransportUnit) {
+        loadTransportUnitOptions(w.idTransportUnit).then(() => {
+            document.getElementById('fTransportUnit').value = w.idTransportUnit;
+        });
+    }
     clearFormErrors();
 }
 
@@ -521,6 +573,7 @@ function resetForm() {
     document.getElementById('fIsActive').checked = true;
     document.getElementById('fWarehouseType').value = 'Physical';
     document.getElementById('fWarehouseLevel').value = '0';
+    toggleTransportUnit('Physical');
     clearFormErrors();
     loadParentOptions();
     loadUserOptions();
@@ -547,7 +600,9 @@ async function loadUserOptions(selectedId) {
 }
 
 // Carga localizaciones tipo WAREHOUSE para el selector de ubicación
-async function loadLocationOptions(selectedId) {
+// selectedId: id de la ubicación actualmente asignada (para preseleccionar)
+// currentWarehouseId: id de la bodega en edición (para incluir su ubicación actual en la lista)
+async function loadLocationOptions(selectedId, currentWarehouseId = null) {
     try {
         // Buscar el locationTypeId de WAREHOUSE primero
         const typesRes = await apiFetch('/api/locationtype?isActive=true');
@@ -556,7 +611,11 @@ async function loadLocationOptions(selectedId) {
         const warehouseType = types.find(t => t.code?.toUpperCase() === 'WAREHOUSE');
         if (!warehouseType) return;
 
-        const res = await apiFetch(`/api/location/by-type/${warehouseType.id}?isActive=true`);
+        // availableOnly=true: solo libres + la actualmente asignada (currentLocationId)
+        let url = `/api/location/by-type/${warehouseType.id}?isActive=true&availableOnly=true`;
+        if (selectedId) url += `&currentLocationId=${selectedId}`;
+
+        const res = await apiFetch(url);
         if (!res.ok) return;
         const locations = await res.json();
         const select = document.getElementById('fIdLocation');
@@ -652,6 +711,7 @@ async function saveWarehouse() {
         responsibleUserId: document.getElementById('fResponsibleUserId').value ? parseInt(document.getElementById('fResponsibleUserId').value) : null,
         notes: document.getElementById('fNotes').value.trim() || null,
         isActive: document.getElementById('fIsActive').checked,
+        idTransportUnit: document.getElementById('fTransportUnit').value ? parseInt(document.getElementById('fTransportUnit').value) : null,
     };
 
     // Validación básica
@@ -659,6 +719,7 @@ async function saveWarehouse() {
     if (!body.code) { setFieldError('fCode', 'El código es requerido.'); hasError = true; }
     if (!body.name) { setFieldError('fName', 'El nombre es requerido.'); hasError = true; }
     if (!body.idLocation) { setFieldError('fIdLocation', 'La localización es obligatoria.'); hasError = true; }
+    if (body.warehouseType === 'Transit' && !body.idTransportUnit) { setFieldError('fTransportUnit', 'La unidad de transporte es obligatoria para bodegas en tránsito.'); hasError = true; }
     if (hasError) return;
 
     setBtnLoading(btn, true);

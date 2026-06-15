@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Admin/CompanyConsecutive.cs
 // PROPÓSITO: Entidad para almacenar consecutivos globales por compañía
 // DESCRIPCIÓN: Esta tabla está en la BD central (cms, schema admin) y almacena
@@ -67,12 +67,12 @@ public class CompanyConsecutive
 
     [Column("created_by")]
     [Required]
-    [MaxLength(30)]
+    [MaxLength(150)]
     public string CreatedBy { get; set; } = "SYSTEM";
 
     [Column("updated_by")]
     [Required]
-    [MaxLength(30)]
+    [MaxLength(150)]
     public string UpdatedBy { get; set; } = "SYSTEM";
 
     [Column("rowpointer")]

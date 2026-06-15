@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Admin/AuditLog.cs
 // PROPÓSITO: Entidad para registro de auditoría de cambios
 // AUTOR: EAMR, BITI SOLUTIONS S.A
@@ -153,11 +153,11 @@ public class AuditLog
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Column("created_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Column("updated_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]

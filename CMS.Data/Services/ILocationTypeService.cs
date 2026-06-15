@@ -1,8 +1,12 @@
 // ================================================================================
 // ARCHIVO: CMS.Data/Services/ILocationTypeService.cs
 // PROPÓSITO: Contrato del servicio de tipos de localización
+// DESCRIPCIÓN: LocationType es un catálogo CENTRAL (admin.location_type, BD cms).
+//              El parámetro companyId se mantiene por compatibilidad pero
+//              la implementación opera sobre la BD central.
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-06-03
+// MODIFICADO: 2026-07-04 — Migrado a BD central (admin.location_type)
 // ================================================================================
 
 using CMS.Entities.Operational;

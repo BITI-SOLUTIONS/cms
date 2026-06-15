@@ -46,7 +46,7 @@ function initDistributionRoutes(apiBase, apiToken) {
     DR.apiBase  = apiBase;
     DR.apiToken = apiToken;
     bindEvents();
-    Promise.all([loadWarehouses(), loadUsers()]).then(() => loadRoutes());
+    Promise.all([loadWarehouses(), loadDrivers()]).then(() => loadRoutes());
 }
 
 // ── HTTP ─────────────────────────────────────────────────────────────────────
@@ -80,15 +80,15 @@ async function loadWarehouses() {
     } catch { /* no crítico */ }
 }
 
-async function loadUsers() {
+async function loadDrivers() {
     try {
-        const data = await drFetch('/api/user/for-company?pageSize=200');
-        DR.users = data.items || data || [];
+        const data = await drFetch('/api/employees/drivers');
+        DR.users = data || [];
         const sel = document.getElementById('fDriver');
         if (!sel) return;
         sel.innerHTML = '<option value="">— Sin conductor asignado —</option>';
-        DR.users.forEach(u => {
-            sel.innerHTML += `<option value="${u.id}">${u.firstName} ${u.lastName}</option>`;
+        DR.users.forEach(d => {
+            sel.innerHTML += `<option value="${d.id}">${d.fullName} (${d.code})</option>`;
         });
     } catch { /* no crítico */ }
 }

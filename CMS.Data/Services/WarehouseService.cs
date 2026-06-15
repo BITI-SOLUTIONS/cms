@@ -75,6 +75,7 @@ namespace CMS.Data.Services
 
             await ResolveResponsibleAsync(items);
             await ResolveLocationAsync(companyId, items);
+            await ResolveTransportUnitAsync(companyId, items);
 
             return (items, total);
         }
@@ -116,6 +117,7 @@ namespace CMS.Data.Services
             {
                 await ResolveResponsibleAsync(warehouse);
                 await ResolveLocationAsync(companyId, new[] { warehouse });
+                await ResolveTransportUnitAsync(companyId, new[] { warehouse });
             }
             return warehouse;
         }
@@ -169,6 +171,7 @@ namespace CMS.Data.Services
             existing.IdLocation = warehouse.IdLocation;
             existing.ResponsibleUserId = warehouse.ResponsibleUserId;
             existing.Notes = warehouse.Notes;
+            existing.IdTransportUnit = warehouse.IdTransportUnit;
             existing.UpdatedAt = DateTime.UtcNow;
             existing.UpdatedBy = updatedBy?.Length > 30 ? updatedBy[..30] : updatedBy;
 
@@ -326,7 +329,32 @@ namespace CMS.Data.Services
                 }
             }
         }
-            private async Task ResolveLocationAsync(int companyId, IEnumerable<Warehouse> warehouses)
+            private async Task ResolveTransportUnitAsync(int companyId, IEnumerable<Warehouse> warehouses)
+            {
+                var ids = warehouses
+                    .Where(w => w.IdTransportUnit.HasValue)
+                    .Select(w => w.IdTransportUnit!.Value)
+                    .Distinct()
+                    .ToList();
+
+                if (!ids.Any()) return;
+
+                using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
+                var units = await db.TransportUnits
+                    .Where(u => ids.Contains(u.Id))
+                    .Select(u => new { u.Id, Display = u.PlateNumber + " — " + u.Name })
+                    .ToListAsync();
+
+                var dict = units.ToDictionary(u => u.Id);
+
+                foreach (var w in warehouses)
+                {
+                    if (w.IdTransportUnit.HasValue && dict.TryGetValue(w.IdTransportUnit.Value, out var u))
+                        w.TransportUnitName = u.Display;
+                }
+            }
+
+                private async Task ResolveLocationAsync(int companyId, IEnumerable<Warehouse> warehouses)
             {
                 var ids = warehouses
                     .Where(w => w.IdLocation.HasValue)

@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Reports/UserCompanyReport.cs
 // PROPÓSITO: Entidad para control de acceso a reportes por usuario y compañía
 // DESCRIPCIÓN: Similar a UserCompanyPermission, pero para reportes.
@@ -53,11 +53,11 @@ namespace CMS.Entities.Reports
         public Guid RowPointer { get; set; } = Guid.NewGuid();
 
         [Column("created_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Column("updated_by")]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         // Navegación

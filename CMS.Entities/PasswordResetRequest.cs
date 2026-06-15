@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/PasswordResetRequest.cs
 // PROPÓSITO: Entidad para rastrear solicitudes de restablecimiento de contraseña
 // AUTOR: EAMR, BITI SOLUTIONS S.A
@@ -66,12 +66,12 @@ namespace CMS.Entities
 
         [Column("created_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string CreatedBy { get; set; } = default!;
 
         [Column("updated_by")]
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         public string UpdatedBy { get; set; } = default!;
 
         // ===== NAVEGACIÓN =====

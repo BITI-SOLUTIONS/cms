@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/Classification.cs
 // PROPÓSITO: Entidad que representa las clasificaciones de artículos
 // DESCRIPCIÓN: Esta entidad se almacena en la BD de cada compañía
@@ -79,12 +79,12 @@ namespace CMS.Entities.Operational
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 

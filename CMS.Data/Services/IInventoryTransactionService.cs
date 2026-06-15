@@ -83,7 +83,7 @@ namespace CMS.Data.Services
         /// Cuando todas las líneas están recibidas, el estado pasa a Completed.
         /// Actualiza existencias (qty_in_transit ↓, qty_on_hand ↑).
         /// </summary>
-        Task<InventoryTransaction> ReceiveLinesAsync(int companyId, int transactionId, List<int> lineIds, int receivedByUserId, string receivedBy, string? arrivalTime = null, string? departureTime = null, decimal? odometerOut = null, string? nextDestSeal = null, int? nextWarehouseId = null, Dictionary<int, decimal>? lineQtys = null);
+        Task<InventoryTransaction> ReceiveLinesAsync(int companyId, int transactionId, List<int> lineIds, int receivedByUserId, string receivedBy, string? arrivalTime = null, string? departureTime = null, decimal? odometerOut = null, string? nextDestSeal = null, int? nextWarehouseId = null, Dictionary<int, decimal>? lineQtys = null, string? signature = null);
 
         /// <summary>
         /// Completa un movimiento simple (Confirmed → Completed).

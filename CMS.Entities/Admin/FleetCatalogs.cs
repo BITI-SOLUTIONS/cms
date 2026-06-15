@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Admin/FleetCatalogs.cs
 // PROPÓSITO: Catálogos centrales del módulo Fleet Management
 // DESCRIPCIÓN: Tablas en BD central (cms, schema admin) compartidas por todas
@@ -46,10 +46,10 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Required][MaxLength(30)][Column("created_by")]
+        [Required][MaxLength(150)][Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
-        [Required][MaxLength(30)][Column("updated_by")]
+        [Required][MaxLength(150)][Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]
@@ -94,10 +94,10 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Required][MaxLength(30)][Column("created_by")]
+        [Required][MaxLength(150)][Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
-        [Required][MaxLength(30)][Column("updated_by")]
+        [Required][MaxLength(150)][Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]
@@ -138,10 +138,10 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Required][MaxLength(30)][Column("created_by")]
+        [Required][MaxLength(150)][Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
-        [Required][MaxLength(30)][Column("updated_by")]
+        [Required][MaxLength(150)][Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]
@@ -184,10 +184,10 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Required][MaxLength(30)][Column("created_by")]
+        [Required][MaxLength(150)][Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
-        [Required][MaxLength(30)][Column("updated_by")]
+        [Required][MaxLength(150)][Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]
@@ -239,10 +239,10 @@ namespace CMS.Entities.Admin
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [Required][MaxLength(30)][Column("created_by")]
+        [Required][MaxLength(150)][Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
-        [Required][MaxLength(30)][Column("updated_by")]
+        [Required][MaxLength(150)][Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
         [Column("rowpointer")]

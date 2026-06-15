@@ -384,7 +384,7 @@ namespace CMS.API.Controllers
                     GetCurrentUserId(), GetCurrentUser(),
                     dto.ArrivalTime, dto.DepartureTime, dto.OdometerOut,
                     dto.NextDestSeal, dto.NextWarehouseId,
-                    lineQtysDict);
+                    lineQtysDict, dto.Signature);
                 var lines = await _service.GetLinesAsync(companyId, id);
                 txn.Lines = lines;
                 return Ok(MapToDto(txn, true));
@@ -512,7 +512,8 @@ namespace CMS.API.Controllers
             l.DestSecuritySeal,
             DepartureTime = l.DepartureTime?.ToString("HH:mm"),
             ArrivalTime = l.ArrivalTime?.ToString("HH:mm"),
-            l.OdometerOut
+            l.OdometerOut,
+            l.Signature
         };
 
         private static InventoryTransaction MapFromDto(CreateInventoryTransactionDto dto) => new()
@@ -635,6 +636,8 @@ namespace CMS.API.Controllers
         public string? NextDestSeal { get; set; }
         /// <summary>Id de la siguiente bodega destino (para asociar el sello)</summary>
         public int? NextWarehouseId { get; set; }
+        /// <summary>Firma digital del receptor (base64 PNG data URI)</summary>
+        public string? Signature { get; set; }
     }
 
     public class CancelTransactionDto

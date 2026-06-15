@@ -376,7 +376,8 @@ namespace CMS.Data.Services
             decimal? odometerOut = null,
             string? nextDestSeal = null,
             int? nextWarehouseId = null,
-            Dictionary<int, decimal>? lineQtys = null)
+            Dictionary<int, decimal>? lineQtys = null,
+            string? signature = null)
         {
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
 
@@ -434,6 +435,7 @@ namespace CMS.Data.Services
                 // Persistir hora de llegada y km de salida en la línea recibida
                 if (parsedArrival.HasValue) line.ArrivalTime = parsedArrival;
                 if (odometerOut.HasValue)   line.OdometerOut = odometerOut;
+                if (!string.IsNullOrWhiteSpace(signature)) line.Signature = signature;
 
                 // Destino final de la línea
                 var destWarehouseId = line.IdWarehouseDestLine ?? txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;

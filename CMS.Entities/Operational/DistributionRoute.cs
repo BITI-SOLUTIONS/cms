@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/DistributionRoute.cs
 // PROPÓSITO: Entidad de rutas de distribución y sus paradas (WMS / Distribution)
 // DESCRIPCIÓN: Se almacena en la BD de cada compañía, schema {company_code}.
@@ -147,12 +147,12 @@ namespace CMS.Entities.Operational
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 
@@ -255,12 +255,12 @@ namespace CMS.Entities.Operational
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "SYSTEM";
 
         [Required]
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "SYSTEM";
 

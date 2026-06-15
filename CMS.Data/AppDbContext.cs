@@ -1,6 +1,7 @@
 ﻿using CMS.Entities;
 using CMS.Entities.Admin;
 using CMS.Entities.Reports;
+using LocationTypeCatalog = CMS.Entities.Operational.LocationType;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -83,6 +84,11 @@ namespace CMS.Data
         /// </summary>
         public DbSet<WarehouseType> WarehouseTypes { get; set; }
 
+        /// <summary>
+        /// Tipos de localización - Tabla CENTRAL compartida por todas las compañías (admin.location_type)
+        /// </summary>
+        public DbSet<LocationTypeCatalog> LocationTypes { get; set; }
+
         // ===== TABLAS NUEVAS: SISTEMA DE REPORTES =====
         public DbSet<ReportCategory> ReportCategories { get; set; }
         public DbSet<ReportDefinition> ReportDefinitions { get; set; }
@@ -109,6 +115,7 @@ namespace CMS.Data
         public DbSet<FuelTypeCatalog> FuelTypes { get; set; }
         public DbSet<TransportUnitBrand> TransportUnitBrands { get; set; }
         public DbSet<TransportUnitModel> TransportUnitModels { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -755,6 +762,19 @@ namespace CMS.Data
                       .HasForeignKey(e => e.IdTransportUnitType)
                       .OnDelete(DeleteBehavior.SetNull);
             });
+
+            // ===== CATÁLOGO CENTRAL: TIPOS DE LOCALIZACIÓN =====
+            modelBuilder.Entity<LocationTypeCatalog>(entity =>
+            {
+                entity.ToTable("location_type", "admin");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Code).IsUnique().HasDatabaseName("uix_admin_location_type_code");
+                entity.HasIndex(e => e.IsActive).HasDatabaseName("ix_admin_location_type_active");
+                entity.HasIndex(e => e.SortOrder).HasDatabaseName("ix_admin_location_type_sort");
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
         }
 
         private static void ConfigureAuditDefaults(ModelBuilder modelBuilder)

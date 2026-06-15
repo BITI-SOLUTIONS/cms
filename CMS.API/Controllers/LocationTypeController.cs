@@ -1,8 +1,12 @@
 // ================================================================================
 // ARCHIVO: CMS.API/Controllers/LocationTypeController.cs
 // PROPÓSITO: API REST para mantenimiento de tipos de localización
+// DESCRIPCIÓN: LocationType es un catálogo CENTRAL (admin.location_type, BD cms).
+//              Las operaciones CRUD no requieren companyId; solo autenticación.
+//              GetLocationCount sí recibe companyId para buscar en BD de compañía.
 // AUTOR: EAMR, BITI SOLUTIONS S.A
 // CREADO: 2026-06-03
+// MODIFICADO: 2026-07-04 — Migrado a BD central (admin.location_type)
 // ================================================================================
 
 using CMS.Data.Services;
@@ -42,9 +46,7 @@ namespace CMS.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] bool? isActive = null)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-            var items = await _service.GetAllAsync(companyId, isActive);
+            var items = await _service.GetAllAsync(0, isActive);
             return Ok(items.Select(MapToDto));
         }
 
@@ -52,9 +54,7 @@ namespace CMS.API.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-            var item = await _service.GetByIdAsync(companyId, id);
+            var item = await _service.GetByIdAsync(0, id);
             return item == null ? NotFound() : Ok(MapToDto(item));
         }
 
@@ -62,9 +62,7 @@ namespace CMS.API.Controllers
         [HttpGet("check-code")]
         public async Task<IActionResult> CheckCode([FromQuery] string code, [FromQuery] int? excludeId = null)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-            var exists = await _service.CodeExistsAsync(companyId, code, excludeId);
+            var exists = await _service.CodeExistsAsync(0, code, excludeId);
             return Ok(new { exists });
         }
 
@@ -72,16 +70,13 @@ namespace CMS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] LocationTypeUpsertDto dto)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (await _service.CodeExistsAsync(companyId, dto.Code))
+            if (await _service.CodeExistsAsync(0, dto.Code))
                 return BadRequest(new { message = $"El código '{dto.Code.ToUpper()}' ya existe." });
 
             var entity = MapFromDto(dto);
-            var created = await _service.CreateAsync(companyId, entity, GetUserName());
+            var created = await _service.CreateAsync(0, entity, GetUserName());
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, MapToDto(created));
         }
 
@@ -89,12 +84,9 @@ namespace CMS.API.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] LocationTypeUpsertDto dto)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (await _service.CodeExistsAsync(companyId, dto.Code, id))
+            if (await _service.CodeExistsAsync(0, dto.Code, id))
                 return BadRequest(new { message = $"El código '{dto.Code.ToUpper()}' ya está en uso." });
 
             var entity = MapFromDto(dto);
@@ -102,7 +94,7 @@ namespace CMS.API.Controllers
 
             try
             {
-                var updated = await _service.UpdateAsync(companyId, entity, GetUserName());
+                var updated = await _service.UpdateAsync(0, entity, GetUserName());
                 return Ok(MapToDto(updated));
             }
             catch (KeyNotFoundException)
@@ -115,9 +107,7 @@ namespace CMS.API.Controllers
         [HttpPatch("{id:int}/deactivate")]
         public async Task<IActionResult> Deactivate(int id)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-            var ok = await _service.DeactivateAsync(companyId, id, GetUserName());
+            var ok = await _service.DeactivateAsync(0, id, GetUserName());
             return ok ? Ok(new { message = "Tipo desactivado." }) : NotFound();
         }
 
@@ -125,9 +115,7 @@ namespace CMS.API.Controllers
         [HttpPatch("{id:int}/activate")]
         public async Task<IActionResult> Activate(int id)
         {
-            var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-            var ok = await _service.ActivateAsync(companyId, id, GetUserName());
+            var ok = await _service.ActivateAsync(0, id, GetUserName());
             return ok ? Ok(new { message = "Tipo activado." }) : NotFound();
         }
 
@@ -136,16 +124,15 @@ namespace CMS.API.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var companyId = GetCompanyId();
-            if (companyId == 0) return Unauthorized();
-            try
+            // Verificar si tiene localizaciones asociadas en la compañía activa del usuario
+            if (companyId > 0)
             {
-                var ok = await _service.DeleteAsync(companyId, id);
-                return ok ? Ok(new { message = "Tipo eliminado." }) : NotFound();
+                var count = await _service.GetLocationCountAsync(companyId, id);
+                if (count > 0)
+                    return BadRequest(new { message = $"No se puede eliminar: tiene {count} localización(es) asociada(s)." });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var ok = await _service.DeleteAsync(0, id);
+            return ok ? Ok(new { message = "Tipo eliminado." }) : NotFound();
         }
 
         // ── Mappers ──

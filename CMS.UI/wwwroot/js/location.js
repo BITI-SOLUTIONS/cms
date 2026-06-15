@@ -277,21 +277,21 @@ const LOC = (() => {
                 const selC = document.getElementById('fLocCountry');
                 if (selC) { selC.value = x.idCountry; await loadProvinces(x.idCountry); }
             }
-            if (x.idProvince) {
+            if (x.idGeographicDivision1) {
                 const selP = document.getElementById('fLocProvince');
-                if (selP) { selP.value = x.idProvince; await loadCantons(x.idProvince); }
+                if (selP) { selP.value = x.idGeographicDivision1; await loadCantons(x.idGeographicDivision1); }
             }
-            if (x.idCanton) {
+            if (x.idGeographicDivision2) {
                 const selCa = document.getElementById('fLocCanton');
-                if (selCa) { selCa.value = x.idCanton; await loadDistricts(x.idCanton); }
+                if (selCa) { selCa.value = x.idGeographicDivision2; await loadDistricts(x.idGeographicDivision2); }
             }
-            if (x.idDistrict) {
+            if (x.idGeographicDivision3) {
                 const selD = document.getElementById('fLocDistrict');
-                if (selD) { selD.value = x.idDistrict; await loadNeighborhoods(x.idDistrict); }
+                if (selD) { selD.value = x.idGeographicDivision3; await loadNeighborhoods(x.idGeographicDivision3); }
             }
-            if (x.idNeighborhood) {
+            if (x.idGeographicDivision4) {
                 const selN = document.getElementById('fLocNeighborhood');
-                if (selN) selN.value = x.idNeighborhood;
+                if (selN) selN.value = x.idGeographicDivision4;
             }
 
             document.getElementById('locModalTitle').textContent    = 'Editar LocalizaciÃ³n';
@@ -315,11 +315,11 @@ const LOC = (() => {
 
         const payload = {
             idLocationType: parseInt(typeId),
-            idCountry:      parseInt(document.getElementById('fLocCountry')?.value)     || null,
-            idProvince:     parseInt(document.getElementById('fLocProvince')?.value)    || null,
-            idCanton:       parseInt(document.getElementById('fLocCanton')?.value)      || null,
-            idDistrict:     parseInt(document.getElementById('fLocDistrict')?.value)    || null,
-            idNeighborhood: parseInt(document.getElementById('fLocNeighborhood')?.value) || null,
+            idCountry:             parseInt(document.getElementById('fLocCountry')?.value)       || null,
+            idGeographicDivision1: parseInt(document.getElementById('fLocProvince')?.value)      || null,
+            idGeographicDivision2: parseInt(document.getElementById('fLocCanton')?.value)        || null,
+            idGeographicDivision3: parseInt(document.getElementById('fLocDistrict')?.value)      || null,
+            idGeographicDivision4: parseInt(document.getElementById('fLocNeighborhood')?.value)  || null,
             address:        document.getElementById('fLocAddress').value.trim()   || null,
             address2:       document.getElementById('fLocAddress2').value.trim()  || null,
             postalCode:     document.getElementById('fLocPostalCode').value.trim() || null,

@@ -121,12 +121,14 @@ namespace CMS.API.Controllers
         // ============================================================
         [HttpGet]
         public async Task<IActionResult> GetAll(
-            [FromQuery] string? search   = null,
-            [FromQuery] string? type     = null,
-            [FromQuery] string? status   = null,
-            [FromQuery] bool?   isActive = null,
-            [FromQuery] int     page     = 1,
-            [FromQuery] int     pageSize = 20)
+            [FromQuery] string? search              = null,
+            [FromQuery] string? type                = null,
+            [FromQuery] string? status              = null,
+            [FromQuery] bool?   isActive            = null,
+            [FromQuery] bool    availableOnly        = false,
+            [FromQuery] int?    currentWarehouseId   = null,
+            [FromQuery] int     page                = 1,
+            [FromQuery] int     pageSize            = 20)
         {
             try
             {
@@ -151,6 +153,33 @@ namespace CMS.API.Controllers
 
                 if (isActive.HasValue)
                     query = query.Where(u => u.IsActive == isActive.Value);
+
+                // Excluir unidades ya asignadas a otra bodega en tránsito
+                // Si currentWarehouseId está informado, la unidad actualmente asignada
+                // a esa bodega sí debe aparecer en la lista (para poder re-guardarla).
+                if (availableOnly)
+                {
+                    // Obtener los ids de transport_unit ya vinculados a CUALQUIER bodega
+                    var linkedIds = await db.Warehouses
+                        .Where(w => w.IdTransportUnit != null)
+                        .Select(w => w.IdTransportUnit!.Value)
+                        .ToListAsync();
+
+                    // Quitar de esa lista la unidad que ya tiene la bodega que se está editando
+                    if (currentWarehouseId.HasValue)
+                    {
+                        var currentUnit = await db.Warehouses
+                            .Where(w => w.Id == currentWarehouseId.Value)
+                            .Select(w => w.IdTransportUnit)
+                            .FirstOrDefaultAsync();
+
+                        if (currentUnit.HasValue)
+                            linkedIds.Remove(currentUnit.Value);
+                    }
+
+                    if (linkedIds.Count > 0)
+                        query = query.Where(u => !linkedIds.Contains(u.Id));
+                }
 
                 var total = await query.CountAsync();
                 var items = await query

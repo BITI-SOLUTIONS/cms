@@ -317,22 +317,22 @@ const WLOC = (() => {
                 const selC = document.getElementById('fWlocCountry');
                 if (selC) { selC.value = loc.idCountry; await loadProvinces(loc.idCountry); }
             }
-            if (loc.idProvince) {
+            if (loc.idGeographicDivision1) {
                 const selP = document.getElementById('fWlocProvince');
-                if (selP) { selP.value = loc.idProvince; await loadCantons(loc.idProvince); }
+                if (selP) { selP.value = loc.idGeographicDivision1; await loadCantons(loc.idGeographicDivision1); }
             }
-            if (loc.idCanton) {
+            if (loc.idGeographicDivision2) {
                 const selCa = document.getElementById('fWlocCanton');
-                if (selCa) { selCa.value = loc.idCanton; await loadDistricts(loc.idCanton); }
+                if (selCa) { selCa.value = loc.idGeographicDivision2; await loadDistricts(loc.idGeographicDivision2); }
             }
-            if (loc.idDistrict) {
+            if (loc.idGeographicDivision3) {
                 const selD = document.getElementById('fWlocDistrict');
-                if (selD) { selD.value = loc.idDistrict; await loadNeighborhoods(loc.idDistrict); }
+                if (selD) { selD.value = loc.idGeographicDivision3; await loadNeighborhoods(loc.idGeographicDivision3); }
             }
-            if (loc.idNeighborhood) {
+            if (loc.idGeographicDivision4) {
                 const selN = document.getElementById('fWlocNeighborhood');
                 if (selN) {
-                    selN.value = loc.idNeighborhood;
+                    selN.value = loc.idGeographicDivision4;
                     // Postal code ya viene en loc.postalCode
                     const cpEl = document.getElementById('fWlocPostalCode');
                     if (cpEl && loc.postalCode) cpEl.value = loc.postalCode;
@@ -365,17 +365,17 @@ const WLOC = (() => {
         if (address.length < 4) { mark('fWlocAddress', false); valid = false; }
         else mark('fWlocAddress', true);
 
-        const idCountry      = parseInt(document.getElementById('fWlocCountry')?.value)      || 0;
-        const idProvince     = parseInt(document.getElementById('fWlocProvince')?.value)     || 0;
-        const idCanton       = parseInt(document.getElementById('fWlocCanton')?.value)       || 0;
-        const idDistrict     = parseInt(document.getElementById('fWlocDistrict')?.value)     || 0;
-        const idNeighborhood = parseInt(document.getElementById('fWlocNeighborhood')?.value) || 0;
+        const idCountry             = parseInt(document.getElementById('fWlocCountry')?.value)       || 0;
+        const idGeographicDivision1 = parseInt(document.getElementById('fWlocProvince')?.value)      || 0;
+        const idGeographicDivision2 = parseInt(document.getElementById('fWlocCanton')?.value)        || 0;
+        const idGeographicDivision3 = parseInt(document.getElementById('fWlocDistrict')?.value)      || 0;
+        const idGeographicDivision4 = parseInt(document.getElementById('fWlocNeighborhood')?.value)  || 0;
 
-        mark('fWlocCountry',      idCountry > 0);      if (!idCountry)      valid = false;
-        mark('fWlocProvince',     idProvince > 0);     if (!idProvince)     valid = false;
-        mark('fWlocCanton',       idCanton > 0);       if (!idCanton)       valid = false;
-        mark('fWlocDistrict',     idDistrict > 0);     if (!idDistrict)     valid = false;
-        mark('fWlocNeighborhood', idNeighborhood > 0); if (!idNeighborhood) valid = false;
+        mark('fWlocCountry',      idCountry > 0);              if (!idCountry)             valid = false;
+        mark('fWlocProvince',     idGeographicDivision1 > 0);  if (!idGeographicDivision1) valid = false;
+        mark('fWlocCanton',       idGeographicDivision2 > 0);  if (!idGeographicDivision2) valid = false;
+        mark('fWlocDistrict',     idGeographicDivision3 > 0);  if (!idGeographicDivision3) valid = false;
+        mark('fWlocNeighborhood', idGeographicDivision4 > 0);  if (!idGeographicDivision4) valid = false;
 
         if (!valid) {
             // Mostrar alerta en la parte superior del modal
@@ -404,11 +404,11 @@ const WLOC = (() => {
 
         const payload = {
             idLocationType,
-            idCountry:      idCountry      || null,
-            idProvince:     idProvince     || null,
-            idCanton:       idCanton       || null,
-            idDistrict:     idDistrict     || null,
-            idNeighborhood: idNeighborhood || null,
+            idCountry:             idCountry             || null,
+            idGeographicDivision1: idGeographicDivision1 || null,
+            idGeographicDivision2: idGeographicDivision2 || null,
+            idGeographicDivision3: idGeographicDivision3 || null,
+            idGeographicDivision4: idGeographicDivision4 || null,
             address:        address || null,
             address2:       document.getElementById('fWlocAddress2').value.trim() || null,
             postalCode:     document.getElementById('fWlocPostalCode').value.trim() || null,

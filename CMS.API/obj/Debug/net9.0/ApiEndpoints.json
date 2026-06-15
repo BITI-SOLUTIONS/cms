@@ -932,9 +932,9 @@
     ]
   },
   {
-    "ContainingType": "CMS.API.Controllers.DriverController",
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
     "Method": "GetAll",
-    "RelativePath": "api/drivers",
+    "RelativePath": "api/employees",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -947,6 +947,16 @@
       {
         "Name": "isActive",
         "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "idDepartment",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "employmentType",
+        "Type": "System.String",
         "IsRequired": false
       },
       {
@@ -963,25 +973,25 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "CMS.API.Controllers.DriverController",
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
     "Method": "Create",
-    "RelativePath": "api/drivers",
+    "RelativePath": "api/employees",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
         "Name": "dto",
-        "Type": "CMS.Entities.Operational.Driver",
+        "Type": "CMS.Entities.Operational.Employee",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "CMS.API.Controllers.DriverController",
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
     "Method": "GetById",
-    "RelativePath": "api/drivers/{id}",
+    "RelativePath": "api/employees/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -995,9 +1005,9 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "CMS.API.Controllers.DriverController",
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
     "Method": "Update",
-    "RelativePath": "api/drivers/{id}",
+    "RelativePath": "api/employees/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -1009,16 +1019,16 @@
       },
       {
         "Name": "dto",
-        "Type": "CMS.Entities.Operational.Driver",
+        "Type": "CMS.Entities.Operational.Employee",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "CMS.API.Controllers.DriverController",
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
     "Method": "Delete",
-    "RelativePath": "api/drivers/{id}",
+    "RelativePath": "api/employees/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -1032,9 +1042,154 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "CMS.API.Controllers.DriverController",
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "Activate",
+    "RelativePath": "api/employees/{id}/activate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "Deactivate",
+    "RelativePath": "api/employees/{id}/deactivate",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "termDto",
+        "Type": "CMS.API.Controllers.TerminationDto",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetCompanyCurrency",
+    "RelativePath": "api/employees/company-currency",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetCurrencies",
+    "RelativePath": "api/employees/currencies",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetDepartments",
+    "RelativePath": "api/employees/departments",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetDrivers",
+    "RelativePath": "api/employees/drivers",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetGenders",
+    "RelativePath": "api/employees/genders",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetJobPositions",
+    "RelativePath": "api/employees/job-positions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetLocations",
+    "RelativePath": "api/employees/locations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "currentEmployeeId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetStats",
+    "RelativePath": "api/employees/stats",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
     "Method": "GetSystemUsers",
-    "RelativePath": "api/drivers/system-users",
+    "RelativePath": "api/employees/system-users",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.EmployeeController",
+    "Method": "GetTypeIds",
+    "RelativePath": "api/employees/type-ids",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -2971,6 +3126,96 @@
     ]
   },
   {
+    "ContainingType": "CMS.API.Controllers.JobPositionController",
+    "Method": "GetAll",
+    "RelativePath": "api/jobpositions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "isActive",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "idDepartment",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.JobPositionController",
+    "Method": "Create",
+    "RelativePath": "api/jobpositions",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Operational.JobPosition",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.JobPositionController",
+    "Method": "GetById",
+    "RelativePath": "api/jobpositions/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.JobPositionController",
+    "Method": "Update",
+    "RelativePath": "api/jobpositions/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CMS.Entities.Operational.JobPosition",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMS.API.Controllers.JobPositionController",
+    "Method": "Delete",
+    "RelativePath": "api/jobpositions/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CMS.API.Controllers.LocationController",
     "Method": "GetAll",
     "RelativePath": "api/Location",
@@ -3123,6 +3368,16 @@
       {
         "Name": "isActive",
         "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "availableOnly",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      },
+      {
+        "Name": "currentLocationId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       }
     ],
@@ -4505,6 +4760,16 @@
         "IsRequired": false
       },
       {
+        "Name": "availableOnly",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      },
+      {
+        "Name": "currentWarehouseId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
         "Name": "page",
         "Type": "System.Int32",
         "IsRequired": false
@@ -5760,7 +6025,7 @@
     "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "\u003C\u003Ef__AnonymousType75\u00605[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.DateTime, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "Type": "\u003C\u003Ef__AnonymousType89\u00605[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.DateTime, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "MediaTypes": [
           "application/json"
         ],

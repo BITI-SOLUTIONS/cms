@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Operational/FileComment.cs
 // PROPÓSITO: Entidad para comentarios en archivos (BD Operacional)
 // AUTOR: EAMR - BITI Solutions S.A
@@ -92,11 +92,11 @@ namespace CMS.Entities.Operational
         [Column("record_date")]
         public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("created_by")]
         public string CreatedBy { get; set; } = "system";
 
-        [MaxLength(30)]
+        [MaxLength(150)]
         [Column("updated_by")]
         public string UpdatedBy { get; set; } = "system";
 

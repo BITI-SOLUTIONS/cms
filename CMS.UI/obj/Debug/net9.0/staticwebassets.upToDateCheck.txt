@@ -1,6 +1,7 @@
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\jquery-validation\dist\jquery.validate.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\warehouses.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\logo-biti.svg
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\employees.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.min.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.css.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\site.js
@@ -11,10 +12,10 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\inventoryMovements.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\jquery\dist\jquery.min.js
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\drivers.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\jquery-validation\dist\jquery.validate.min.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.min.css
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\positions.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\stockTransfers.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\distributionRoutes.js
@@ -86,13 +87,14 @@ wwwroot\img\logo-mini.svg
 wwwroot\img\logo-tech.svg
 wwwroot\img\logo.png
 wwwroot\js\distributionRoutes.js
-wwwroot\js\drivers.js
+wwwroot\js\employees.js
 wwwroot\js\fleetCatalogs.js
 wwwroot\js\insurers.js
 wwwroot\js\inventoryMovements.js
 wwwroot\js\label-items.js
 wwwroot\js\location-type.js
 wwwroot\js\location.js
+wwwroot\js\positions.js
 wwwroot\js\site.js
 wwwroot\js\stockTransfers.js
 wwwroot\js\transportUnits.js

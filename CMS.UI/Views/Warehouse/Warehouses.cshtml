@@ -140,7 +140,7 @@ small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !importa
 
     <!-- ===== BARRA SUPERIOR RESULTADOS ===== -->
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.85rem;">
+        <div style="font-size:.85rem; color:#cbd5e1;">
             <span id="totalCount">0</span> bodegas encontradas
         </div>
         <div class="d-flex gap-2 align-items-center">
@@ -380,6 +380,16 @@ small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !importa
                                 <option value="Damaged">Dañados/Merma</option>
                                 <option value="Consignment">Consignación</option>
                             </select>
+                        </div>
+                        <div class="col-md-4" id="fTransportUnitWrap">
+                            <label class="form-label text-light">
+                                Unidad de Transporte <span class="text-danger" id="fTransportUnitRequired">*</span>
+                            </label>
+                            <select id="fTransportUnit" class="form-select" disabled>
+                                <option value="">— Seleccione una unidad —</option>
+                            </select>
+                            <div class="invalid-feedback" id="fTransportUnitFeedback">La unidad de transporte es obligatoria para bodegas en tránsito.</div>
+                            <small class="text-muted">Solo disponible para bodegas de tipo <strong>Tránsito</strong>.</small>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label text-light">Nivel jerárquico</label>

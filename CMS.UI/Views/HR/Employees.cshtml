@@ -1,0 +1,486 @@
+﻿@* ================================================================================
+   VISTA: CMS.UI/Views/HR/Employees.cshtml
+   PROPOSITO: Gestion de empleados - Modulo Human Resources
+   AUTOR: EAMR, BITI SOLUTIONS S.A
+   CREADO: 2026-07-04
+   ================================================================================ *@
+@{
+    ViewData["Title"] = "Empleados";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+    .emp-avatar {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: inline-flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: .85rem; color: #fff; flex-shrink: 0;
+    }
+    .emp-avatar.inactive { background: linear-gradient(135deg, #475569, #64748b); }
+    .dept-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 20px; font-size: .7rem;
+        font-weight: 600; border: 1px solid rgba(255,255,255,.15);
+    }
+    .emp-type-badge { font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; }
+    .kpi-card {
+        background: linear-gradient(135deg, var(--kpi-bg1), var(--kpi-bg2));
+        border: 1px solid var(--kpi-border) !important; border-radius: 12px;
+    }
+    .kpi-card .kpi-icon { font-size: 1.8rem; opacity: .8; }
+    .kpi-card .kpi-value { font-size: 1.8rem; font-weight: 800; }
+    .section-divider { border-color: rgba(255,255,255,.1) !important; margin: 0; }
+    .form-section-title {
+        font-size: .7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .08em; color: #94a3b8; margin-bottom: .5rem;
+    }
+    .empty-state-icon { font-size: 3rem; color: #6366f1; opacity: .5; }
+    .empty-state-text { color: #94a3b8 !important; }
+    .alert-compensation {
+        background: rgba(100,116,139,.18);
+        border: 1px solid rgba(100,116,139,.4);
+        color: #94a3b8;
+    }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h4 class="text-white mb-0"><i class="bi bi-people me-2 text-primary"></i>Empleados</h4>
+            <small class="text-muted">Gestion del personal - Human Resources</small>
+        </div>
+        <button class="btn btn-primary" onclick="EMP.openModal()">
+            <i class="bi bi-person-plus me-1"></i>Nuevo Empleado
+        </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card border-secondary py-2 px-3" style="--kpi-bg1:#1e3a5f;--kpi-bg2:#1a2d4a;--kpi-border:#3b82f6">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div><div class="kpi-value text-primary" id="kpiTotal">0</div><small class="text-muted">Total</small></div>
+                    <i class="bi bi-people kpi-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card border-secondary py-2 px-3" style="--kpi-bg1:#14532d;--kpi-bg2:#052e16;--kpi-border:#22c55e">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div><div class="kpi-value text-success" id="kpiActive">0</div><small class="text-muted">Activos</small></div>
+                    <i class="bi bi-person-check kpi-icon text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card border-secondary py-2 px-3" style="--kpi-bg1:#422006;--kpi-bg2:#291705;--kpi-border:#f59e0b">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div><div class="kpi-value text-warning" id="kpiInactive">0</div><small class="text-muted">Inactivos</small></div>
+                    <i class="bi bi-person-x kpi-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card border-secondary py-2 px-3" style="--kpi-bg1:#1e1b4b;--kpi-bg2:#13103b;--kpi-border:#8b5cf6">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div><div class="kpi-value text-info" id="kpiNewMonth">0</div><small class="text-muted">Ingresaron este mes</small></div>
+                    <i class="bi bi-person-plus kpi-icon text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card bg-dark border-secondary mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary"
+                           id="empSearch" placeholder="Buscar por nombre, cedula, codigo, email..."
+                           oninput="EMP.debounceSearch()">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="empFilterDept" onchange="EMP.load()">
+                        <option value="">Todos los dptos.</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="empFilterType" onchange="EMP.load()">
+                        <option value="">Todos los tipos</option>
+                        <option value="FULL_TIME">Tiempo Completo</option>
+                        <option value="PART_TIME">Medio Tiempo</option>
+                        <option value="CONTRACT">Contratado</option>
+                        <option value="INTERN">Pasante</option>
+                        <option value="OTHER">Otro</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="empFilterActive" onchange="EMP.load()">
+                        <option value="">Todos</option>
+                        <option value="true" selected>Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="EMP.load()"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:44px"></th>
+                            <th>Codigo</th>
+                            <th>Empleado</th>
+                            <th>Departamento</th>
+                            <th>Puesto</th>
+                            <th>Tipo</th>
+                            <th>Ingreso</th>
+                            <th>Contacto</th>
+                            <th class="text-center">Estado</th>
+                            <th style="width:80px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="empBody">
+                        <tr><td colspan="10" class="text-center py-4">
+                            <i class="bi bi-hourglass-split me-2 text-muted"></i>
+                            <span class="text-muted">Cargando...</span>
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-2">
+            <small class="text-muted" id="empPagInfo"></small>
+            <div id="empPagNav"></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EMPLEADO -->
+<div class="modal fade" id="empModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary py-2">
+                <h5 class="modal-title" id="empModalTitle">
+                    <i class="bi bi-person-badge me-2 text-primary"></i>Empleado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="empFormTabs">
+                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#empTabPersonal"><i class="bi bi-person me-1"></i>Datos Personales</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#empTabLaboral"><i class="bi bi-briefcase me-1"></i>Info Laboral</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#empTabSalary"><i class="bi bi-cash-coin me-1"></i>Compensacion</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#empTabEmergency"><i class="bi bi-heart-pulse me-1"></i>Emergencia</a></li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <!-- TAB: Datos Personales -->
+                    <div class="tab-pane fade show active" id="empTabPersonal">
+                        <div class="row g-3">
+
+                            <!-- Vinculo usuario sistema -->
+                            <div class="col-12">
+                                <div class="card bg-dark border-secondary border-opacity-50 p-3">
+                                    <p class="form-section-title mb-2"><i class="bi bi-person-gear me-1"></i>Vinculo con Usuario del Sistema</p>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-8">
+                                            <label class="form-label text-light">Usuario del Sistema</label>
+                                            <select class="form-select bg-dark text-white border-secondary" id="empSystemUser">
+                                                <option value="">- Sin usuario vinculado -</option>
+                                            </select>
+                                            <small>Al seleccionar un usuario se rellenan los campos automaticamente.</small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="EMP.clearSystemUser()">
+                                                <i class="bi bi-x-circle me-1"></i>Quitar vinculo
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="section-divider col-12">
+
+                            <!-- Identificacion -->
+                            <div class="col-12"><p class="form-section-title"><i class="bi bi-card-heading me-1"></i>Identificacion</p></div>
+                            <div class="col-md-2">
+                                <label class="form-label text-light">Codigo *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empCode" maxlength="30" placeholder="EMP-001">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Tipo ID *</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="empIdType" onchange="EMP.onIdTypeChange()">
+                                    <option value="">- Seleccione -</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Numero de ID *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empIdNumber" maxlength="30">
+                                <small id="empIdNumberHint"></small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Genero *</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="empGender">
+                                    <option value="">- Seleccione -</option>
+                                </select>
+                            </div>
+
+                            <!-- Nombres -->
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Primer Nombre *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empFirstName" maxlength="100">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Segundo Nombre</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empSecondName" maxlength="100">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Primer Apellido *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empLastName" maxlength="100">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Segundo Apellido *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empSecondLastName" maxlength="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Fecha de Nacimiento *</label>
+                                <input type="date" class="form-control bg-dark text-white border-secondary" id="empBirthDate">
+                                <small id="empAge"></small>
+                            </div>
+
+                            <hr class="section-divider col-12">
+
+                            <!-- Contacto -->
+                            <div class="col-12"><p class="form-section-title"><i class="bi bi-telephone me-1"></i>Contacto</p></div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Telefono</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empPhone" maxlength="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Movil *</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empMobile" maxlength="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Correo Electronico *</label>
+                                <input type="email" class="form-control bg-dark text-white border-secondary" id="empEmail" maxlength="150">
+                            </div>
+
+                            <!-- Direccion selector -->
+                            <div class="col-12">
+                                <label class="form-label text-light">Direccion</label>
+                                <div class="input-group">
+                                    <select class="form-select bg-dark text-white border-secondary" id="empLocation">
+                                        <option value="">- Sin direccion asignada -</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="EMP.refreshLocations()" title="Actualizar lista">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                    <a class="btn btn-outline-info" href="/Settings/Locations" target="_blank" title="Gestionar ubicaciones">
+                                        <i class="bi bi-geo-alt"></i>
+                                    </a>
+                                </div>
+                                <small>Si no existe la direccion, creela en Ubicaciones y luego refresque.</small>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- TAB: Info Laboral -->
+                    <div class="tab-pane fade" id="empTabLaboral">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-light">Departamento *</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="empDepartment">
+                                    <option value="">- Seleccione departamento -</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-light">Puesto / Cargo *</label>
+                                <div class="input-group">
+                                    <select class="form-select bg-dark text-white border-secondary" id="empJobPosition">
+                                        <option value="">- Seleccione puesto -</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="EMP.refreshJobPositions()" title="Actualizar puestos">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                    <a class="btn btn-outline-info" href="/HR/Positions" target="_blank" title="Gestionar puestos">
+                                        <i class="bi bi-briefcase"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Tipo de Empleo</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="empEmploymentType">
+                                    <option value="FULL_TIME">Tiempo Completo</option>
+                                    <option value="PART_TIME">Medio Tiempo</option>
+                                    <option value="CONTRACT">Contratado</option>
+                                    <option value="INTERN">Pasante</option>
+                                    <option value="OTHER">Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Fecha de Ingreso *</label>
+                                <input type="date" class="form-control bg-dark text-white border-secondary" id="empHireDate">
+                                <small id="empTenure"></small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Fecha de Salida</label>
+                                <input type="date" class="form-control bg-dark text-white border-secondary" id="empTerminationDate">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-light">Motivo de Salida</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empTerminationReason" maxlength="500">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-light">Notas</label>
+                                <textarea class="form-control bg-dark text-white border-secondary" id="empNotes" rows="3" maxlength="2000"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="empIsActive" checked>
+                                    <label class="form-check-label text-light" for="empIsActive">Empleado Activo</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Compensacion -->
+                    <div class="tab-pane fade" id="empTabSalary">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="alert alert-compensation py-2">
+                                    <i class="bi bi-shield-lock me-2"></i>
+                                    <small>Los datos de compensacion son confidenciales. Solo usuarios autorizados pueden visualizar o editar este apartado.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Salario Base *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark text-white border-secondary" id="empCurrencyPrefix">&#8353;</span>
+                                    <input type="number" class="form-control bg-dark text-white border-secondary" id="empBaseSalary" step="0.01" min="0.01">
+                                </div>
+                                <small>El salario debe ser mayor a 0.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Moneda *</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="empSalaryCurrency" onchange="EMP.updateCurrencySymbol()">
+                                    <option value="">- Seleccione -</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light">Frecuencia de Pago</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="empPaymentFrequency">
+                                    <option value="MONTHLY">Mensual</option>
+                                    <option value="BIWEEKLY">Quincenal</option>
+                                    <option value="WEEKLY">Semanal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Emergencia -->
+                    <div class="tab-pane fade" id="empTabEmergency">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-light">Nombre del Contacto</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empEmergencyName" maxlength="200">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Telefono</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empEmergencyPhone" maxlength="30">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light">Relacion</label>
+                                <input class="form-control bg-dark text-white border-secondary" id="empEmergencyRelation" maxlength="100" placeholder="Ej: Conyuge, Madre, Padre...">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="empBtnSave" onclick="EMP.save()">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Baja -->
+<div class="modal fade" id="empDeactivateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-warning text-light">
+            <div class="modal-header border-warning">
+                <h5 class="modal-title"><i class="bi bi-person-dash text-warning me-2"></i>Dar de Baja</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Desea dar de baja al empleado <strong id="empDeactivateName"></strong>?</p>
+                <div class="row g-2 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Fecha de Salida</label>
+                        <input type="date" class="form-control bg-dark text-white border-secondary" id="empDeactivateDate">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-light">Motivo</label>
+                        <input class="form-control bg-dark text-white border-secondary" id="empDeactivateReason" maxlength="500" placeholder="Ej: Renuncia voluntaria...">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="EMP.confirmDeactivate()"><i class="bi bi-person-dash me-1"></i>Dar de Baja</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="modal fade" id="empDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-danger text-light">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Eliminar Empleado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Eliminar permanentemente a <strong id="empDeleteName"></strong>?</p>
+                <small class="text-danger">Esta accion no se puede deshacer.</small>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="EMP.confirmDelete()"><i class="bi bi-trash me-1"></i>Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    window.EMP_API   = '@ViewBag.ApiBaseUrl';
+    window.EMP_TOKEN = '@ViewBag.ApiToken';
+</script>
+<script src="~/js/employees.js" asp-append-version="true"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ['empModal','empDeactivateModal','empDeleteModal'].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el) document.body.appendChild(el);
+        });
+    });
+</script>
+}

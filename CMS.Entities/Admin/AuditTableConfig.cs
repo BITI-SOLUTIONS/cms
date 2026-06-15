@@ -1,4 +1,4 @@
-// ================================================================================
+﻿// ================================================================================
 // ARCHIVO: CMS.Entities/Admin/AuditTableConfig.cs
 // PROPÓSITO: Entidad para configuración de tablas a auditar
 // AUTOR: EAMR, BITI SOLUTIONS S.A
@@ -97,11 +97,11 @@ public class AuditTableConfig
     public DateTime RecordDate { get; set; } = DateTime.UtcNow;
 
     [Column("created_by")]
-    [MaxLength(30)]
+    [MaxLength(150)]
     public string CreatedBy { get; set; } = "SYSTEM";
 
     [Column("updated_by")]
-    [MaxLength(30)]
+    [MaxLength(150)]
     public string UpdatedBy { get; set; } = "SYSTEM";
 
     [Column("rowpointer")]

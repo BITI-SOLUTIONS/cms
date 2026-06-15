@@ -1470,10 +1470,10 @@
         }
       }
     },
-    "/api/drivers": {
+    "/api/employees": {
       "get": {
         "tags": [
-          "Driver"
+          "Employee"
         ],
         "parameters": [
           {
@@ -1488,6 +1488,21 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "idDepartment",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "employmentType",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -1517,23 +1532,23 @@
       },
       "post": {
         "tags": [
-          "Driver"
+          "Employee"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Driver"
+                "$ref": "#/components/schemas/Employee"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/Driver"
+                "$ref": "#/components/schemas/Employee"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/Driver"
+                "$ref": "#/components/schemas/Employee"
               }
             }
           }
@@ -1545,10 +1560,10 @@
         }
       }
     },
-    "/api/drivers/{id}": {
+    "/api/employees/{id}": {
       "get": {
         "tags": [
-          "Driver"
+          "Employee"
         ],
         "parameters": [
           {
@@ -1569,7 +1584,7 @@
       },
       "put": {
         "tags": [
-          "Driver"
+          "Employee"
         ],
         "parameters": [
           {
@@ -1586,17 +1601,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Driver"
+                "$ref": "#/components/schemas/Employee"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/Driver"
+                "$ref": "#/components/schemas/Employee"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/Driver"
+                "$ref": "#/components/schemas/Employee"
               }
             }
           }
@@ -1609,7 +1624,7 @@
       },
       "delete": {
         "tags": [
-          "Driver"
+          "Employee"
         ],
         "parameters": [
           {
@@ -1629,10 +1644,211 @@
         }
       }
     },
-    "/api/drivers/system-users": {
+    "/api/employees/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Employee"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminationDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminationDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Employee"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/system-users": {
       "get": {
         "tags": [
-          "Driver"
+          "Employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/departments": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/job-positions": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/locations": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "parameters": [
+          {
+            "name": "currentEmployeeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/genders": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/type-ids": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/currencies": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/company-currency": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/stats": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/employees/drivers": {
+      "get": {
+        "tags": [
+          "Employee"
         ],
         "responses": {
           "200": {
@@ -3373,7 +3589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType75"
+                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType89"
                 }
               }
             }
@@ -4812,6 +5028,148 @@
         }
       }
     },
+    "/api/jobpositions": {
+      "get": {
+        "tags": [
+          "JobPosition"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "idDepartment",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "JobPosition"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPosition"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPosition"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPosition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/jobpositions/{id}": {
+      "get": {
+        "tags": [
+          "JobPosition"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "JobPosition"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPosition"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPosition"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPosition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "JobPosition"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Location": {
       "get": {
         "tags": [
@@ -4915,6 +5273,22 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "availableOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "currentLocationId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -7318,6 +7692,22 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "availableOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "currentWarehouseId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -9746,12 +10136,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -9842,12 +10232,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -10258,12 +10648,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -10738,12 +11128,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -11332,13 +11722,20 @@
         },
         "additionalProperties": false
       },
-      "Driver": {
+      "Employee": {
         "required": [
+          "baseSalary",
+          "birthDate",
           "code",
           "createdBy",
+          "email",
           "firstName",
+          "gender",
+          "hireDate",
           "idNumber",
           "lastName",
+          "mobile",
+          "secondLastName",
           "updatedBy"
         ],
         "type": "object",
@@ -11348,6 +11745,21 @@
             "format": "int32"
           },
           "idSystemUser": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idDepartment": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idJobPosition": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "idLocation": {
             "type": "integer",
             "format": "int32",
             "nullable": true
@@ -11362,6 +11774,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "secondName": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
           "lastName": {
             "maxLength": 100,
             "minLength": 1,
@@ -11369,8 +11786,8 @@
           },
           "secondLastName": {
             "maxLength": 100,
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "fullName": {
             "maxLength": 300,
@@ -11382,10 +11799,19 @@
             "minLength": 1,
             "type": "string"
           },
-          "idType": {
-            "maxLength": 20,
-            "type": "string",
+          "idTypeId": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "maxLength": 10,
+            "minLength": 1,
+            "type": "string"
           },
           "phone": {
             "maxLength": 30,
@@ -11394,41 +11820,44 @@
           },
           "mobile": {
             "maxLength": 30,
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "email": {
             "maxLength": 150,
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
-          "address": {
-            "maxLength": 500,
+          "employmentType": {
+            "maxLength": 50,
             "type": "string",
-            "nullable": true
-          },
-          "licenseNumber": {
-            "maxLength": 30,
-            "type": "string",
-            "nullable": true
-          },
-          "licenseCategory": {
-            "maxLength": 30,
-            "type": "string",
-            "nullable": true
-          },
-          "licenseExpiryDate": {
-            "type": "string",
-            "format": "date",
             "nullable": true
           },
           "hireDate": {
             "type": "string",
+            "format": "date"
+          },
+          "terminationDate": {
+            "type": "string",
             "format": "date",
             "nullable": true
           },
-          "position": {
-            "maxLength": 100,
+          "terminationReason": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "baseSalary": {
+            "type": "number",
+            "format": "double"
+          },
+          "idCurrency": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "paymentFrequency": {
+            "maxLength": 30,
             "type": "string",
             "nullable": true
           },
@@ -11439,6 +11868,11 @@
           },
           "emergencyContactPhone": {
             "maxLength": 30,
+            "type": "string",
+            "nullable": true
+          },
+          "emergencyContactRelation": {
+            "maxLength": 100,
             "type": "string",
             "nullable": true
           },
@@ -11459,18 +11893,54 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "rowpointer": {
             "type": "string",
             "format": "uuid"
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentIcon": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "jobPositionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "locationDisplay": {
+            "type": "string",
+            "nullable": true
+          },
+          "typeIdDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "genderDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "currencyCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "currencySymbol": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -11907,12 +12377,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -12098,12 +12568,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -12425,6 +12895,77 @@
         },
         "additionalProperties": false
       },
+      "JobPosition": {
+        "required": [
+          "code",
+          "idDepartment",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "level": {
+            "maxLength": 60,
+            "type": "string",
+            "nullable": true
+          },
+          "idDepartment": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isDriver": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "LabelPrintHistoryDto": {
         "type": "object",
         "properties": {
@@ -12718,22 +13259,22 @@
             "format": "int32",
             "nullable": true
           },
-          "idProvince": {
+          "idGeographicDivision1": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
-          "idCanton": {
+          "idGeographicDivision2": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
-          "idDistrict": {
+          "idGeographicDivision3": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
-          "idNeighborhood": {
+          "idGeographicDivision4": {
             "type": "integer",
             "format": "int32",
             "nullable": true
@@ -12922,12 +13463,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -13012,12 +13553,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -13081,12 +13622,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -13137,12 +13678,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -13296,6 +13837,10 @@
           "nextWarehouseId": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          },
+          "signature": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -14305,7 +14850,7 @@
         },
         "additionalProperties": false
       },
-      "StringStringStringStringDateTime<>f__AnonymousType75": {
+      "StringStringStringStringDateTime<>f__AnonymousType89": {
         "type": "object",
         "properties": {
           "status": {
@@ -14412,12 +14957,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -14506,12 +15051,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -14554,12 +15099,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -14600,6 +15145,21 @@
             "nullable": true
           },
           "companyName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TerminationDto": {
+        "type": "object",
+        "properties": {
+          "terminationDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           }
@@ -14710,12 +15270,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -14996,12 +15556,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -15072,12 +15632,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -15137,12 +15697,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -15208,12 +15768,12 @@
             "format": "date-time"
           },
           "createdBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
           "updatedBy": {
-            "maxLength": 30,
+            "maxLength": 150,
             "minLength": 1,
             "type": "string"
           },
@@ -16438,6 +16998,11 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "idTransportUnit": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
