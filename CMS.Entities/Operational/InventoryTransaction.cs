@@ -113,9 +113,7 @@ namespace CMS.Entities.Operational
 
         // ===== REFERENCIAS =====
 
-        /// <summary>Referencia a ruta de distribución (si aplica)</summary>
-        [Column("id_distribution_route")]
-        public int? IdDistributionRoute { get; set; }
+
 
         /// <summary>Referencia externa: factura, OC, guía de remisión, etc.</summary>
         [MaxLength(100)]
@@ -182,9 +180,7 @@ namespace CMS.Entities.Operational
         [Column("departure_time")]
         public TimeOnly? DepartureTime { get; set; }
 
-        /// <summary>Hora de llegada a la bodega de tránsito.</summary>
-        [Column("arrival_time")]
-        public TimeOnly? ArrivalTime { get; set; }
+
 
         /// <summary>Kilometraje al salir de la bodega origen.</summary>
         [Column("odometer_out")]

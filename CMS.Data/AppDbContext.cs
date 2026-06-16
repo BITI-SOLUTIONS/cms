@@ -116,6 +116,9 @@ namespace CMS.Data
         public DbSet<TransportUnitBrand> TransportUnitBrands { get; set; }
         public DbSet<TransportUnitModel> TransportUnitModels { get; set; }
 
+        // ===== CATÁLOGOS INVENTORY (admin schema) =====
+        public DbSet<InventoryTransactionType> InventoryTransactionTypes { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

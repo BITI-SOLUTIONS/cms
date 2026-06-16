@@ -17,12 +17,13 @@ const INV = {
     api:       window.INV_API   || '',
     token:     window.INV_TOKEN || '',
     page:      1,
-    pageSize:  20,
+    pageSize:  10,
     totalPages: 1,
     // Filtros activos
     filters:   { search: '', type: '', status: '', dateFrom: '', dateTo: '' },
     // Datos cacheados
-    warehouses: [],
+    warehouses:    [],
+    movementTypes: [],   // tipos cargados desde admin.inventory_transaction_type
     items:      [],
     // Estado del modal
     editingId:  null,
@@ -84,8 +85,8 @@ async function invFetch(path, options = {}) {
 // INIT
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadWarehouses();
+document.addEventListener('DOMContentLoaded', async () => {
+    await Promise.all([loadWarehouses(), loadMovementTypes()]);
     loadMovements();
     bindEvents();
 });
@@ -101,6 +102,48 @@ async function loadWarehouses() {
     } catch (e) {
         console.warn('No se pudieron cargar bodegas:', e);
     }
+}
+
+// ============================================================
+// CARGAR TIPOS DE MOVIMIENTO (caché + select dinámico)
+// ============================================================
+
+async function loadMovementTypes() {
+    try {
+        const types = await invFetch('/api/inventory-transaction-type?isActive=true');
+        INV.movementTypes = types || [];
+
+        // Reconstruir el mapa MOVEMENT_TYPES con los datos del servidor
+        for (const key of Object.keys(MOVEMENT_TYPES)) delete MOVEMENT_TYPES[key];
+        for (const t of INV.movementTypes) {
+            MOVEMENT_TYPES[t.code] = {
+                label: t.name,
+                icon:  t.emoji || '📦',
+                css:   t.cssClass || '',
+            };
+        }
+
+        // Poblar el select del modal (fldType)
+        populateMovementTypeSelect('fldType');
+
+        // Poblar el select de filtro en la lista (fType)
+        populateMovementTypeSelect('fType', true);
+    } catch (e) {
+        console.warn('No se pudieron cargar tipos de movimiento:', e);
+        // Fallback: mantener las opciones que ya vengan en el select (vacío o default)
+    }
+}
+
+function populateMovementTypeSelect(selectId, includeAll = false) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const prev = sel.value;
+    const allOpt = includeAll ? '<option value="">— Todos los tipos —</option>' : '';
+    sel.innerHTML = allOpt + INV.movementTypes
+        .map(t => `<option value="${t.code}">${t.emoji ? t.emoji + ' ' : ''}${t.name}</option>`)
+        .join('');
+    // Restaurar selección previa si sigue siendo válida
+    if (prev && INV.movementTypes.some(t => t.code === prev)) sel.value = prev;
 }
 
 // ============================================================
@@ -182,6 +225,9 @@ function actionButtons(t) {
     if (t.status === 'Confirmed') {
         btns.push(`<button class="btn btn-sm btn-outline-success btn-inv" onclick="completeTxn(${t.id})" title="Completar"><i class="bi bi-check-all"></i></button>`);
     }
+    if (t.status === 'Completed' || t.status === 'Cancelled') {
+        btns.push(`<button class="btn btn-sm btn-outline-info btn-inv" onclick="openDetail(${t.id})" title="Ver detalle"><i class="bi bi-eye"></i></button>`);
+    }
     if (!['Completed','Cancelled'].includes(t.status)) {
         btns.push(`<button class="btn btn-sm btn-outline-danger btn-inv" onclick="openCancel(${t.id})" title="Cancelar"><i class="bi bi-x-circle"></i></button>`);
     }
@@ -249,11 +295,21 @@ async function openCreate() {
     document.getElementById('fldType').value    = 'Transfer';
     document.getElementById('fldOrigin').value  = '';
     document.getElementById('fldDest').value    = '';
-    document.getElementById('fldArrival').value = today;
-    document.getElementById('fldArrival').min   = today;
     document.getElementById('fldReference').value = '';
     document.getElementById('fldNotes').value   = '';
     INV._vehicleOdometerKm = null;
+
+    // Limpiar campos de encabezado de tránsito
+    const fldSealNew = document.getElementById('fldSecuritySeal');
+    const fldDeptNew = document.getElementById('fldDepartureTime');
+    const fldOdoNew  = document.getElementById('fldOdometerOut');
+    const fldOdoErrNew  = document.getElementById('fldOdoErr');
+    const fldOdoHintNew = document.getElementById('fldOdoHint');
+    if (fldSealNew) fldSealNew.value = '';
+    if (fldDeptNew) fldDeptNew.value = '';
+    if (fldOdoNew)  { fldOdoNew.value = ''; fldOdoNew.style.borderColor = ''; }
+    if (fldOdoErrNew) fldOdoErrNew.style.display = 'none';
+    if (fldOdoHintNew) fldOdoHintNew.textContent = 'Km al salir hacia la bodega de tránsito';
 
     INV._groups = [{ destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
     populateWarehouseSelects();
@@ -283,8 +339,6 @@ async function openEdit(id) {
         document.getElementById('fldNumber').value    = txn.transactionNumber;
         document.getElementById('fldDate').value      = txn.transactionDate;
         document.getElementById('fldDate').min        = '';
-        document.getElementById('fldArrival').value   = txn.expectedArrivalDate || '';
-        document.getElementById('fldArrival').min     = txn.transactionDate || '';
         document.getElementById('fldType').value      = txn.movementType;
         document.getElementById('fldReference').value = txn.reference || '';
         document.getElementById('fldNotes').value     = txn.notes || '';
@@ -349,6 +403,31 @@ async function openEdit(id) {
         // Restaurar Bodega Tránsito (fldDest) después de que updateTransitUI lo reconstruyó
         if (savedDestId) document.getElementById('fldDest').value = savedDestId;
 
+        // Restaurar campos de encabezado de tránsito
+        if (isTransitMode) {
+            const fldSeal = document.getElementById('fldSecuritySeal');
+            const fldDept = document.getElementById('fldDepartureTime');
+            const fldOdo  = document.getElementById('fldOdometerOut');
+            if (fldSeal) fldSeal.value = txn.securitySeal   || '';
+            if (fldDept) fldDept.value = txn.departureTime  || '';
+            if (fldOdo)  fldOdo.value  = txn.odometerOut != null ? txn.odometerOut : '';
+
+            // Cargar km del vehículo para validación en tiempo real
+            if (savedDestId) {
+                const wh = INV.warehouses.find(w => w.id === parseInt(savedDestId));
+                if (wh && wh.idTransportUnit) {
+                    invFetch(`/api/transportunit/${wh.idTransportUnit}`)
+                        .then(unit => {
+                            INV._vehicleOdometerKm = unit.currentOdometerKm ?? null;
+                            const fldOdoHint = document.getElementById('fldOdoHint');
+                            if (fldOdoHint && INV._vehicleOdometerKm !== null)
+                                fldOdoHint.textContent = `Km actual del vehículo: ${INV._vehicleOdometerKm.toLocaleString('es-CR')} km`;
+                        })
+                        .catch(() => {});
+                }
+            }
+        }
+
         renderLines();
 
         document.getElementById('btnSaveConfirm').classList.remove('d-none');
@@ -397,6 +476,30 @@ function updateTransitUI() {
 
     banner.classList.toggle('d-none', !isTransit);
     destGroup.classList.toggle('d-none', !needsDest);
+
+    // Mostrar/ocultar campos de encabezado de tránsito (Sello, Hora Salida, Km Salida)
+    const transitHeaderFields = document.getElementById('transitHeaderFields');
+    if (transitHeaderFields) transitHeaderFields.classList.toggle('d-none', !isTransit);
+
+    // Limpiar campos de encabezado al cambiar a un tipo no-tránsito
+    if (!isTransit) {
+        const fldSeal = document.getElementById('fldSecuritySeal');
+        const fldDept = document.getElementById('fldDepartureTime');
+        const fldOdo  = document.getElementById('fldOdometerOut');
+        if (fldSeal) fldSeal.value = '';
+        if (fldDept) fldDept.value = '';
+        if (fldOdo)  fldOdo.value  = '';
+        INV._vehicleOdometerKm = null;
+        const fldOdoErr = document.getElementById('fldOdoErr');
+        if (fldOdoErr) fldOdoErr.style.display = 'none';
+        // Clear busy warning and re-enable save buttons
+        const busyWarn = document.getElementById('transitBusyWarn');
+        if (busyWarn) busyWarn.classList.add('d-none');
+        ['btnSaveMovement', 'btnSaveConfirm'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.disabled = false;
+        });
+    }
 
     // En modo tránsito el selector global de destino se reemplaza por grupos inline
     finalDestGroup.classList.add('d-none');
@@ -717,38 +820,6 @@ function renderTransitGroups(container) {
                     </button>
                 </div>` : ''}
             </div>
-            <!-- Sello + Hora/Km por destino -->
-            <div class="row g-2 mb-2">
-                <div class="col-12 col-md-4">
-                    <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                        <i class="bi bi-shield-lock me-1 text-warning"></i>Sello Destino${isActiveGroup ? ' *' : ''}
-                    </label>
-                    <input type="text" id="grpSeal${gIdx}" class="form-control grp-seal" data-gidx="${gIdx}"
-                           placeholder="Sello bodega destino…" maxlength="50" autocomplete="off"
-                           value="${group.sealDest || ''}">
-                </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                        <i class="bi bi-clock-fill me-1 text-info"></i>Hora Llegada${isActiveGroup ? ' <span style="color:#f87171;">*</span>' : ''}
-                    </label>
-                    <input type="time" id="grpArrTime${gIdx}" class="form-control grp-arr-time" data-gidx="${gIdx}"
-                           step="60" value="${group.arrivalTime || ''}">
-                </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                        <i class="bi bi-clock me-1 text-warning"></i>Hora Salida${isActiveGroup ? ' *' : ''}
-                    </label>
-                    <input type="time" id="grpDeptTime${gIdx}" class="form-control grp-dept-time" data-gidx="${gIdx}"
-                           step="60" value="${group.departureTime || ''}">
-                </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                        <i class="bi bi-speedometer me-1 text-warning"></i>Km Salida${isActiveGroup ? ' *' : ''}
-                    </label>
-                    <input type="number" id="grpOdoOut${gIdx}" class="form-control grp-odo-out" data-gidx="${gIdx}"
-                           placeholder="0" min="0" step="1" value="${group.odometerOut ?? ''}">
-                </div>
-            </div>
             <!-- Artículos de este grupo -->
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="fw-semibold text-light" style="font-size:.85rem;"><i class="bi bi-list-ul me-1"></i>Artículos</span>
@@ -774,29 +845,6 @@ function renderTransitGroups(container) {
     // Bind: cambio de selector de destino por grupo
     container.querySelectorAll('.grp-dest-sel').forEach(sel => {
         sel.addEventListener('change', () => changeGroupDest(+sel.dataset.gidx));
-    });
-
-    // Bind: sello, hora y km por grupo (actualiza INV._groups en tiempo real)
-    container.querySelectorAll('.grp-seal').forEach(inp => {
-        inp.addEventListener('input', () => { if (INV._groups[+inp.dataset.gidx]) INV._groups[+inp.dataset.gidx].sealDest = inp.value; });
-    });
-    container.querySelectorAll('.grp-dept-time').forEach(inp => {
-        inp.addEventListener('change', () => { if (INV._groups[+inp.dataset.gidx]) INV._groups[+inp.dataset.gidx].departureTime = inp.value; });
-    });
-    container.querySelectorAll('.grp-arr-time').forEach(inp => {
-        inp.addEventListener('change', () => {
-            const gi = +inp.dataset.gidx;
-            if (INV._groups[gi]) INV._groups[gi].arrivalTime = inp.value;
-            // Primer destino: hora de llegada se copia automáticamente a hora de salida
-            if (gi === 0 && inp.value) {
-                INV._groups[0].departureTime = inp.value;
-                const deptInp = container.querySelector('.grp-dept-time[data-gidx="0"]');
-                if (deptInp) deptInp.value = inp.value;
-            }
-        });
-    });
-    container.querySelectorAll('.grp-odo-out').forEach(inp => {
-        inp.addEventListener('input', () => { if (INV._groups[+inp.dataset.gidx]) INV._groups[+inp.dataset.gidx].odometerOut = inp.value; });
     });
 
     // Bind: agregar artículo a un grupo específico
@@ -954,7 +1002,6 @@ async function saveMovement(autoConfirm = false) {
     const type      = document.getElementById('fldType').value;
     const originId  = parseInt(document.getElementById('fldOrigin').value) || 0;
     const destId    = parseInt(document.getElementById('fldDest').value)   || null;
-    const arrival   = document.getElementById('fldArrival').value   || null;
     const reference = document.getElementById('fldReference').value.trim() || null;
     const notes     = document.getElementById('fldNotes').value.trim()     || null;
     const isTransit = type === 'TransitTransfer';
@@ -964,30 +1011,43 @@ async function saveMovement(autoConfirm = false) {
 
     // Campos de tramo Origen→Tránsito
     const departureTime  = isTransit ? (document.getElementById('fldDepartureTime').value || null) : null;
-    const arrivalTime    = isTransit ? (document.getElementById('fldArrivalTime').value   || null) : null;
     const odometerRaw    = document.getElementById('fldOdometerOut').value.trim();
     const odometerOut    = isTransit ? (odometerRaw !== '' ? parseFloat(odometerRaw) : null) : null;
-
-    // Auto-rellenar fecha esperada si está vacía
-    const fldArrivalEl = document.getElementById('fldArrival');
-    if (!arrival) {
-        fldArrivalEl.value = date;
-    }
-    const effectiveArrival = fldArrivalEl.value || date;
-    if (date && effectiveArrival < date) {
-        fldArrivalEl.focus();
-        return showModalAlert('La Fecha Esperada de Llegada no puede ser anterior a la Fecha del movimiento.', 'warning');
-    }
 
     if (!originId) return showModalAlert('Seleccione la Bodega Origen.', 'warning');
     if (isTransit && !destId) return showModalAlert('Seleccione la Bodega de Tránsito (Vehículo).', 'warning');
     if (isTransit) {
+        // Validaciones de encabezado solo obligatorias al Confirmar (autoConfirm)
+        if (autoConfirm) {
+            if (!securitySeal)
+                return showModalAlert('El Sello de Seguridad es obligatorio para confirmar el movimiento.', 'warning');
+            if (!departureTime)
+                return showModalAlert('La Hora de Salida es obligatoria para confirmar el movimiento.', 'warning');
+            if (odometerOut === null)
+                return showModalAlert('El Km de Salida es obligatorio para confirmar el movimiento.', 'warning');
+
+            // Validar unicidad del sello en toda la BD (headers + lines de cualquier movimiento)
+            if (securitySeal) {
+                try {
+                    const excludeId = INV.editingId || undefined;
+                    const sealUrl = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(securitySeal)}`
+                        + (excludeId ? `&excludeId=${excludeId}` : '');
+                    const { exists: sealDup } = await invFetch(sealUrl);
+                    if (sealDup)
+                        return showModalAlert(`El Sello de Seguridad "${securitySeal}" ya está en uso en otro movimiento. Ingrese un sello único.`, 'warning');
+                } catch { /* si falla el check, el servidor lo rechazará */ }
+            }
+        }
+        // Validar Km Salida >= km del vehículo si se ingresó un valor
+        if (odometerOut !== null && INV._vehicleOdometerKm !== null && odometerOut < INV._vehicleOdometerKm)
+            return showModalAlert(
+                `El Km de Salida (${odometerOut.toLocaleString('es-CR')} km) no puede ser menor al kilometraje actual del vehículo (${INV._vehicleOdometerKm.toLocaleString('es-CR')} km).`,
+                'warning'
+            );
+
         // Validar que cada grupo tenga bodega destino asignada
         const missingDest = INV._groups.some(g => !g.destId);
         if (missingDest) return showModalAlert('Seleccione la Bodega Destino Final en todos los grupos de artículos.', 'warning');
-
-        // Índice del grupo activo (primer grupo no completamente recibido)
-        const activeGroupIdx = _getActiveTransitGroupIdx();
 
         // Validar que ningún grupo esté vacío de artículos
         for (const [gIdx, group] of INV._groups.entries()) {
@@ -1000,27 +1060,7 @@ async function saveMovement(autoConfirm = false) {
                     'warning'
                 );
             }
-
-            // Los campos de tránsito (sello, hora, km) solo son obligatorios en el grupo activo
-            if (gIdx === activeGroupIdx) {
-                const w = INV.warehouses.find(x => x.id === group.destId);
-                const wName = w ? `${w.code} — ${w.name}` : `Parada ${gIdx + 1}`;
-                if (!group.sealDest || !group.sealDest.trim())
-                    return showModalAlert(`El Sello Destino es obligatorio en la parada "${wName}".`, 'warning');
-                if (!group.arrivalTime)
-                    return showModalAlert(`La Hora de Llegada es obligatoria en la parada "${wName}".`, 'warning');
-                if (!group.departureTime)
-                    return showModalAlert(`La Hora de Salida es obligatoria en la parada "${wName}".`, 'warning');
-                const odoVal = group.odometerOut !== '' && group.odometerOut != null ? parseFloat(group.odometerOut) : null;
-                if (odoVal === null)
-                    return showModalAlert(`El Km de Salida es obligatorio en la parada "${wName}".`, 'warning');
-                // Validar km mínimo contra km actual del vehículo
-                if (INV._vehicleOdometerKm !== null && odoVal < INV._vehicleOdometerKm)
-                    return showModalAlert(
-                        `El Km de Salida en la parada "${wName}" (${odoVal.toLocaleString('es-CR')} km) no puede ser menor al kilometraje actual del vehículo (${INV._vehicleOdometerKm.toLocaleString('es-CR')} km).`,
-                        'warning'
-                    );
-            }
+            // Los campos de sello, hora y km de los grupos NO son obligatorios en crear/confirmar
         }
     }
     if (!INV.lines.length) return showModalAlert('Agregue al menos un artículo.', 'warning');
@@ -1049,17 +1089,6 @@ async function saveMovement(autoConfirm = false) {
         if (qtyEl)  l.qtyRequested = parseFloat(qtyEl.value)  || 0;
         if (costEl) l.unitCost     = parseFloat(costEl.value) || null;
         if (lotEl)  l.lotNumber    = lotEl.value || null;
-
-        // Copiar campos del grupo (sello, hora, km) a cada línea del grupo
-        if (isTransit) {
-            const grp = INV._groups.find(g => g.destId === l.idWarehouseDestLine);
-            if (grp) {
-                l.destSecuritySeal = grp.sealDest  || null;
-                l.departureTime    = grp.departureTime || null;
-                l.arrivalTime      = grp.arrivalTime   || null;
-                l.odometerOut      = grp.odometerOut !== '' ? (parseFloat(grp.odometerOut) || null) : null;
-            }
-        }
     });
 
     for (const l of INV.lines) {
@@ -1076,10 +1105,8 @@ async function saveMovement(autoConfirm = false) {
         notes,
         securitySeal,
         departureTime,
-        arrivalTime,
         odometerOut,
         transactionDate:      date,
-        expectedArrivalDate:  effectiveArrival,
         isTransitTransfer:    isTransit,
         lines: INV.lines.map(l => ({
             idItem:              l.idItem,
@@ -1091,10 +1118,6 @@ async function saveMovement(autoConfirm = false) {
             unitOfMeasureCode:   l.unitOfMeasureCode || null,
             unitCost:            l.unitCost || null,
             lotNumber:           l.lotNumber || null,
-            destSecuritySeal:    l.destSecuritySeal || null,
-            departureTime:       l.departureTime || null,
-            arrivalTime:         l.arrivalTime   || null,
-            odometerOut:         l.odometerOut   != null ? l.odometerOut : null,
         })),
     };
 
@@ -1334,26 +1357,73 @@ function _bindReceiveBodyEvents(container) {
         });
     });
 
-    // Km Salida: validate > previous km on input
+    // Km Salida: validate > previous km AND > header odometer on input
     container.querySelectorAll('[id^="rcvOdoOut"]').forEach(odoInput => {
         const gIdx = odoInput.id.replace('rcvOdoOut', '');
         const errEl = document.getElementById(`rcvOdoOutErr${gIdx}`);
         odoInput.addEventListener('input', () => {
-            const prevKm = parseFloat(odoInput.dataset.prevKm);
-            const newKm  = parseFloat(odoInput.value);
-            const isInvalid = !isNaN(prevKm) && prevKm > 0 && !isNaN(newKm) && newKm <= prevKm;
-            if (errEl) errEl.style.display = isInvalid ? '' : 'none';
+            const prevKm    = parseFloat(odoInput.dataset.prevKm)      || 0;
+            const headerKm  = parseFloat(odoInput.dataset.headerOdometer) || 0;
+            const minKm     = Math.max(prevKm, headerKm);
+            const newKm     = parseFloat(odoInput.value);
+            const isInvalid = !isNaN(newKm) && minKm > 0 && newKm <= minKm;
+            if (errEl) {
+                errEl.textContent = isInvalid
+                    ? (newKm <= prevKm && prevKm > 0
+                        ? `Debe ser mayor al Km anterior (${prevKm})`
+                        : `Debe ser mayor al Km de Salida del encabezado (${headerKm})`)
+                    : '';
+                errEl.style.display = isInvalid ? '' : 'none';
+            }
             odoInput.style.borderColor = isInvalid ? '#ef4444' : '';
         });
     });
 
-    // Nuevo Sello Destino: real-time uniqueness check
+    // Hora Llegada: validate > previous group's departure (or header departure for first group)
+    container.querySelectorAll('[id^="rcvArrTime"]').forEach(arrInput => {
+        const gIdx  = arrInput.id.replace('rcvArrTime', '');
+        const errEl = document.getElementById(`rcvArrTimeErr${gIdx}`);
+        arrInput.addEventListener('input', () => {
+            const prevDept  = arrInput.dataset.prevDeparture || '';
+            const arrVal    = arrInput.value;
+            const isInvalid = prevDept && arrVal && arrVal <= prevDept;
+            if (errEl) {
+                errEl.textContent = isInvalid ? `Debe ser mayor a la Hora de Salida de referencia (${prevDept})` : '';
+                errEl.style.display = isInvalid ? '' : 'none';
+            }
+            arrInput.style.borderColor = isInvalid ? '#ef4444' : '';
+            // Also re-check departure time (departure must be > arrival)
+            const deptInput = document.getElementById(`rcvDeptTime${gIdx}`);
+            if (deptInput) deptInput.dispatchEvent(new Event('input'));
+        });
+    });
+
+    // Hora Salida: validate > Hora Llegada on input
+    container.querySelectorAll('[id^="rcvDeptTime"]').forEach(deptInput => {
+        const gIdx  = deptInput.id.replace('rcvDeptTime', '');
+        const errEl = document.getElementById(`rcvDeptTimeErr${gIdx}`);
+        deptInput.addEventListener('input', () => {
+            const arrInput = document.getElementById(`rcvArrTime${gIdx}`);
+            const arrVal   = arrInput?.value || '';
+            const deptVal  = deptInput.value;
+            const isInvalid = arrVal && deptVal && deptVal <= arrVal;
+            if (errEl) {
+                errEl.textContent = isInvalid ? `Debe ser mayor a la Hora de Llegada (${arrVal})` : '';
+                errEl.style.display = isInvalid ? '' : 'none';
+            }
+            deptInput.style.borderColor = isInvalid ? '#ef4444' : '';
+        });
+    });
+
+    // Sello Destino: real-time uniqueness check
     let _sealCheckTimer = null;
-    container.querySelectorAll('[id^="rcvNextSeal"]').forEach(sealInput => {
-        const gIdx  = sealInput.id.replace('rcvNextSeal', '');
-        const errEl = document.getElementById(`rcvNextSealErr${gIdx}`);
-        const okEl  = document.getElementById(`rcvNextSealOk${gIdx}`);
-        const txnId = sealInput.dataset.txnId;
+    container.querySelectorAll('[id^="rcvSeal"]').forEach(sealInput => {
+        // Skip error/ok indicator elements that start with rcvSealErr / rcvSealOk
+        if (!sealInput.tagName || sealInput.tagName.toLowerCase() !== 'input') return;
+        const gIdx  = sealInput.id.replace('rcvSeal', '');
+        if (isNaN(parseInt(gIdx))) return;
+        const errEl = document.getElementById(`rcvSealErr${gIdx}`);
+        const okEl  = document.getElementById(`rcvSealOk${gIdx}`);
 
         sealInput.addEventListener('input', () => {
             clearTimeout(_sealCheckTimer);
@@ -1365,8 +1435,6 @@ function _bindReceiveBodyEvents(container) {
 
             _sealCheckTimer = setTimeout(async () => {
                 try {
-                    // No excludeId: new dest seal must be globally unique — cannot match
-                    // any existing seal anywhere, not even on the current transaction header
                     const url = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(seal)}`;
                     const { exists } = await invFetch(url);
                     if (errEl) errEl.style.display = exists ? '' : 'none';
@@ -1403,8 +1471,8 @@ function renderReceiveBody(txn) {
 
     const infoRow = (label, val) =>
         `<div class="col-6 col-md-3 mb-2">
-            <div class="text-muted" style="font-size:.72rem;">${label}</div>
-            <div class="text-white">${val || '—'}</div>
+            <div style="font-size:.72rem;color:#94a3b8;font-weight:600;letter-spacing:.03em;">${label}</div>
+            <div style="color:#e2e8f0;">${val || '—'}</div>
         </div>`;
 
     const headerBlock = `
@@ -1417,6 +1485,8 @@ function renderReceiveBody(txn) {
             ${infoRow('Vehículo / Tránsito', txn.idWarehouseDest ? warehouseName(txn.idWarehouseDest) : '—')}
             ${infoRow('Referencia', txn.reference)}
             ${infoRow('Sello Seguridad', txn.securitySeal || '—')}
+            ${txn.isTransitTransfer ? infoRow('<i class="bi bi-clock me-1"></i>Hora Salida (enc.)', txn.departureTime || '—') : ''}
+            ${txn.isTransitTransfer ? infoRow('<i class="bi bi-speedometer me-1"></i>Km Salida (enc.)', txn.odometerOut != null ? txn.odometerOut.toLocaleString('es-CR') + ' km' : '—') : ''}
         </div>
         <hr style="border-color:#2a3a5c;">`;
 
@@ -1447,6 +1517,16 @@ function renderReceiveBody(txn) {
                 const prevGroupLine = prevGroup?.lines?.[0];
                 if (prevGroupLine?.odometerOut) prevKm = prevGroupLine.odometerOut;
             }
+
+            // Hora de salida de referencia para validar Hora Llegada:
+            // - primer grupo  → usa Hora Salida del encabezado
+            // - grupos posteriores → usa Hora Salida de la bodega anterior ya recibida
+            const prevGroupDeparture = gIdx === 0
+                ? (txn.departureTime || '')
+                : (groups[gIdx - 1]?.lines?.[0]?.departureTime || txn.departureTime || '');
+            const prevGroupDepartureLabel = gIdx === 0
+                ? 'encabezado'
+                : warehouseName(groups[gIdx - 1]?.destId);
 
             // Artículos en tabla — activos con checkbox + qty editable, recibidos en modo lectura
             const artRows = g.lines.map(l => {
@@ -1496,12 +1576,19 @@ function renderReceiveBody(txn) {
                 <div class="row g-2 mb-2 mt-1" id="rcv-fields-${gIdx}">
                     <div class="col-12 col-md-4">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                            <i class="bi bi-shield-lock me-1 text-warning"></i>Sello Destino
-                            <span class="text-muted" style="font-size:.68rem;">(pre-cargado)</span>
+                            <i class="bi bi-shield-lock me-1 text-warning"></i>Sello Destino *
                         </label>
                         <input type="text" id="rcvSeal${gIdx}" class="form-control form-control-sm"
-                               value="${firstLine.destSecuritySeal || ''}" readonly
-                               style="opacity:.75;cursor:default;" title="Sello pre-asignado para este tramo">
+                               value="${firstLine.destSecuritySeal || ''}" maxlength="50" autocomplete="off"
+                               placeholder="Ingrese el sello de seguridad…"
+                               data-txn-id="${txn.id}">
+                        <small id="rcvSealErr${gIdx}" style="color:#f87171!important;display:none;">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Este sello ya está en uso, debe ser único.
+                        </small>
+                        <small id="rcvSealOk${gIdx}" style="color:#4ade80!important;display:none;">
+                            <i class="bi bi-check-circle me-1"></i>Sello disponible.
+                        </small>
+                        <small style="color:#cbd5e1!important;">Obligatorio y único en todo el sistema</small>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
@@ -1510,15 +1597,18 @@ function renderReceiveBody(txn) {
                         <input type="time" id="rcvDeptTime${gIdx}" class="form-control form-control-sm"
                                value="${firstLine.departureTime || ''}" step="60" required
                                placeholder="--:--">
-                        <small style="color:#cbd5e1!important;">Obligatorio</small>
+                        <small id="rcvDeptTimeErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor a la Hora de Llegada</small>
+                        <small style="color:#cbd5e1!important;">Obligatorio (Debe ser mayor a la Hora de Llegada)</small>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
                             <i class="bi bi-clock-fill me-1 text-info"></i>Hora Llegada *
                         </label>
                         <input type="time" id="rcvArrTime${gIdx}" class="form-control form-control-sm" step="60"
-                               placeholder="--:--" required>
-                        <small style="color:#cbd5e1!important;">Obligatorio para confirmar recepción</small>
+                               placeholder="--:--" required
+                               data-prev-departure="${prevGroupDeparture}">
+                        <small id="rcvArrTimeErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor a la Hora de Salida del ${prevGroupDepartureLabel}</small>
+                        <small style="color:#cbd5e1!important;">Obligatorio${prevGroupDeparture ? ` (ref: ${prevGroupDeparture} — ${prevGroupDepartureLabel})` : ''}</small>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
@@ -1526,32 +1616,35 @@ function renderReceiveBody(txn) {
                         </label>
                         <input type="number" id="rcvOdoOut${gIdx}" class="form-control form-control-sm"
                                placeholder="0" min="0" step="1" required
-                               data-prev-km="${prevKm}">
+                               data-prev-km="${prevKm}"
+                               data-header-odometer="${txn.odometerOut || 0}">
                         <small id="rcvOdoOutErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor al Km anterior</small>
-                        <small class="rcvOdoHelp${gIdx}" style="color:#cbd5e1!important;">Km al salir hacia siguiente destino${prevKm > 0 ? ` (anterior: ${prevKm})` : ''}</small>
-                    </div>
-                </div>
-                <!-- Firma digital del receptor -->
-                <div class="row g-2 mb-2 mt-1">
-                    <div class="col-12">
-                        <label class="form-label fw-semibold" style="color:#fbbf24;font-size:.8rem;">
-                            <i class="bi bi-pen me-1 text-warning"></i>Firma del Receptor *
-                            <span style="color:#94a3b8;font-size:.72rem;font-weight:normal;">— Firme con el dedo o lápiz táctil</span>
-                        </label>
-                        <div style="border:2px solid #fbbf24;border-radius:8px;background:#fff;position:relative;touch-action:none;user-select:none;">
-                            <canvas id="rcvSignCanvas${gIdx}" height="160"
-                                    style="display:block;width:100%;height:160px;border-radius:6px;cursor:crosshair;touch-action:none;">
-                            </canvas>
-                            <button type="button" id="rcvSignClear${gIdx}"
-                                    style="position:absolute;top:6px;right:8px;background:rgba(30,30,40,.75);border:1px solid #475569;color:#94a3b8;border-radius:5px;font-size:.72rem;padding:2px 8px;cursor:pointer;">
-                                <i class="bi bi-eraser me-1"></i>Limpiar
-                            </button>
-                        </div>
-                        <small id="rcvSignErr${gIdx}" style="color:#f87171!important;display:none;">
-                            <i class="bi bi-exclamation-triangle me-1"></i>La firma es obligatoria para confirmar la recepción.
-                        </small>
-                    </div>
-                </div>` : '';
+                                <small class="rcvOdoHelp${gIdx}" style="color:#cbd5e1!important;">Km al salir hacia siguiente destino${prevKm > 0 ? ` (anterior: ${prevKm})` : ''}${txn.odometerOut ? ` / (encabezado: ${txn.odometerOut})` : ''}</small>
+                                </div>
+                            </div>` : '';
+
+                        // Firma digital del receptor (solo en grupo activo, se coloca al final)
+                        const signatureField = isActive ? `
+                            <div class="row g-2 mb-2 mt-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold" style="color:#fbbf24;font-size:.8rem;">
+                                        <i class="bi bi-pen me-1 text-warning"></i>Firma del Receptor *
+                                        <span style="color:#94a3b8;font-size:.72rem;font-weight:normal;">— Firme con el dedo o lápiz táctil</span>
+                                    </label>
+                                    <div style="border:2px solid #fbbf24;border-radius:8px;background:#fff;position:relative;touch-action:none;user-select:none;">
+                                        <canvas id="rcvSignCanvas${gIdx}" height="160"
+                                                style="display:block;width:100%;height:160px;border-radius:6px;cursor:crosshair;touch-action:none;">
+                                        </canvas>
+                                        <button type="button" id="rcvSignClear${gIdx}"
+                                                style="position:absolute;top:6px;right:8px;background:rgba(30,30,40,.75);border:1px solid #475569;color:#94a3b8;border-radius:5px;font-size:.72rem;padding:2px 8px;cursor:pointer;">
+                                            <i class="bi bi-eraser me-1"></i>Limpiar
+                                        </button>
+                                    </div>
+                                    <small id="rcvSignErr${gIdx}" style="color:#f87171!important;display:none;">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>La firma es obligatoria para confirmar la recepción.
+                                    </small>
+                                </div>
+                            </div>` : '';
 
             // Firma guardada — mostrar si el grupo ya fue recibido y tiene firma
             const savedSignatureBlock = isReceived && firstLine.signature ? `
@@ -1568,38 +1661,8 @@ function renderReceiveBody(txn) {
                     </div>
                 </div>` : '';
 
-            // Sello para la siguiente bodega (solo si hay un siguiente grupo, y solo en grupo activo)
-            const nextGroup = groups[gIdx + 1];
-            const nextSealField = (isActive && nextGroup) ? `
-                <div class="row g-2 mb-2 mt-1" id="rcv-next-seal-${gIdx}">
-                    <div class="col-12 col-md-5">
-                        <label class="form-label" style="color:#fbbf24;font-size:.78rem;">
-                            <i class="bi bi-shield-check me-1 text-warning"></i>Nuevo Sello Destino *
-                            <span style="color:#94a3b8;font-size:.7rem;">→ para <strong>${warehouseName(nextGroup.destId)}</strong></span>
-                        </label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <div class="flex-fill">
-                                <input type="text" id="rcvNextSeal${gIdx}" class="form-control form-control-sm"
-                                       placeholder="Sello para la siguiente bodega…" maxlength="50" required
-                                       data-txn-id="${txn.id}">
-                                <small id="rcvNextSealErr${gIdx}" style="color:#f87171!important;display:none;">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>Este sello ya está en uso, debe ser único.
-                                </small>
-                                <small id="rcvNextSealOk${gIdx}" style="color:#4ade80!important;display:none;">
-                                    <i class="bi bi-check-circle me-1"></i>Sello disponible.
-                                </small>
-                            </div>
-                            <div class="form-check mb-0 text-nowrap" title="Marcar todas las líneas como recibidas con el total despachado">
-                                <input class="form-check-input rcv-mark-all-chk" type="checkbox"
-                                       id="rcvMarkAll${gIdx}" data-group="${gIdx}"
-                                       style="width:1.1rem;height:1.1rem;cursor:pointer;">
-                                <label class="form-check-label" for="rcvMarkAll${gIdx}"
-                                       style="color:#cbd5e1;font-size:.78rem;cursor:pointer;">Marcar todas recibidas</label>
-                            </div>
-                        </div>
-                        <small style="color:#cbd5e1!important;">Este sello se asignará al tramo hacia la siguiente bodega destino</small>
-                    </div>
-                </div>` : (isActive ? `
+            // Checkbox marcar todas (solo en grupo activo)
+            const markAllField = isActive ? `
                 <div class="row g-2 mb-2 mt-1">
                     <div class="col-12 col-md-5">
                         <div class="form-check" title="Marcar todas las líneas como recibidas con el total despachado">
@@ -1610,11 +1673,12 @@ function renderReceiveBody(txn) {
                                    style="color:#cbd5e1;font-size:.78rem;cursor:pointer;">Marcar todas como recibidas (total despachado)</label>
                         </div>
                     </div>
-                </div>` : '');
+                </div>` : '';
 
             groupsHtml += `
             <div class="transit-group-block mb-3"
-                 style="background:#111827;border:1px solid ${borderColor};border-radius:10px;padding:1rem;">
+                 style="background:#111827;border:1px solid ${borderColor};border-radius:10px;padding:1rem;${isActive ? '' : 'display:none;'}"
+                 data-group-idx="${gIdx}" data-is-active="${isActive}" data-is-received="${isReceived}">
                 <!-- Encabezado del grupo -->
                 <div class="row g-2 align-items-end mb-2">
                     <div class="col-12 col-md-6">
@@ -1633,9 +1697,7 @@ function renderReceiveBody(txn) {
                         </div>
                     </div>
                 </div>
-                ${receiveFields}
-                ${savedSignatureBlock}
-                ${nextSealField}
+                ${markAllField}
                 <div class="d-flex justify-content-between align-items-center mb-2 mt-2">
                     <span class="fw-semibold text-light" style="font-size:.85rem;"><i class="bi bi-list-ul me-1"></i>Artículos</span>
                 </div>
@@ -1654,6 +1716,9 @@ function renderReceiveBody(txn) {
                         <tbody>${artRows}</tbody>
                     </table>
                 </div>
+                ${receiveFields}
+                ${signatureField}
+                ${savedSignatureBlock}
             </div>`;
         });
 
@@ -1774,18 +1839,28 @@ function renderReceiveFooter(txn, footer) {
 
 async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
     const deptTimeEl = document.getElementById(`rcvDeptTime${activeGroupIdx}`);
-    const arrTime    = document.getElementById(`rcvArrTime${activeGroupIdx}`)?.value?.trim();
+    const arrTimeEl  = document.getElementById(`rcvArrTime${activeGroupIdx}`);
     const odoOutEl   = document.getElementById(`rcvOdoOut${activeGroupIdx}`);
-    const nextSealEl = document.getElementById(`rcvNextSeal${activeGroupIdx}`);
 
+    const arrTime  = arrTimeEl?.value?.trim();
     const deptTime = deptTimeEl?.value?.trim();
     const odoOut   = odoOutEl?.value?.trim();
-    const nextSeal = nextSealEl ? nextSealEl.value.trim() : null;
+
+    // Read reference values from data attributes
+    const prevDeparture   = arrTimeEl?.dataset?.prevDeparture || '';
+    const headerOdometer  = parseFloat(odoOutEl?.dataset?.headerOdometer) || 0;
+    const prevKm          = parseFloat(odoOutEl?.dataset?.prevKm) || 0;
 
     // Required: hora llegada
     if (!arrTime) {
         showInfoDialog('La Hora de Llegada es obligatoria para confirmar la recepción.', 'warning');
-        document.getElementById(`rcvArrTime${activeGroupIdx}`)?.focus();
+        arrTimeEl?.focus();
+        return;
+    }
+    // Hora Llegada must be > previous departure (header for first group, prev group's departure for others)
+    if (prevDeparture && arrTime <= prevDeparture) {
+        showInfoDialog(`La Hora de Llegada (${arrTime}) debe ser mayor a la Hora de Salida de referencia (${prevDeparture}).`, 'warning');
+        arrTimeEl?.focus();
         return;
     }
     // Required: hora salida
@@ -1794,10 +1869,10 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         deptTimeEl?.focus();
         return;
     }
-    // Hora Llegada must be strictly before Hora Salida
-    if (arrTime >= deptTime) {
-        showInfoDialog('La Hora de Llegada debe ser menor a la Hora de Salida.', 'warning');
-        document.getElementById(`rcvArrTime${activeGroupIdx}`)?.focus();
+    // Hora Salida must be > Hora Llegada
+    if (arrTime && deptTime <= arrTime) {
+        showInfoDialog(`La Hora de Salida (${deptTime}) debe ser mayor a la Hora de Llegada (${arrTime}).`, 'warning');
+        deptTimeEl?.focus();
         return;
     }
     // Required: km salida
@@ -1812,38 +1887,39 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         odoOutEl?.focus();
         return;
     }
-    // km must be strictly greater than previous
-    const prevKm = odoOutEl ? parseFloat(odoOutEl.dataset.prevKm) : NaN;
-    if (!isNaN(prevKm) && prevKm > 0 && odoOutNum <= prevKm) {
-        showInfoDialog(`El Km de Salida (${odoOutNum}) debe ser mayor al kilometraje anterior (${prevKm}).`, 'warning');
+    // Km must be > header odometer
+    if (headerOdometer > 0 && odoOutNum <= headerOdometer) {
+        showInfoDialog(`El Km de Salida (${odoOutNum.toLocaleString('es-CR')}) debe ser mayor al Km de Salida del encabezado (${headerOdometer.toLocaleString('es-CR')}).`, 'warning');
         odoOutEl?.focus();
         return;
     }
-    // Required: new seal when there is a next group
-    if (nextSealEl && !nextSeal) {
-        showInfoDialog('El Nuevo Sello Destino para la siguiente bodega es obligatorio.', 'warning');
-        nextSealEl?.focus();
+    // Km must also be > previous group km
+    if (prevKm > 0 && odoOutNum <= prevKm) {
+        showInfoDialog(`El Km de Salida (${odoOutNum.toLocaleString('es-CR')}) debe ser mayor al kilometraje anterior (${prevKm.toLocaleString('es-CR')}).`, 'warning');
+        odoOutEl?.focus();
         return;
     }
-    // Block if seal is already flagged as duplicate by real-time check
-    if (nextSealEl && nextSeal) {
-        const errEl = document.getElementById(`rcvNextSealErr${activeGroupIdx}`);
-        if (errEl && errEl.style.display !== 'none') {
-            showInfoDialog('El sello ingresado ya está en uso. Ingrese un sello único.', 'warning');
-            nextSealEl?.focus();
+    // Validate sello destino of the CURRENT group — required and globally unique
+    const currentSealEl = document.getElementById(`rcvSeal${activeGroupIdx}`);
+    const currentSeal   = currentSealEl?.value?.trim() || '';
+    if (!currentSeal) {
+        showInfoDialog('El Sello Destino es obligatorio para confirmar la recepción.', 'warning');
+        currentSealEl?.focus();
+        return;
+    }
+    // Real-time indicator already checked, but do a final server-side uniqueness check
+    try {
+        const url = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(currentSeal)}`;
+        const { exists } = await invFetch(url);
+        if (exists) {
+            showInfoDialog(`El sello '${currentSeal}' ya está en uso. Debe ingresar un sello único.`, 'warning');
+            currentSealEl?.focus();
+            const errEl = document.getElementById(`rcvSealErr${activeGroupIdx}`);
+            if (errEl) errEl.style.display = '';
+            currentSealEl.style.borderColor = '#ef4444';
             return;
         }
-        // Final server-side check before submit — no excludeId: must be globally unique
-        try {
-            const url = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(nextSeal)}`;
-            const { exists } = await invFetch(url);
-            if (exists) {
-                showInfoDialog(`El sello '${nextSeal}' ya está en uso. Debe ingresar un sello único.`, 'warning');
-                nextSealEl?.focus();
-                return;
-            }
-        } catch {}
-    }
+    } catch {}
 
     // Obtain active group lines
     const txn = INV.currentTxn;
@@ -1867,11 +1943,38 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         return;
     }
 
-    const lineIds  = pendingLines.map(l => l.id);
-    const lineQtys = pendingLines.map(l => {
-        const qtyInput = document.getElementById(`rcv-qty-${l.id}`);
+    // Validate that ALL pending lines are checked and each has qty > 0
+    const uncheckedLines = pendingLines.filter(l => {
+        const chk = document.querySelector(`.rcv-line-chk[data-line-id="${l.id}"]`);
+        return !chk || !chk.checked;
+    });
+
+    if (uncheckedLines.length > 0) {
+        const names = uncheckedLines.map(l => l.itemCode).join(', ');
+        showInfoDialog(`Todos los artículos deben estar marcados como recibidos antes de confirmar la recepción. Pendientes sin marcar: ${names}`, 'warning');
+        return;
+    }
+
+    const checkedLineIds = pendingLines.map(l => l.id);
+
+    for (const lineId of checkedLineIds) {
+        const qtyInput = document.getElementById(`rcv-qty-${lineId}`);
+        const qty = qtyInput ? parseFloat(qtyInput.value) : 0;
+        if (!qty || qty <= 0) {
+            const line = pendingLines.find(l => l.id === lineId);
+            const name = line ? `${line.itemCode} — ${line.itemName}` : `Línea #${lineId}`;
+            showInfoDialog(`La cantidad recibida de "${name}" debe ser mayor a 0.`, 'warning');
+            qtyInput?.focus();
+            return;
+        }
+    }
+
+    const lineIds  = checkedLineIds;
+    const lineQtys = checkedLineIds.map(lineId => {
+        const l = pendingLines.find(x => x.id === lineId);
+        const qtyInput = document.getElementById(`rcv-qty-${lineId}`);
         const qty = qtyInput ? parseFloat(qtyInput.value) : null;
-        return { lineId: l.id, qty: (qty > 0 ? qty : (l.qtyDispatched || l.qtyRequested || 0)) };
+        return { lineId, qty: (qty > 0 ? qty : (l?.qtyDispatched || l?.qtyRequested || 0)) };
     });
 
     const btn = document.getElementById('btnSubmitReceive');
@@ -1886,7 +1989,7 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
                 arrivalTime:     arrTime,
                 departureTime:   deptTime,
                 odometerOut:     odoOutNum,
-                nextDestSeal:    nextSeal || null,
+                destSeal:        currentSeal,
                 nextWarehouseId: nextWarehouseId || null,
                 signature:       signatureDataUrl,
             },
@@ -1995,8 +2098,8 @@ function renderDetailBody(txn) {
 
     const infoRow = (label, val) =>
         `<div class="col-6 col-md-3 mb-2">
-            <div class="text-muted" style="font-size:.72rem;">${label}</div>
-            <div class="text-white">${val || '—'}</div>
+            <div style="font-size:.72rem;color:#94a3b8;font-weight:600;letter-spacing:.03em;">${label}</div>
+            <div style="color:#e2e8f0;">${val || '—'}</div>
         </div>`;
 
     const header = `
@@ -2009,7 +2112,11 @@ function renderDetailBody(txn) {
             ${infoRow('Destino', txn.idWarehouseDest ? warehouseName(txn.idWarehouseDest) : '—')}
             ${infoRow('Referencia', txn.reference)}
             ${infoRow('Notas', txn.notes)}
-        </div>`;
+            ${txn.isTransitTransfer ? infoRow('<i class="bi bi-shield-lock me-1 text-warning"></i>Sello Seguridad', txn.securitySeal || '—') : ''}
+            ${txn.isTransitTransfer ? infoRow('<i class="bi bi-clock me-1 text-warning"></i>Hora Salida', txn.departureTime || '—') : ''}
+            ${txn.isTransitTransfer ? infoRow('<i class="bi bi-speedometer me-1 text-warning"></i>Km Salida', txn.odometerOut != null ? txn.odometerOut.toLocaleString('es-CR') + ' km' : '—') : ''}
+        </div>
+        <hr style="border-color:#2a3a5c;">`;
 
     const lineStatM = (s) => ({
         Pending:   { css: 'bg-secondary',        icon: '⏳' },
@@ -2236,16 +2343,6 @@ function bindEvents() {
     // Tipo de movimiento cambia → actualizar UI
     document.getElementById('fldType').addEventListener('change', updateTransitUI);
 
-    // Cambio de Fecha → ajustar mínimo de Fecha y de Fecha Esperada Llegada
-    document.getElementById('fldDate').addEventListener('change', () => {
-        const dateVal   = document.getElementById('fldDate').value;
-        const arrivalEl = document.getElementById('fldArrival');
-        arrivalEl.min   = dateVal;
-        if (!arrivalEl.value || arrivalEl.value < dateVal) {
-            arrivalEl.value = dateVal;
-        }
-    });
-
     // Impedir seleccionar fecha menor a hoy en fldDate (tanto en crear como en editar)
     document.getElementById('fldDate').addEventListener('input', () => {
         const today  = new Date().toISOString().slice(0, 10);
@@ -2261,24 +2358,84 @@ function bindEvents() {
         updateTransitUI();
     });
 
-    // Cambio de bodega tránsito → cargar km actual del vehículo para validación
+    // Cambio de bodega tránsito → cargar km actual del vehículo, pre-rellenar fldOdometerOut
     document.getElementById('fldDest').addEventListener('change', async () => {
         INV._vehicleOdometerKm = null;
         const destId = parseInt(document.getElementById('fldDest').value) || null;
-        if (!destId || document.getElementById('fldType').value !== 'TransitTransfer') return;
+        const fldOdo     = document.getElementById('fldOdometerOut');
+        const fldOdoErr  = document.getElementById('fldOdoErr');
+        const fldOdoHint = document.getElementById('fldOdoHint');
+        const busyWarn   = document.getElementById('transitBusyWarn');
+        const busyText   = document.getElementById('transitBusyWarnText');
+
+        // Helper: enable/disable save buttons based on busy state
+        const setSaveBusy = (busy) => {
+            ['btnSaveMovement', 'btnSaveConfirm'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.disabled = busy;
+            });
+        };
+
+        // Clear busy warning
+        if (busyWarn) busyWarn.classList.add('d-none');
+        setSaveBusy(false);
+
+        // Limpiar si se deselecciona o no es TransitTransfer
+        if (!destId || document.getElementById('fldType').value !== 'TransitTransfer') {
+            if (fldOdo) fldOdo.value = '';
+            if (fldOdoErr) fldOdoErr.style.display = 'none';
+            return;
+        }
+
+        // Check if transit warehouse is busy
         try {
-            // La bodega de tránsito tiene id_transport_unit — buscarla y cargar currentOdometerKm
+            const excludeId = INV.editingId || undefined;
+            const busyUrl = `/api/inventorytransaction/transit-warehouse/${destId}/busy`
+                + (excludeId ? `?excludeId=${excludeId}` : '');
+            const { isBusy, transactionNumber } = await invFetch(busyUrl);
+            if (isBusy) {
+                if (busyWarn) busyWarn.classList.remove('d-none');
+                if (busyText) busyText.textContent =
+                    `Esta bodega de tránsito ya tiene el movimiento activo ${transactionNumber}. ` +
+                    'Todos los movimientos deben estar en estado Completado antes de crear uno nuevo.';
+                setSaveBusy(true);
+                return; // Skip odometer fetch — warehouse is blocked
+            }
+        } catch { /* no crítico — si falla el check, no bloqueamos */ }
+
+        // Load odometer for the selected transit warehouse
+        try {
             const wh = INV.warehouses.find(w => w.id === destId);
             if (wh && wh.idTransportUnit) {
                 const unit = await invFetch(`/api/transportunit/${wh.idTransportUnit}`);
                 INV._vehicleOdometerKm = unit.currentOdometerKm ?? null;
+                // Pre-rellenar con el km actual del vehículo si el campo está vacío
+                if (fldOdo && (fldOdo.value === '' || fldOdo.value === '0')) {
+                    fldOdo.value = INV._vehicleOdometerKm ?? '';
+                }
+                if (fldOdoHint && INV._vehicleOdometerKm !== null) {
+                    fldOdoHint.textContent = `Km actual del vehículo: ${INV._vehicleOdometerKm.toLocaleString('es-CR')} km`;
+                }
             }
         } catch { /* no crítico */ }
     });
 
+    // Validación en tiempo real del Km Salida del encabezado
+    document.getElementById('fldOdometerOut').addEventListener('input', () => {
+        const fldOdo    = document.getElementById('fldOdometerOut');
+        const fldOdoErr = document.getElementById('fldOdoErr');
+        if (!fldOdoErr) return;
+        const val = parseFloat(fldOdo.value);
+        const isInvalid = INV._vehicleOdometerKm !== null
+            && !isNaN(val)
+            && val < INV._vehicleOdometerKm;
+        fldOdoErr.style.display   = isInvalid ? '' : 'none';
+        fldOdo.style.borderColor  = isInvalid ? '#ef4444' : '';
+    });
+
     // fldFinalDest queda oculto (reemplazado por grupos inline) — sin listener necesario
 
-    // Validación del sello de seguridad en tiempo real
+    // Validación del sello de seguridad en tiempo real (encabezado — header + lines)
     let sealTimer = null;
     document.getElementById('fldSecuritySeal').addEventListener('input', () => {
         clearTimeout(sealTimer);
@@ -2288,7 +2445,7 @@ function bindEvents() {
         sealTimer = setTimeout(async () => {
             try {
                 const excludeId = INV.editingId || undefined;
-                const url = `/api/inventorytransaction/check-seal?seal=${encodeURIComponent(seal)}`
+                const url = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(seal)}`
                     + (excludeId ? `&excludeId=${excludeId}` : '');
                 const { exists } = await invFetch(url);
                 document.getElementById('sealError').classList.toggle('d-none', !exists);

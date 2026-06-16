@@ -179,6 +179,35 @@ namespace CMS.Data.Services
         // CRUD
         // ================================================================
 
+        /// <summary>
+        /// Returns true if the given transit warehouse has any active (non-Completed, non-Cancelled)
+        /// TransitTransfer movement. An optional excludeTransactionId can be passed to ignore the
+        /// current draft when editing (not used in Create, but available for future use).
+        /// </summary>
+        public async Task<(bool IsBusy, string? TransactionNumber)> CheckTransitWarehouseBusyAsync(
+            int companyId, int warehouseId, int? excludeTransactionId = null)
+        {
+            using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
+
+            var busyStatuses = new[]
+            {
+                InventoryTransactionStatus.Draft,
+                InventoryTransactionStatus.Confirmed,
+                InventoryTransactionStatus.InTransit,
+                InventoryTransactionStatus.PartiallyReceived,
+            };
+
+            var conflict = await db.InventoryTransactions
+                .Where(t => t.IsTransitTransfer
+                         && t.IdWarehouseDest == warehouseId
+                         && busyStatuses.Contains(t.Status)
+                         && (excludeTransactionId == null || t.Id != excludeTransactionId))
+                .Select(t => t.TransactionNumber)
+                .FirstOrDefaultAsync();
+
+            return (conflict != null, conflict);
+        }
+
         public async Task<InventoryTransaction> CreateAsync(
             int companyId,
             InventoryTransaction transaction,
@@ -187,6 +216,17 @@ namespace CMS.Data.Services
             int userId)
         {
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
+
+            // Server-side guard: transit warehouse must not have any active movement
+            if (transaction.IsTransitTransfer && transaction.IdWarehouseDest.HasValue)
+            {
+                var (isBusy, conflictNum) = await CheckTransitWarehouseBusyAsync(
+                    companyId, transaction.IdWarehouseDest.Value);
+                if (isBusy)
+                    throw new InvalidOperationException(
+                        $"La bodega de tránsito seleccionada ya tiene un movimiento activo ({conflictNum}). " +
+                        "Todos los movimientos asignados a esa bodega deben estar en estado Completado antes de crear uno nuevo.");
+            }
 
             if (string.IsNullOrWhiteSpace(transaction.TransactionNumber))
                 transaction.TransactionNumber = await GenerateTransactionNumberAsync(companyId);
@@ -239,7 +279,6 @@ namespace CMS.Data.Services
             existing.MovementType = transaction.MovementType;
             existing.IdWarehouseOrigin = transaction.IdWarehouseOrigin;
             existing.IdWarehouseDest = transaction.IdWarehouseDest;
-            existing.IdDistributionRoute = transaction.IdDistributionRoute;
             existing.Reference = transaction.Reference;
             existing.Notes = transaction.Notes;
             existing.TransactionDate = transaction.TransactionDate;
@@ -247,7 +286,6 @@ namespace CMS.Data.Services
             existing.IsTransitTransfer = transaction.IsTransitTransfer;
             existing.SecuritySeal = transaction.SecuritySeal;
             existing.DepartureTime = transaction.DepartureTime;
-            existing.ArrivalTime = transaction.ArrivalTime;
             existing.OdometerOut = transaction.OdometerOut;
             existing.UpdatedBy = (updatedBy?.Length > 30 ? updatedBy[..30] : updatedBy) ?? "system";
             existing.RecordDate = DateTime.UtcNow;
@@ -374,7 +412,7 @@ namespace CMS.Data.Services
             string? arrivalTime = null,
             string? departureTime = null,
             decimal? odometerOut = null,
-            string? nextDestSeal = null,
+            string? destSeal = null,
             int? nextWarehouseId = null,
             Dictionary<int, decimal>? lineQtys = null,
             string? signature = null)
@@ -389,14 +427,12 @@ namespace CMS.Data.Services
                 txn.Status != InventoryTransactionStatus.Confirmed)
                 throw new InvalidOperationException("El movimiento no está en tránsito o confirmado");
 
-            // Validate next dest seal uniqueness (server-side guard)
-            if (!string.IsNullOrWhiteSpace(nextDestSeal))
+            // Validate dest seal uniqueness (server-side guard)
+            if (!string.IsNullOrWhiteSpace(destSeal))
             {
-                var sealTrimmed = nextDestSeal.Trim();
-                // Must not match header seals of ANY transaction (no exclusion: new seal must be globally unique)
+                var sealTrimmed = destSeal.Trim();
                 var headerMatch = await db.InventoryTransactions
                     .AnyAsync(t => t.SecuritySeal == sealTrimmed);
-                // Must not match any existing line dest seal across all transactions
                 var lineMatch = await db.InventoryTransactionLines
                     .AnyAsync(l => l.DestSecuritySeal == sealTrimmed);
                 if (headerMatch || lineMatch)
@@ -432,10 +468,13 @@ namespace CMS.Data.Services
                 line.RecordDate = now;
                 line.UpdatedBy = auditUser;
 
-                // Persistir hora de llegada y km de salida en la línea recibida
-                if (parsedArrival.HasValue) line.ArrivalTime = parsedArrival;
-                if (odometerOut.HasValue)   line.OdometerOut = odometerOut;
+                // Persistir hora de llegada, hora de salida y km de salida en la línea recibida
+                if (parsedArrival.HasValue)   line.ArrivalTime   = parsedArrival;
+                if (parsedDeparture.HasValue) line.DepartureTime = parsedDeparture;
+                if (odometerOut.HasValue)     line.OdometerOut   = odometerOut;
                 if (!string.IsNullOrWhiteSpace(signature)) line.Signature = signature;
+                if (!string.IsNullOrWhiteSpace(destSeal))
+                    line.DestSecuritySeal = destSeal.Trim().Length > 50 ? destSeal.Trim()[..50] : destSeal.Trim();
 
                 // Destino final de la línea
                 var destWarehouseId = line.IdWarehouseDestLine ?? txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;
@@ -452,19 +491,6 @@ namespace CMS.Data.Services
                     line.QtyReceived, 0, 0, line.UnitCost ?? 0, transactionId, now, auditUser);
             }
 
-            // Si se especificó un sello para la siguiente bodega, aplicarlo a sus líneas pendientes
-            if (!string.IsNullOrWhiteSpace(nextDestSeal) && nextWarehouseId.HasValue)
-            {
-                var nextLines = allLines
-                    .Where(l => l.IdWarehouseDestLine == nextWarehouseId.Value && l.LineStatus != "Received");
-                foreach (var nl in nextLines)
-                {
-                    nl.DestSecuritySeal = nextDestSeal.Trim().Length > 50 ? nextDestSeal.Trim()[..50] : nextDestSeal.Trim();
-                    nl.RecordDate = now;
-                    nl.UpdatedBy = auditUser;
-                }
-            }
-
             // Verificar si todos están recibidos
             var allReceived = allLines.All(l => l.LineStatus == "Received");
             txn.Status = allReceived
@@ -479,6 +505,24 @@ namespace CMS.Data.Services
 
             txn.UpdatedBy = auditUser;
             txn.RecordDate = now;
+
+            // Actualizar kilometraje actual de la unidad de transporte con el Km de Salida registrado
+            if (odometerOut.HasValue && txn.IdWarehouseDest.HasValue)
+            {
+                var transitWarehouse = await db.Warehouses
+                    .FirstOrDefaultAsync(w => w.Id == txn.IdWarehouseDest.Value);
+                if (transitWarehouse?.IdTransportUnit.HasValue == true)
+                {
+                    var transportUnit = await db.TransportUnits
+                        .FirstOrDefaultAsync(u => u.Id == transitWarehouse.IdTransportUnit.Value);
+                    if (transportUnit != null && odometerOut.Value > transportUnit.CurrentOdometerKm)
+                    {
+                        transportUnit.CurrentOdometerKm = odometerOut.Value;
+                        transportUnit.RecordDate = now;
+                        transportUnit.UpdatedBy  = auditUser;
+                    }
+                }
+            }
 
             await db.SaveChangesAsync();
             return txn;
@@ -623,8 +667,13 @@ namespace CMS.Data.Services
             string updatedBy)
         {
             var auditUser = (updatedBy?.Length > 30 ? updatedBy[..30] : updatedBy) ?? "system";
-            var existence = await db.ExistenceWarehouses
-                .FirstOrDefaultAsync(e => e.IdItem == itemId && e.IdWarehouse == warehouseId);
+
+            // Check EF change-tracker first (avoids duplicate-insert when same (item, warehouse)
+            // appears in multiple lines of the same transaction and no DB row exists yet)
+            var existence = db.ExistenceWarehouses.Local
+                .FirstOrDefault(e => e.IdItem == itemId && e.IdWarehouse == warehouseId)
+                ?? await db.ExistenceWarehouses
+                    .FirstOrDefaultAsync(e => e.IdItem == itemId && e.IdWarehouse == warehouseId);
 
             if (existence == null)
             {

@@ -198,5 +198,20 @@ namespace CMS.UI.Controllers
             ViewBag.ApiToken   = GetApiToken();
             return View();
         }
+
+        // =====================================================
+        // CATÁLOGOS INVENTORY
+        // =====================================================
+
+        /// <summary>
+        /// Pantalla de mantenimiento del catálogo de Tipos de Movimiento de Inventario.
+        /// GET: /Settings/InventoryTransactionTypes
+        /// </summary>
+        public IActionResult InventoryTransactionTypes()
+        {
+            ViewBag.ApiBaseUrl = GetApiBaseUrl();
+            ViewBag.ApiToken   = GetApiToken();
+            return View();
+        }
     }
 }

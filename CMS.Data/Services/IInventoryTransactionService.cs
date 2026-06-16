@@ -58,6 +58,12 @@ namespace CMS.Data.Services
         // CRUD
         // ================================================================
 
+        /// <summary>
+        /// Verifica si la bodega de tránsito tiene algún movimiento activo (no Completado/Cancelado).
+        /// Retorna (true, transactionNumber) si está ocupada.
+        /// </summary>
+        Task<(bool IsBusy, string? TransactionNumber)> CheckTransitWarehouseBusyAsync(int companyId, int warehouseId, int? excludeTransactionId = null);
+
         /// <summary>Crea un nuevo movimiento en estado Draft.</summary>
         Task<InventoryTransaction> CreateAsync(int companyId, InventoryTransaction transaction, List<InventoryTransactionLine> lines, string createdBy, int userId);
 
@@ -83,7 +89,7 @@ namespace CMS.Data.Services
         /// Cuando todas las líneas están recibidas, el estado pasa a Completed.
         /// Actualiza existencias (qty_in_transit ↓, qty_on_hand ↑).
         /// </summary>
-        Task<InventoryTransaction> ReceiveLinesAsync(int companyId, int transactionId, List<int> lineIds, int receivedByUserId, string receivedBy, string? arrivalTime = null, string? departureTime = null, decimal? odometerOut = null, string? nextDestSeal = null, int? nextWarehouseId = null, Dictionary<int, decimal>? lineQtys = null, string? signature = null);
+        Task<InventoryTransaction> ReceiveLinesAsync(int companyId, int transactionId, List<int> lineIds, int receivedByUserId, string receivedBy, string? arrivalTime = null, string? departureTime = null, decimal? odometerOut = null, string? destSeal = null, int? nextWarehouseId = null, Dictionary<int, decimal>? lineQtys = null, string? signature = null);
 
         /// <summary>
         /// Completa un movimiento simple (Confirmed → Completed).

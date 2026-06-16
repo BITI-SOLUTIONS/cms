@@ -49,6 +49,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap.css.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\fleetCatalogs.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.min.css.map
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\inventoryTransactionTypes.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.js.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.min.css.map
@@ -91,6 +92,7 @@ wwwroot\js\employees.js
 wwwroot\js\fleetCatalogs.js
 wwwroot\js\insurers.js
 wwwroot\js\inventoryMovements.js
+wwwroot\js\inventoryTransactionTypes.js
 wwwroot\js\label-items.js
 wwwroot\js\location-type.js
 wwwroot\js\location.js

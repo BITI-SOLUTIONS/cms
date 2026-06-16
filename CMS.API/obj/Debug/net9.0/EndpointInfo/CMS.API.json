@@ -3589,7 +3589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType89"
+                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType91"
                 }
               }
             }
@@ -4102,6 +4102,37 @@
         }
       }
     },
+    "/api/InventoryTransaction/transit-warehouse/{warehouseId}/busy": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "warehouseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "excludeId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/InventoryTransaction/existence/warehouse/{warehouseId}": {
       "get": {
         "tags": [
@@ -4271,6 +4302,140 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/inventory-transaction-type": {
+      "get": {
+        "tags": [
+          "InventoryTransactionType"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "InventoryTransactionType"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionType"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionType"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionType"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/inventory-transaction-type/{id}": {
+      "get": {
+        "tags": [
+          "InventoryTransactionType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InventoryTransactionType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionType"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionType"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionType"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "InventoryTransactionType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -11242,11 +11407,6 @@
             "format": "int32",
             "nullable": true
           },
-          "idDistributionRoute": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "reference": {
             "type": "string",
             "nullable": true
@@ -11272,10 +11432,6 @@
             "type": "boolean"
           },
           "departureTime": {
-            "type": "string",
-            "nullable": true
-          },
-          "arrivalTime": {
             "type": "string",
             "nullable": true
           },
@@ -12660,6 +12816,84 @@
         },
         "additionalProperties": false
       },
+      "InventoryTransactionType": {
+        "required": [
+          "code",
+          "createdBy",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "emoji": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "cssClass": {
+            "maxLength": 60,
+            "type": "string",
+            "nullable": true
+          },
+          "isTransitTransfer": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowPointer": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "ItemDto": {
         "type": "object",
         "properties": {
@@ -13830,7 +14064,7 @@
             "format": "double",
             "nullable": true
           },
-          "nextDestSeal": {
+          "destSeal": {
             "type": "string",
             "nullable": true
           },
@@ -14850,7 +15084,7 @@
         },
         "additionalProperties": false
       },
-      "StringStringStringStringDateTime<>f__AnonymousType89": {
+      "StringStringStringStringDateTime<>f__AnonymousType91": {
         "type": "object",
         "properties": {
           "status": {
@@ -15901,11 +16135,6 @@
             "format": "int32",
             "nullable": true
           },
-          "idDistributionRoute": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "reference": {
             "type": "string",
             "nullable": true
@@ -15931,10 +16160,6 @@
             "type": "boolean"
           },
           "departureTime": {
-            "type": "string",
-            "nullable": true
-          },
-          "arrivalTime": {
             "type": "string",
             "nullable": true
           },

@@ -188,6 +188,24 @@ namespace CMS.API.Controllers
         }
 
         // ================================================================
+        // GET /api/inventorytransaction/transit-warehouse/{warehouseId}/busy
+        // ================================================================
+        [HttpGet("transit-warehouse/{warehouseId:int}/busy")]
+        public async Task<IActionResult> CheckTransitWarehouseBusy(int warehouseId, [FromQuery] int? excludeId = null)
+        {
+            try
+            {
+                var (isBusy, transactionNumber) = await _service.CheckTransitWarehouseBusyAsync(
+                    GetCurrentCompanyId(), warehouseId, excludeId);
+                return Ok(new { isBusy, transactionNumber });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // ================================================================
         // GET /api/inventorytransaction/existence/warehouse/{warehouseId}
         // ================================================================
         [HttpGet("existence/warehouse/{warehouseId:int}")]
@@ -292,7 +310,6 @@ namespace CMS.API.Controllers
                     MovementType = dto.MovementType,
                     IdWarehouseOrigin = dto.IdWarehouseOrigin,
                     IdWarehouseDest = dto.IdWarehouseDest,
-                    IdDistributionRoute = dto.IdDistributionRoute,
                     Reference = dto.Reference,
                     Notes = dto.Notes,
                     SecuritySeal = string.IsNullOrWhiteSpace(dto.SecuritySeal) ? null : dto.SecuritySeal.Trim(),
@@ -300,7 +317,6 @@ namespace CMS.API.Controllers
                     ExpectedArrivalDate = dto.ExpectedArrivalDate,
                     IsTransitTransfer = dto.IsTransitTransfer,
                     DepartureTime = TimeOnly.TryParse(dto.DepartureTime, out var dtU) ? dtU : null,
-                    ArrivalTime   = TimeOnly.TryParse(dto.ArrivalTime,   out var atU) ? atU : null,
                     OdometerOut   = dto.OdometerOut
                 };
 
@@ -383,7 +399,7 @@ namespace CMS.API.Controllers
                     companyId, id, dto.LineIds,
                     GetCurrentUserId(), GetCurrentUser(),
                     dto.ArrivalTime, dto.DepartureTime, dto.OdometerOut,
-                    dto.NextDestSeal, dto.NextWarehouseId,
+                    dto.DestSeal, dto.NextWarehouseId,
                     lineQtysDict, dto.Signature);
                 var lines = await _service.GetLinesAsync(companyId, id);
                 txn.Lines = lines;
@@ -460,14 +476,12 @@ namespace CMS.API.Controllers
                 t.Status,
                 t.IdWarehouseOrigin,
                 t.IdWarehouseDest,
-                t.IdDistributionRoute,
                 t.Reference,
                 t.Notes,
                 t.SecuritySeal,
                 TransactionDate = t.TransactionDate.ToString("yyyy-MM-dd"),
                 ExpectedArrivalDate = t.ExpectedArrivalDate?.ToString("yyyy-MM-dd"),
                 DepartureTime = t.DepartureTime?.ToString("HH:mm"),
-                ArrivalTime = t.ArrivalTime?.ToString("HH:mm"),
                 t.OdometerOut,
                 t.ConfirmedDate,
                 t.CompletedDate,
@@ -522,7 +536,6 @@ namespace CMS.API.Controllers
             MovementType = dto.MovementType,
             IdWarehouseOrigin = dto.IdWarehouseOrigin,
             IdWarehouseDest = dto.IdWarehouseDest,
-            IdDistributionRoute = dto.IdDistributionRoute,
             Reference = dto.Reference,
             Notes = dto.Notes,
             SecuritySeal = string.IsNullOrWhiteSpace(dto.SecuritySeal) ? null : dto.SecuritySeal.Trim(),
@@ -530,7 +543,6 @@ namespace CMS.API.Controllers
             ExpectedArrivalDate = dto.ExpectedArrivalDate,
             IsTransitTransfer = dto.IsTransitTransfer,
             DepartureTime = TimeOnly.TryParse(dto.DepartureTime, out var dt0) ? dt0 : null,
-            ArrivalTime  = TimeOnly.TryParse(dto.ArrivalTime,   out var at0) ? at0 : null,
             OdometerOut  = dto.OdometerOut
         };
 
@@ -565,7 +577,6 @@ namespace CMS.API.Controllers
         public string MovementType { get; set; } = InventoryMovementType.Transfer;
         public int IdWarehouseOrigin { get; set; }
         public int? IdWarehouseDest { get; set; }
-        public int? IdDistributionRoute { get; set; }
         public string? Reference { get; set; }
         public string? Notes { get; set; }
         public string? SecuritySeal { get; set; }
@@ -573,7 +584,6 @@ namespace CMS.API.Controllers
         public DateOnly? ExpectedArrivalDate { get; set; }
         public bool IsTransitTransfer { get; set; } = false;
         public string? DepartureTime { get; set; }
-        public string? ArrivalTime { get; set; }
         public decimal? OdometerOut { get; set; }
         public List<InventoryTransactionLineDto> Lines { get; set; } = new();
     }
@@ -583,7 +593,6 @@ namespace CMS.API.Controllers
         public string MovementType { get; set; } = InventoryMovementType.Transfer;
         public int IdWarehouseOrigin { get; set; }
         public int? IdWarehouseDest { get; set; }
-        public int? IdDistributionRoute { get; set; }
         public string? Reference { get; set; }
         public string? Notes { get; set; }
         public string? SecuritySeal { get; set; }
@@ -591,7 +600,6 @@ namespace CMS.API.Controllers
         public DateOnly? ExpectedArrivalDate { get; set; }
         public bool IsTransitTransfer { get; set; } = false;
         public string? DepartureTime { get; set; }
-        public string? ArrivalTime { get; set; }
         public decimal? OdometerOut { get; set; }
     }
 
@@ -632,8 +640,8 @@ namespace CMS.API.Controllers
         public string? DepartureTime { get; set; }
         /// <summary>Km de salida del vehículo hacia el siguiente destino</summary>
         public decimal? OdometerOut { get; set; }
-        /// <summary>Nuevo sello destino para el tramo hacia la siguiente bodega</summary>
-        public string? NextDestSeal { get; set; }
+        /// <summary>Sello destino de la bodega que se está recibiendo en este momento</summary>
+        public string? DestSeal { get; set; }
         /// <summary>Id de la siguiente bodega destino (para asociar el sello)</summary>
         public int? NextWarehouseId { get; set; }
         /// <summary>Firma digital del receptor (base64 PNG data URI)</summary>
