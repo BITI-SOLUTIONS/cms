@@ -202,19 +202,19 @@
         <span class="kpi-icon">📦</span>
         <div><div class="kpi-val" id="kpiTotal">—</div><div class="kpi-lbl">Total</div></div>
     </div>
-    <div class="kpi-chip" data-filter-status="Draft">
+    <div class="kpi-chip" data-filter-status="draft" title="Borradores">
         <span class="kpi-icon">📝</span>
         <div><div class="kpi-val" id="kpiDraft">—</div><div class="kpi-lbl">Borradores</div></div>
     </div>
-    <div class="kpi-chip" data-filter-status="InTransit">
+    <div class="kpi-chip" data-filter-status="intransit" title="En Tránsito">
         <span class="kpi-icon">🚛</span>
         <div><div class="kpi-val" id="kpiTransit">—</div><div class="kpi-lbl">En Tránsito</div></div>
     </div>
-    <div class="kpi-chip" data-filter-status="PartiallyReceived">
+    <div class="kpi-chip" data-filter-status="partiallyreceived" title="Parcialmente Recibido">
         <span class="kpi-icon">⏳</span>
         <div><div class="kpi-val" id="kpiPartial">—</div><div class="kpi-lbl">Parcial</div></div>
     </div>
-    <div class="kpi-chip" data-filter-status="Completed">
+    <div class="kpi-chip" data-filter-status="completed" title="Completados">
         <span class="kpi-icon">✅</span>
         <div><div class="kpi-val" id="kpiCompleted">—</div><div class="kpi-lbl">Completados</div></div>
     </div>
@@ -236,12 +236,6 @@
         <div class="col-6 col-md-2">
             <select id="fStatus" class="form-select">
                 <option value="">Todos los estados</option>
-                <option value="Draft">Borrador</option>
-                <option value="Confirmed">Confirmado</option>
-                <option value="InTransit">En Tránsito</option>
-                <option value="PartiallyReceived">Parcialmente Recibido</option>
-                <option value="Completed">Completado</option>
-                <option value="Cancelled">Cancelado</option>
             </select>
         </div>
         <div class="col-6 col-md-2">

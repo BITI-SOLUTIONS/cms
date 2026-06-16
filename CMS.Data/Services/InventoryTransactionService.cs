@@ -40,8 +40,8 @@ namespace CMS.Data.Services
         public async Task<(List<InventoryTransaction> Items, int TotalCount)> GetTransactionsAsync(
             int companyId,
             string? search = null,
-            string? movementType = null,
-            string? status = null,
+            int? idInventoryTransactionType = null,
+            int? idInventoryTransactionStatus = null,
             int? warehouseOriginId = null,
             int? warehouseDestId = null,
             DateOnly? dateFrom = null,
@@ -62,11 +62,11 @@ namespace CMS.Data.Services
                     (t.Notes != null && t.Notes.ToLower().Contains(s)));
             }
 
-            if (!string.IsNullOrWhiteSpace(movementType))
-                query = query.Where(t => t.MovementType == movementType);
+            if (idInventoryTransactionType.HasValue && idInventoryTransactionType.Value > 0)
+                query = query.Where(t => t.IdInventoryTransactionType == idInventoryTransactionType.Value);
 
-            if (!string.IsNullOrWhiteSpace(status))
-                query = query.Where(t => t.Status == status);
+            if (idInventoryTransactionStatus.HasValue && idInventoryTransactionStatus.Value > 0)
+                query = query.Where(t => t.IdInventoryTransactionStatus == idInventoryTransactionStatus.Value);
 
             if (warehouseOriginId.HasValue)
                 query = query.Where(t => t.IdWarehouseOrigin == warehouseOriginId.Value);
@@ -108,6 +108,15 @@ namespace CMS.Data.Services
                 .ToListAsync();
         }
 
+        public async Task<List<InventoryTransactionWarehouseTransit>> GetTransitGroupsAsync(int companyId, int transactionId)
+        {
+            using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
+            return await db.InventoryTransactionWarehouseTransits
+                .Where(g => g.IdInventoryTransaction == transactionId)
+                .OrderBy(g => g.LineNumber)
+                .ToListAsync();
+        }
+
         public async Task<bool> TransactionNumberExistsAsync(int companyId, string transactionNumber, int? excludeId = null)
         {
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
@@ -133,19 +142,19 @@ namespace CMS.Data.Services
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
             seal = seal.Trim();
 
-            // Check header seals
+            // Sellos en encabezado
             var headerQuery = db.InventoryTransactions
                 .Where(t => t.SecuritySeal != null && t.SecuritySeal == seal);
             if (excludeTransactionId.HasValue)
                 headerQuery = headerQuery.Where(t => t.Id != excludeTransactionId.Value);
             if (await headerQuery.AnyAsync()) return true;
 
-            // Check dest security seals on lines
-            var lineQuery = db.InventoryTransactionLines
-                .Where(l => l.DestSecuritySeal != null && l.DestSecuritySeal == seal);
+            // Sellos destino en grupos de tránsito
+            var groupQuery = db.InventoryTransactionWarehouseTransits
+                .Where(g => g.DestSecuritySeal != null && g.DestSecuritySeal == seal);
             if (excludeTransactionId.HasValue)
-                lineQuery = lineQuery.Where(l => l.IdInventoryTransaction != excludeTransactionId.Value);
-            return await lineQuery.AnyAsync();
+                groupQuery = groupQuery.Where(g => g.IdInventoryTransaction != excludeTransactionId.Value);
+            return await groupQuery.AnyAsync();
         }
 
         // ================================================================
@@ -191,16 +200,16 @@ namespace CMS.Data.Services
 
             var busyStatuses = new[]
             {
-                InventoryTransactionStatus.Draft,
-                InventoryTransactionStatus.Confirmed,
-                InventoryTransactionStatus.InTransit,
-                InventoryTransactionStatus.PartiallyReceived,
+                InventoryTransactionStatusCode.IdDraft,
+                InventoryTransactionStatusCode.IdConfirmed,
+                InventoryTransactionStatusCode.IdInTransit,
+                InventoryTransactionStatusCode.IdPartiallyReceived,
             };
 
             var conflict = await db.InventoryTransactions
                 .Where(t => t.IsTransitTransfer
                          && t.IdWarehouseDest == warehouseId
-                         && busyStatuses.Contains(t.Status)
+                         && busyStatuses.Contains(t.IdInventoryTransactionStatus)
                          && (excludeTransactionId == null || t.Id != excludeTransactionId))
                 .Select(t => t.TransactionNumber)
                 .FirstOrDefaultAsync();
@@ -234,7 +243,7 @@ namespace CMS.Data.Services
             // Truncar a 30 chars para respetar el límite de la columna de auditoría
             var auditUser = (createdBy?.Length > 30 ? createdBy[..30] : createdBy) ?? "system";
 
-            transaction.Status = InventoryTransactionStatus.Draft;
+            transaction.IdInventoryTransactionStatus = InventoryTransactionStatusCode.IdDraft;
             transaction.CreatedBy = auditUser;
             transaction.UpdatedBy = auditUser;
             transaction.CreatedByUserId = userId;
@@ -246,20 +255,65 @@ namespace CMS.Data.Services
             db.InventoryTransactions.Add(transaction);
             await db.SaveChangesAsync();
 
-            // Guardar líneas
-            int lineNum = 1;
-            foreach (var line in lines)
+            if (transaction.IsTransitTransfer)
             {
-                line.IdInventoryTransaction = transaction.Id;
-                line.LineNumber = lineNum++;
-                line.LineStatus = "Pending";
-                line.CreatedBy = auditUser;
-                line.UpdatedBy = auditUser;
-                line.CreateDate = DateTime.UtcNow;
-                line.RecordDate = DateTime.UtcNow;
-                line.Rowpointer = Guid.NewGuid();
-                db.InventoryTransactionLines.Add(line);
+                // Agrupar líneas por bodega destino para crear los grupos de tránsito
+                var destGroups = lines
+                    .GroupBy(l => l.IdWarehouseDestLine ?? 0)
+                    .OrderBy(g => g.Key)
+                    .ToList();
+
+                int groupNum = 1;
+                foreach (var grp in destGroups)
+                {
+                    var transit = new InventoryTransactionWarehouseTransit
+                    {
+                        IdInventoryTransaction = transaction.Id,
+                        LineNumber             = groupNum++,
+                        IdWarehouseOriginLine  = transaction.IdWarehouseOrigin,
+                        IdWarehouseDestLine    = grp.Key == 0 ? null : grp.Key,
+                        LineStatus             = "Pending",
+                        CreatedBy  = auditUser,
+                        UpdatedBy  = auditUser,
+                        CreateDate = DateTime.UtcNow,
+                        RecordDate = DateTime.UtcNow,
+                        Rowpointer = Guid.NewGuid()
+                    };
+                    db.InventoryTransactionWarehouseTransits.Add(transit);
+                    await db.SaveChangesAsync(); // necesitamos el ID del grupo
+
+                    int lineNum = 1;
+                    foreach (var line in grp)
+                    {
+                        line.IdInventoryTransaction = transaction.Id;
+                        line.IdInventoryTransactionWarehouseTransit = transit.Id;
+                        line.LineNumber = lineNum++;
+                        line.CreatedBy  = auditUser;
+                        line.UpdatedBy  = auditUser;
+                        line.CreateDate = DateTime.UtcNow;
+                        line.RecordDate = DateTime.UtcNow;
+                        line.Rowpointer = Guid.NewGuid();
+                        db.InventoryTransactionLines.Add(line);
+                    }
+                }
             }
+            else
+            {
+                // Movimiento simple: guardar líneas sin grupo
+                int lineNum = 1;
+                foreach (var line in lines)
+                {
+                    line.IdInventoryTransaction = transaction.Id;
+                    line.LineNumber = lineNum++;
+                    line.CreatedBy  = auditUser;
+                    line.UpdatedBy  = auditUser;
+                    line.CreateDate = DateTime.UtcNow;
+                    line.RecordDate = DateTime.UtcNow;
+                    line.Rowpointer = Guid.NewGuid();
+                    db.InventoryTransactionLines.Add(line);
+                }
+            }
+
             await db.SaveChangesAsync();
 
             _logger.LogInformation("Movimiento {Num} creado para compañía {CompanyId}", transaction.TransactionNumber, companyId);
@@ -273,10 +327,10 @@ namespace CMS.Data.Services
             var existing = await db.InventoryTransactions.FirstOrDefaultAsync(t => t.Id == transaction.Id)
                 ?? throw new InvalidOperationException($"Movimiento {transaction.Id} no encontrado");
 
-            if (existing.Status != InventoryTransactionStatus.Draft)
+            if (existing.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdDraft)
                 throw new InvalidOperationException("Solo se pueden editar movimientos en estado Draft");
 
-            existing.MovementType = transaction.MovementType;
+            existing.IdInventoryTransactionType = transaction.IdInventoryTransactionType;
             existing.IdWarehouseOrigin = transaction.IdWarehouseOrigin;
             existing.IdWarehouseDest = transaction.IdWarehouseDest;
             existing.Reference = transaction.Reference;
@@ -301,30 +355,81 @@ namespace CMS.Data.Services
             var existing = await db.InventoryTransactions.FirstOrDefaultAsync(t => t.Id == transactionId)
                 ?? throw new InvalidOperationException("Movimiento no encontrado");
 
-            if (existing.Status != InventoryTransactionStatus.Draft)
+            if (existing.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdDraft)
                 throw new InvalidOperationException("Solo se pueden editar líneas en estado Draft");
 
             var oldLines = await db.InventoryTransactionLines
                 .Where(l => l.IdInventoryTransaction == transactionId)
                 .ToListAsync();
-
             db.InventoryTransactionLines.RemoveRange(oldLines);
+
+            var oldGroups = await db.InventoryTransactionWarehouseTransits
+                .Where(g => g.IdInventoryTransaction == transactionId)
+                .ToListAsync();
+            db.InventoryTransactionWarehouseTransits.RemoveRange(oldGroups);
+
             await db.SaveChangesAsync();
 
-            int lineNum = 1;
+            int lineNumGlobal = 1;
             var auditUser = updatedBy?.Length > 30 ? updatedBy[..30] : updatedBy ?? "SYSTEM";
-            foreach (var line in lines)
+
+            if (existing.IsTransitTransfer)
             {
-                line.Id = 0;
-                line.IdInventoryTransaction = transactionId;
-                line.LineNumber = lineNum++;
-                line.LineStatus = "Pending";
-                line.CreatedBy = auditUser;
-                line.UpdatedBy = auditUser;
-                line.CreateDate = DateTime.UtcNow;
-                line.RecordDate = DateTime.UtcNow;
-                line.Rowpointer = Guid.NewGuid();
-                db.InventoryTransactionLines.Add(line);
+                var destGroups = lines
+                    .GroupBy(l => l.IdWarehouseDestLine ?? 0)
+                    .OrderBy(g => g.Key)
+                    .ToList();
+
+                int groupNum = 1;
+                foreach (var grp in destGroups)
+                {
+                    var transit = new InventoryTransactionWarehouseTransit
+                    {
+                        IdInventoryTransaction = transactionId,
+                        LineNumber             = groupNum++,
+                        IdWarehouseOriginLine  = existing.IdWarehouseOrigin,
+                        IdWarehouseDestLine    = grp.Key == 0 ? null : grp.Key,
+                        LineStatus             = "Pending",
+                        CreatedBy  = auditUser,
+                        UpdatedBy  = auditUser,
+                        CreateDate = DateTime.UtcNow,
+                        RecordDate = DateTime.UtcNow,
+                        Rowpointer = Guid.NewGuid()
+                    };
+                    db.InventoryTransactionWarehouseTransits.Add(transit);
+                    await db.SaveChangesAsync();
+
+                    int lineNum = 1;
+                    foreach (var line in grp)
+                    {
+                        line.Id = 0;
+                        line.IdInventoryTransaction = transactionId;
+                        line.IdInventoryTransactionWarehouseTransit = transit.Id;
+                        line.LineNumber = lineNumGlobal++;
+                        line.CreatedBy  = auditUser;
+                        line.UpdatedBy  = auditUser;
+                        line.CreateDate = DateTime.UtcNow;
+                        line.RecordDate = DateTime.UtcNow;
+                        line.Rowpointer = Guid.NewGuid();
+                        db.InventoryTransactionLines.Add(line);
+                        lineNum++;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var line in lines)
+                {
+                    line.Id = 0;
+                    line.IdInventoryTransaction = transactionId;
+                    line.LineNumber = lineNumGlobal++;
+                    line.CreatedBy  = auditUser;
+                    line.UpdatedBy  = auditUser;
+                    line.CreateDate = DateTime.UtcNow;
+                    line.RecordDate = DateTime.UtcNow;
+                    line.Rowpointer = Guid.NewGuid();
+                    db.InventoryTransactionLines.Add(line);
+                }
             }
             await db.SaveChangesAsync();
         }
@@ -340,7 +445,7 @@ namespace CMS.Data.Services
             var txn = await db.InventoryTransactions.FirstOrDefaultAsync(t => t.Id == transactionId)
                 ?? throw new InvalidOperationException("Movimiento no encontrado");
 
-            if (txn.Status != InventoryTransactionStatus.Draft)
+            if (txn.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdDraft)
                 throw new InvalidOperationException("Solo se pueden confirmar movimientos en Draft");
 
             var lines = await db.InventoryTransactionLines
@@ -353,24 +458,32 @@ namespace CMS.Data.Services
             var now = DateTime.UtcNow;
             var auditUser = (updatedBy?.Length > 30 ? updatedBy[..30] : updatedBy) ?? "SYSTEM";
 
-            // Determinar estado destino
             if (txn.IsTransitTransfer)
             {
-                txn.Status = InventoryTransactionStatus.InTransit;
+                txn.IdInventoryTransactionStatus = InventoryTransactionStatusCode.IdInTransit;
 
-                // Aumentar qty_in_transit para la bodega origen saliente
+                var groups = await db.InventoryTransactionWarehouseTransits
+                    .Where(g => g.IdInventoryTransaction == transactionId)
+                    .ToListAsync();
+
+                foreach (var grp in groups)
+                {
+                    grp.LineStatus = "InTransit";
+                    grp.RecordDate = now;
+                    grp.UpdatedBy  = auditUser;
+                }
+
                 foreach (var line in lines)
                 {
-                    line.LineStatus = "InTransit";
                     line.QtyDispatched = line.QtyRequested;
-                    line.RecordDate = now;
-                    line.UpdatedBy = auditUser;
+                    line.RecordDate    = now;
+                    line.UpdatedBy     = auditUser;
 
                     // Reducir stock en bodega origen
                     await AdjustExistenceAsync(db, txn.IdWarehouseOrigin, line.IdItem, line.ItemCode,
                         -line.QtyDispatched, 0, 0, line.UnitCost ?? 0, transactionId, now, auditUser);
 
-                    // Aumentar in_transit en bodega transit (destino del header)
+                    // Aumentar in_transit en bodega tránsito (destino del header)
                     if (txn.IdWarehouseDest.HasValue)
                         await AdjustExistenceAsync(db, txn.IdWarehouseDest.Value, line.IdItem, line.ItemCode,
                             0, 0, line.QtyDispatched, line.UnitCost ?? 0, transactionId, now, auditUser);
@@ -379,14 +492,13 @@ namespace CMS.Data.Services
             else
             {
                 // Movimiento simple: confirmar = ya despachado (espera recepción o completa directo)
-                txn.Status = InventoryTransactionStatus.Confirmed;
+                txn.IdInventoryTransactionStatus = InventoryTransactionStatusCode.IdConfirmed;
 
                 foreach (var line in lines)
                 {
-                    line.LineStatus = "InTransit";
                     line.QtyDispatched = line.QtyRequested;
-                    line.RecordDate = now;
-                    line.UpdatedBy = auditUser;
+                    line.RecordDate    = now;
+                    line.UpdatedBy     = auditUser;
 
                     // Reducir en bodega origen
                     await AdjustExistenceAsync(db, txn.IdWarehouseOrigin, line.IdItem, line.ItemCode,
@@ -415,16 +527,17 @@ namespace CMS.Data.Services
             string? destSeal = null,
             int? nextWarehouseId = null,
             Dictionary<int, decimal>? lineQtys = null,
-            string? signature = null)
+            string? signature = null,
+            int? transitGroupId = null)
         {
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
 
             var txn = await db.InventoryTransactions.FirstOrDefaultAsync(t => t.Id == transactionId)
                 ?? throw new InvalidOperationException("Movimiento no encontrado");
 
-            if (txn.Status != InventoryTransactionStatus.InTransit &&
-                txn.Status != InventoryTransactionStatus.PartiallyReceived &&
-                txn.Status != InventoryTransactionStatus.Confirmed)
+            if (txn.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdInTransit &&
+                txn.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdPartiallyReceived &&
+                txn.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdConfirmed)
                 throw new InvalidOperationException("El movimiento no está en tránsito o confirmado");
 
             // Validate dest seal uniqueness (server-side guard)
@@ -432,16 +545,37 @@ namespace CMS.Data.Services
             {
                 var sealTrimmed = destSeal.Trim();
                 var headerMatch = await db.InventoryTransactions
-                    .AnyAsync(t => t.SecuritySeal == sealTrimmed);
-                var lineMatch = await db.InventoryTransactionLines
-                    .AnyAsync(l => l.DestSecuritySeal == sealTrimmed);
-                if (headerMatch || lineMatch)
+                    .AnyAsync(t => t.SecuritySeal == sealTrimmed && t.Id != transactionId);
+                var groupMatch = await db.InventoryTransactionWarehouseTransits
+                    .AnyAsync(g => g.DestSecuritySeal == sealTrimmed && g.IdInventoryTransaction != transactionId);
+                if (headerMatch || groupMatch)
                     throw new InvalidOperationException($"El sello '{sealTrimmed}' ya está en uso. Debe ingresar un sello único.");
             }
 
             var allLines = await db.InventoryTransactionLines
                 .Where(l => l.IdInventoryTransaction == transactionId)
                 .ToListAsync();
+
+            // Para TransitTransfer: localizar el grupo activo — priorizar transitGroupId enviado desde el cliente
+            InventoryTransactionWarehouseTransit? activeGroup = null;
+            if (txn.IsTransitTransfer)
+            {
+                if (transitGroupId.HasValue)
+                {
+                    activeGroup = await db.InventoryTransactionWarehouseTransits
+                        .FirstOrDefaultAsync(g => g.Id == transitGroupId.Value && g.IdInventoryTransaction == transactionId);
+                }
+                // Fallback: inferir desde la primera línea recibida
+                if (activeGroup == null && lineIds.Count > 0)
+                {
+                    var firstLine = allLines.FirstOrDefault(l => l.Id == lineIds.First());
+                    if (firstLine?.IdInventoryTransactionWarehouseTransit != null)
+                    {
+                        activeGroup = await db.InventoryTransactionWarehouseTransits
+                            .FirstOrDefaultAsync(g => g.Id == firstLine.IdInventoryTransactionWarehouseTransit.Value);
+                    }
+                }
+            }
 
             var now = DateTime.UtcNow;
             var auditUser = (receivedBy?.Length > 30 ? receivedBy[..30] : receivedBy) ?? "SYSTEM";
@@ -453,31 +587,40 @@ namespace CMS.Data.Services
                 throw new InvalidOperationException(
                     $"La Hora de Llegada ({parsedArrival.Value:HH:mm}) debe ser menor a la Hora de Salida ({parsedDeparture.Value:HH:mm}).");
 
+            // Actualizar el grupo de tránsito activo con los datos de logística
+            if (activeGroup != null)
+            {
+                activeGroup.LineStatus        = "Received";
+                activeGroup.ReceivedDate      = now;
+                activeGroup.ReceivedByUserId  = receivedByUserId;
+                if (parsedArrival.HasValue)                         activeGroup.ArrivalTime      = parsedArrival;
+                if (parsedDeparture.HasValue)                       activeGroup.DepartureTime    = parsedDeparture;
+                if (odometerOut.HasValue)                           activeGroup.OdometerOut      = odometerOut;
+                if (!string.IsNullOrWhiteSpace(signature))          activeGroup.Signature        = signature;
+                if (!string.IsNullOrWhiteSpace(destSeal))
+                    activeGroup.DestSecuritySeal = destSeal.Trim().Length > 50
+                        ? destSeal.Trim()[..50] : destSeal.Trim();
+                activeGroup.Notes       = null;
+                activeGroup.UpdatedBy   = auditUser;
+                activeGroup.RecordDate  = now;
+            }
+
             foreach (var lineId in lineIds)
             {
                 var line = allLines.FirstOrDefault(l => l.Id == lineId);
-                if (line == null || line.LineStatus == "Received") continue;
+                if (line == null) continue;
 
-                line.LineStatus = "Received";
-                // Use explicit qty if provided, otherwise fall back to dispatched → requested
+                // Usar cantidad explícita si se proveyó
                 line.QtyReceived = (lineQtys != null && lineQtys.TryGetValue(lineId, out var overrideQty) && overrideQty > 0)
                     ? overrideQty
                     : (line.QtyDispatched > 0 ? line.QtyDispatched : line.QtyRequested);
-                line.ReceivedDate = now;
-                line.ReceivedByUserId = receivedByUserId;
                 line.RecordDate = now;
-                line.UpdatedBy = auditUser;
+                line.UpdatedBy  = auditUser;
 
-                // Persistir hora de llegada, hora de salida y km de salida en la línea recibida
-                if (parsedArrival.HasValue)   line.ArrivalTime   = parsedArrival;
-                if (parsedDeparture.HasValue) line.DepartureTime = parsedDeparture;
-                if (odometerOut.HasValue)     line.OdometerOut   = odometerOut;
-                if (!string.IsNullOrWhiteSpace(signature)) line.Signature = signature;
-                if (!string.IsNullOrWhiteSpace(destSeal))
-                    line.DestSecuritySeal = destSeal.Trim().Length > 50 ? destSeal.Trim()[..50] : destSeal.Trim();
-
-                // Destino final de la línea
-                var destWarehouseId = line.IdWarehouseDestLine ?? txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;
+                // Destino final de la línea: leer del grupo si existe
+                var destWarehouseId = activeGroup?.IdWarehouseDestLine
+                    ?? txn.IdWarehouseDest
+                    ?? txn.IdWarehouseOrigin;
 
                 if (txn.IsTransitTransfer && txn.IdWarehouseDest.HasValue)
                 {
@@ -491,11 +634,20 @@ namespace CMS.Data.Services
                     line.QtyReceived, 0, 0, line.UnitCost ?? 0, transactionId, now, auditUser);
             }
 
-            // Verificar si todos están recibidos
-            var allReceived = allLines.All(l => l.LineStatus == "Received");
-            txn.Status = allReceived
-                ? InventoryTransactionStatus.Completed
-                : InventoryTransactionStatus.PartiallyReceived;
+            // Verificar si TODOS los grupos están recibidos
+            var allGroups = txn.IsTransitTransfer
+                ? await db.InventoryTransactionWarehouseTransits
+                    .Where(g => g.IdInventoryTransaction == transactionId)
+                    .ToListAsync()
+                : null;
+
+            var allReceived = txn.IsTransitTransfer
+                ? (allGroups!.Count > 0 && allGroups.All(g => g.LineStatus == "Received" || g.LineStatus == "Cancelled"))
+                : allLines.All(l => l.QtyReceived >= l.QtyDispatched);
+
+            txn.IdInventoryTransactionStatus = allReceived
+                ? InventoryTransactionStatusCode.IdCompleted
+                : InventoryTransactionStatusCode.IdPartiallyReceived;
 
             if (allReceived)
             {
@@ -535,7 +687,7 @@ namespace CMS.Data.Services
             var txn = await db.InventoryTransactions.FirstOrDefaultAsync(t => t.Id == transactionId)
                 ?? throw new InvalidOperationException("Movimiento no encontrado");
 
-            if (txn.Status != InventoryTransactionStatus.Confirmed)
+            if (txn.IdInventoryTransactionStatus != InventoryTransactionStatusCode.IdConfirmed)
                 throw new InvalidOperationException("El movimiento debe estar Confirmado para completar");
 
             var lines = await db.InventoryTransactionLines
@@ -548,19 +700,35 @@ namespace CMS.Data.Services
             foreach (var line in lines)
             {
                 line.QtyReceived = line.QtyDispatched > 0 ? line.QtyDispatched : line.QtyRequested;
-                line.LineStatus = "Received";
-                line.ReceivedDate = now;
-                line.ReceivedByUserId = userId;
-                line.RecordDate = now;
-                line.UpdatedBy = auditUser;
+                line.RecordDate  = now;
+                line.UpdatedBy   = auditUser;
 
-                var destWarehouseId = line.IdWarehouseDestLine ?? txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;
+                // Destino: buscar en el grupo de tránsito si existe
+                int destWarehouseId;
+                if (line.IdInventoryTransactionWarehouseTransit.HasValue)
+                {
+                    var grp = await db.InventoryTransactionWarehouseTransits
+                        .FirstOrDefaultAsync(g => g.Id == line.IdInventoryTransactionWarehouseTransit.Value);
+                    destWarehouseId = grp?.IdWarehouseDestLine ?? txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;
+                    if (grp != null)
+                    {
+                        grp.LineStatus       = "Received";
+                        grp.ReceivedDate     = now;
+                        grp.ReceivedByUserId = userId;
+                        grp.RecordDate       = now;
+                        grp.UpdatedBy        = auditUser;
+                    }
+                }
+                else
+                {
+                    destWarehouseId = txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;
+                }
 
                 await AdjustExistenceAsync(db, destWarehouseId, line.IdItem, line.ItemCode,
                     line.QtyReceived, 0, 0, line.UnitCost ?? 0, transactionId, now, auditUser);
             }
 
-            txn.Status = InventoryTransactionStatus.Completed;
+            txn.IdInventoryTransactionStatus = InventoryTransactionStatusCode.IdCompleted;
             txn.CompletedDate = now;
             txn.AffectsStock = true;
             txn.UpdatedBy = auditUser;
@@ -577,24 +745,35 @@ namespace CMS.Data.Services
             var txn = await db.InventoryTransactions.FirstOrDefaultAsync(t => t.Id == transactionId)
                 ?? throw new InvalidOperationException("Movimiento no encontrado");
 
-            if (txn.Status == InventoryTransactionStatus.Completed || txn.Status == InventoryTransactionStatus.Cancelled)
+            if (txn.IdInventoryTransactionStatus == InventoryTransactionStatusCode.IdCompleted || txn.IdInventoryTransactionStatus == InventoryTransactionStatusCode.IdCancelled)
                 throw new InvalidOperationException("No se puede cancelar un movimiento Completado o ya Cancelado");
 
             var now = DateTime.UtcNow;
             var auditUser = (updatedBy?.Length > 30 ? updatedBy[..30] : updatedBy) ?? "SYSTEM";
 
             // Revertir movimientos de existencias si ya estaba confirmado / en tránsito
-            if (txn.Status == InventoryTransactionStatus.Confirmed ||
-                txn.Status == InventoryTransactionStatus.InTransit ||
-                txn.Status == InventoryTransactionStatus.PartiallyReceived)
+            if (txn.IdInventoryTransactionStatus == InventoryTransactionStatusCode.IdConfirmed ||
+                txn.IdInventoryTransactionStatus == InventoryTransactionStatusCode.IdInTransit ||
+                txn.IdInventoryTransactionStatus == InventoryTransactionStatusCode.IdPartiallyReceived)
             {
                 var lines = await db.InventoryTransactionLines
                     .Where(l => l.IdInventoryTransaction == transactionId)
                     .ToListAsync();
 
+                var groups = await db.InventoryTransactionWarehouseTransits
+                    .Where(g => g.IdInventoryTransaction == transactionId)
+                    .ToListAsync();
+
+                foreach (var grp in groups)
+                {
+                    grp.LineStatus  = "Cancelled";
+                    grp.RecordDate  = now;
+                    grp.UpdatedBy   = auditUser;
+                }
+
                 foreach (var line in lines)
                 {
-                    // Devolver qty_on_hand a bodega origen (ya se había reducido al confirmar)
+                    // Devolver qty_on_hand a bodega origen
                     await AdjustExistenceAsync(db, txn.IdWarehouseOrigin, line.IdItem, line.ItemCode,
                         line.QtyDispatched, 0, 0, line.UnitCost ?? 0, transactionId, now, auditUser);
 
@@ -603,13 +782,12 @@ namespace CMS.Data.Services
                         await AdjustExistenceAsync(db, txn.IdWarehouseDest.Value, line.IdItem, line.ItemCode,
                             0, 0, -line.QtyDispatched, line.UnitCost ?? 0, transactionId, now, auditUser);
 
-                    line.LineStatus = "Cancelled";
                     line.RecordDate = now;
-                    line.UpdatedBy = auditUser;
+                    line.UpdatedBy  = auditUser;
                 }
             }
 
-            txn.Status = InventoryTransactionStatus.Cancelled;
+            txn.IdInventoryTransactionStatus = InventoryTransactionStatusCode.IdCancelled;
             txn.CancelledDate = now;
             txn.CancelledByUserId = userId;
             txn.CancelReason = reason;

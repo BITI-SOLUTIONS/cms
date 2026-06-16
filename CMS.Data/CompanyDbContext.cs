@@ -115,6 +115,11 @@ namespace CMS.Data
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; } = null!;
 
         /// <summary>
+        /// Grupos de tránsito por bodega destino (solo movimientos TransitTransfer)
+        /// </summary>
+        public DbSet<InventoryTransactionWarehouseTransit> InventoryTransactionWarehouseTransits { get; set; } = null!;
+
+        /// <summary>
         /// Líneas de movimientos de inventario
         /// </summary>
         public DbSet<InventoryTransactionLine> InventoryTransactionLines { get; set; } = null!;
@@ -379,8 +384,8 @@ namespace CMS.Data
             {
                 entity.ToTable("inventory_transaction", _schema);
                 entity.HasIndex(e => e.TransactionNumber).IsUnique();
-                entity.HasIndex(e => e.MovementType);
-                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.IdInventoryTransactionType);
+                entity.HasIndex(e => e.IdInventoryTransactionStatus);
                 entity.HasIndex(e => e.TransactionDate);
                 entity.HasIndex(e => e.IdWarehouseOrigin);
                 entity.HasIndex(e => e.IdWarehouseDest);
@@ -388,12 +393,21 @@ namespace CMS.Data
                 entity.HasIndex(e => e.SecuritySeal).IsUnique().HasFilter("security_seal IS NOT NULL");
             });
 
+            modelBuilder.Entity<InventoryTransactionWarehouseTransit>(entity =>
+            {
+                entity.ToTable("inventory_transaction_warehouse_transit", _schema);
+                entity.HasIndex(e => e.IdInventoryTransaction);
+                entity.HasIndex(e => e.LineStatus);
+                entity.HasIndex(e => e.IdWarehouseDestLine);
+                entity.HasIndex(e => new { e.IdInventoryTransaction, e.LineNumber }).IsUnique();
+            });
+
             modelBuilder.Entity<InventoryTransactionLine>(entity =>
             {
                 entity.ToTable("inventory_transaction_line", _schema);
                 entity.HasIndex(e => e.IdInventoryTransaction);
                 entity.HasIndex(e => e.IdItem);
-                entity.HasIndex(e => e.LineStatus);
+                entity.HasIndex(e => e.IdInventoryTransactionWarehouseTransit);
                 entity.HasIndex(e => new { e.IdInventoryTransaction, e.LineNumber }).IsUnique();
             });
 

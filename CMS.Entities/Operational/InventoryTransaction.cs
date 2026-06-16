@@ -22,33 +22,10 @@ namespace CMS.Entities.Operational
     // TIPOS DE MOVIMIENTO
     // ============================================================
 
-    /// <summary>Tipo de movimiento de inventario.</summary>
-    public static class InventoryMovementType
-    {
-        /// <summary>Traslado entre bodegas (estándar)</summary>
-        public const string Transfer = "Transfer";
-        /// <summary>Traslado vía bodega de tránsito (vehículo)</summary>
-        public const string TransitTransfer = "TransitTransfer";
-        /// <summary>Entrada por compra / recepción</summary>
-        public const string PurchaseReceipt = "PurchaseReceipt";
-        /// <summary>Salida por venta / despacho</summary>
-        public const string SaleIssue = "SaleIssue";
-        /// <summary>Ajuste positivo de inventario</summary>
-        public const string AdjustmentIn = "AdjustmentIn";
-        /// <summary>Ajuste negativo de inventario</summary>
-        public const string AdjustmentOut = "AdjustmentOut";
-        /// <summary>Devolución de cliente</summary>
-        public const string CustomerReturn = "CustomerReturn";
-        /// <summary>Devolución a proveedor</summary>
-        public const string SupplierReturn = "SupplierReturn";
-        /// <summary>Traspaso a merma / dañados</summary>
-        public const string WriteOff = "WriteOff";
-        /// <summary>Inventario físico / conteo</summary>
-        public const string PhysicalCount = "PhysicalCount";
-    }
+    // (Los tipos de movimiento ahora viven en la tabla admin.inventory_transaction_type)
 
-    /// <summary>Estados del documento de movimiento.</summary>
-    public static class InventoryTransactionStatus
+    /// <summary>Estados del documento de movimiento — códigos para lógica de negocio.</summary>
+    public static class InventoryTransactionStatusCode
     {
         /// <summary>Borrador / en creación</summary>
         public const string Draft = "Draft";
@@ -62,6 +39,14 @@ namespace CMS.Entities.Operational
         public const string Completed = "Completed";
         /// <summary>Cancelado</summary>
         public const string Cancelled = "Cancelled";
+
+        // IDs fijos del seed en admin.inventory_transaction_status (SERIAL en orden de INSERT)
+        public const int IdDraft             = 1;
+        public const int IdConfirmed         = 2;
+        public const int IdInTransit         = 3;
+        public const int IdPartiallyReceived = 4;
+        public const int IdCompleted         = 5;
+        public const int IdCancelled         = 6;
     }
 
     // ============================================================
@@ -85,17 +70,15 @@ namespace CMS.Entities.Operational
         [Column("transaction_number")]
         public string TransactionNumber { get; set; } = string.Empty;
 
-        /// <summary>Tipo de movimiento: Transfer, TransitTransfer, PurchaseReceipt, etc.</summary>
+        /// <summary>FK lógica cross-db hacia admin.inventory_transaction_type</summary>
         [Required]
-        [MaxLength(30)]
-        [Column("movement_type")]
-        public string MovementType { get; set; } = InventoryMovementType.Transfer;
+        [Column("id_inventory_transaction_type")]
+        public int IdInventoryTransactionType { get; set; }
 
-        /// <summary>Estado: Draft, Confirmed, InTransit, PartiallyReceived, Completed, Cancelled</summary>
+        /// <summary>FK lógica cross-db hacia admin.inventory_transaction_status</summary>
         [Required]
-        [MaxLength(30)]
-        [Column("status")]
-        public string Status { get; set; } = InventoryTransactionStatus.Draft;
+        [Column("id_inventory_transaction_status")]
+        public int IdInventoryTransactionStatus { get; set; } = InventoryTransactionStatusCode.IdDraft;
 
         // ===== BODEGAS =====
 
@@ -214,13 +197,120 @@ namespace CMS.Entities.Operational
     }
 
     // ============================================================
+    // GRUPO DE TRÁNSITO POR BODEGA DESTINO (solo TransitTransfer)
+    // ============================================================
+
+    /// <summary>
+    /// Encabezado de cada parada (grupo de bodega destino) dentro de un movimiento TransitTransfer.
+    /// Una fila por bodega destino visitada: guarda sello, horarios, odómetro, firma y estado de recepción.
+    /// Las líneas de artículo referencian este grupo a través de id_inventory_transaction_warehouse_transit.
+    /// </summary>
+    [Table("inventory_transaction_warehouse_transit")]
+    public class InventoryTransactionWarehouseTransit
+    {
+        [Key]
+        [Column("id_inventory_transaction_warehouse_transit")]
+        public int Id { get; set; }
+
+        // ===== RELACIÓN CON EL MOVIMIENTO PRINCIPAL =====
+
+        [Column("id_inventory_transaction")]
+        public int IdInventoryTransaction { get; set; }
+
+        /// <summary>Número de parada dentro del movimiento (1, 2, 3 …)</summary>
+        [Column("line_number")]
+        public int LineNumber { get; set; } = 1;
+
+        // ===== BODEGAS =====
+
+        /// <summary>FK lógica a {schema}.warehouse — bodega de origen de este grupo</summary>
+        [Column("id_warehouse_origin_line")]
+        public int? IdWarehouseOriginLine { get; set; }
+
+        /// <summary>FK lógica a {schema}.warehouse — bodega destino final de esta parada</summary>
+        [Column("id_warehouse_dest_line")]
+        public int? IdWarehouseDestLine { get; set; }
+
+        // ===== ESTADO =====
+
+        /// <summary>Estado de esta parada: Pending, InTransit, Received, Rejected, Cancelled</summary>
+        [Required]
+        [MaxLength(20)]
+        [Column("line_status")]
+        public string LineStatus { get; set; } = "Pending";
+
+        // ===== LOGÍSTICA DEL VEHÍCULO EN ESTA PARADA =====
+
+        /// <summary>Sello de seguridad colocado al cerrar la bodega destino tras la recepción.</summary>
+        [MaxLength(50)]
+        [Column("dest_security_seal")]
+        public string? DestSecuritySeal { get; set; }
+
+        /// <summary>Hora de salida del vehículo hacia el siguiente destino.</summary>
+        [Column("departure_time")]
+        public TimeOnly? DepartureTime { get; set; }
+
+        /// <summary>Hora de llegada del vehículo a esta bodega destino.</summary>
+        [Column("arrival_time")]
+        public TimeOnly? ArrivalTime { get; set; }
+
+        /// <summary>Lectura de odómetro al salir hacia el siguiente destino (km).</summary>
+        [Column("odometer_out")]
+        public decimal? OdometerOut { get; set; }
+
+        /// <summary>Firma digital del receptor en base64 PNG data URI.</summary>
+        [Column("signature")]
+        public string? Signature { get; set; }
+
+        // ===== RECEPCIÓN =====
+
+        [Column("received_date")]
+        public DateTime? ReceivedDate { get; set; }
+
+        /// <summary>FK lógica cross-DB a cms.admin.user — quien confirmó la recepción del grupo.</summary>
+        [Column("received_by_user_id")]
+        public int? ReceivedByUserId { get; set; }
+
+        [MaxLength(500)]
+        [Column("notes")]
+        public string? Notes { get; set; }
+
+        // ===== AUDITORÍA =====
+
+        [Column("createdate")]
+        public DateTime CreateDate { get; set; } = DateTime.UtcNow;
+
+        [Column("record_date")]
+        public DateTime RecordDate { get; set; } = DateTime.UtcNow;
+
+        [Required]
+        [MaxLength(30)]
+        [Column("created_by")]
+        public string CreatedBy { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(30)]
+        [Column("updated_by")]
+        public string UpdatedBy { get; set; } = string.Empty;
+
+        [Column("rowpointer")]
+        public Guid Rowpointer { get; set; } = Guid.NewGuid();
+
+        // ===== NAVEGACIÓN =====
+
+        [NotMapped]
+        public List<InventoryTransactionLine> Lines { get; set; } = new();
+    }
+
+    // ============================================================
     // LÍNEA DE MOVIMIENTO
     // ============================================================
 
     /// <summary>
     /// Línea de artículo dentro de un movimiento de inventario.
-    /// En movimientos TransitTransfer, cada línea puede tener su propia bodega destino
-    /// (distinta a la bodega de tránsito del encabezado) y su propio estado de recepción.
+    /// Solo contiene datos del artículo: cantidades, costo, unidad de medida, lote.
+    /// Los datos de logística de grupo (sello, horarios, firma, bodegas por grupo, etc.)
+    /// se almacenan en <see cref="InventoryTransactionWarehouseTransit"/>.
     /// </summary>
     [Table("inventory_transaction_line")]
     public class InventoryTransactionLine
@@ -231,6 +321,31 @@ namespace CMS.Entities.Operational
 
         [Column("id_inventory_transaction")]
         public int IdInventoryTransaction { get; set; }
+
+        /// <summary>
+        /// FK al grupo de tránsito (parada de bodega) al que pertenece esta línea.
+        /// Solo se popula para movimientos TransitTransfer. NULL para cualquier otro tipo.
+        /// </summary>
+        [Column("id_inventory_transaction_warehouse_transit")]
+        public int? IdInventoryTransactionWarehouseTransit { get; set; }
+
+        // ===== CAMPOS TRANSITORIOS (NotMapped — usados al crear/guardar, no se persisten) =====
+
+        /// <summary>
+        /// Campo transitorio: bodega destino de este artículo dentro del grupo de tránsito.
+        /// Se popula desde el DTO al crear/actualizar líneas de TransitTransfer.
+        /// No se persiste en la BD — va en InventoryTransactionWarehouseTransit.IdWarehouseDestLine.
+        /// </summary>
+        [NotMapped]
+        public int? IdWarehouseDestLine { get; set; }
+
+        /// <summary>
+        /// Campo transitorio: bodega origen de este artículo dentro del grupo de tránsito.
+        /// Se popula desde el DTO al crear/actualizar líneas de TransitTransfer.
+        /// No se persiste en la BD — va en InventoryTransactionWarehouseTransit.IdWarehouseOriginLine.
+        /// </summary>
+        [NotMapped]
+        public int? IdWarehouseOriginLine { get; set; }
 
         [Column("line_number")]
         public int LineNumber { get; set; } = 1;
@@ -262,39 +377,6 @@ namespace CMS.Entities.Operational
         [Column("qty_received")]
         public decimal QtyReceived { get; set; } = 0;
 
-        // ===== BODEGAS POR LÍNEA (para TransitTransfer) =====
-
-        /// <summary>
-        /// Bodega de origen de esta línea específica.
-        /// Null = hereda del encabezado.
-        /// </summary>
-        [Column("id_warehouse_origin_line")]
-        public int? IdWarehouseOriginLine { get; set; }
-
-        /// <summary>
-        /// Bodega destino FINAL de esta línea.
-        /// En TransitTransfer: bodega física destino (diferente a la bodega de tránsito del encabezado).
-        /// En Transfer simple: null (hereda del encabezado).
-        /// </summary>
-        [Column("id_warehouse_dest_line")]
-        public int? IdWarehouseDestLine { get; set; }
-
-        // ===== ESTADO DE RECEPCIÓN POR LÍNEA =====
-
-        /// <summary>Estado de esta línea: Pending, InTransit, Received, Rejected</summary>
-        [Required]
-        [MaxLength(20)]
-        [Column("line_status")]
-        public string LineStatus { get; set; } = "Pending";
-
-        /// <summary>Fecha y hora en que se confirmó la recepción de esta línea</summary>
-        [Column("received_date")]
-        public DateTime? ReceivedDate { get; set; }
-
-        /// <summary>FK lógica cross-DB a cms.admin.user — quien confirmó la recepción</summary>
-        [Column("received_by_user_id")]
-        public int? ReceivedByUserId { get; set; }
-
         // ===== UNIDAD DE MEDIDA =====
 
         [Column("id_unit_of_measure")]
@@ -320,33 +402,6 @@ namespace CMS.Entities.Operational
 
         [Column("expiry_date")]
         public DateOnly? ExpiryDate { get; set; }
-
-        [MaxLength(500)]
-        [Column("notes")]
-        public string? Notes { get; set; }
-
-        // ===== TRAMO BODEGA TRÁNSITO → BODEGA DESTINO N (solo TransitTransfer) =====
-
-        /// <summary>Sello de seguridad específico para el tramo hacia esta bodega destino final.</summary>
-        [MaxLength(50)]
-        [Column("dest_security_seal")]
-        public string? DestSecuritySeal { get; set; }
-
-        /// <summary>Hora de salida hacia esta bodega destino desde la bodega de tránsito.</summary>
-        [Column("departure_time")]
-        public TimeOnly? DepartureTime { get; set; }
-
-        /// <summary>Hora de llegada a esta bodega destino.</summary>
-        [Column("arrival_time")]
-        public TimeOnly? ArrivalTime { get; set; }
-
-        /// <summary>Kilometraje al salir hacia esta bodega destino.</summary>
-        [Column("odometer_out")]
-        public decimal? OdometerOut { get; set; }
-
-        /// <summary>Firma digital del receptor (base64 PNG data URI) capturada en dispositivo táctil.</summary>
-        [Column("signature")]
-        public string? Signature { get; set; }
 
         // ===== AUDITORÍA =====
 

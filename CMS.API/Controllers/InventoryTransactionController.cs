@@ -58,8 +58,8 @@ namespace CMS.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTransactions(
             [FromQuery] string? search = null,
-            [FromQuery] string? movementType = null,
-            [FromQuery] string? status = null,
+            [FromQuery] int? idInventoryTransactionType = null,
+            [FromQuery] int? idInventoryTransactionStatus = null,
             [FromQuery] int? warehouseOriginId = null,
             [FromQuery] int? warehouseDestId = null,
             [FromQuery] string? dateFrom = null,
@@ -76,7 +76,7 @@ namespace CMS.API.Controllers
                 if (DateOnly.TryParse(dateTo, out var dt)) to = dt;
 
                 var (items, total) = await _service.GetTransactionsAsync(
-                    companyId, search, movementType, status,
+                    companyId, search, idInventoryTransactionType, idInventoryTransactionStatus,
                     warehouseOriginId, warehouseDestId, from, to, page, pageSize);
 
                 return Ok(new
@@ -307,7 +307,7 @@ namespace CMS.API.Controllers
                 var txn = new InventoryTransaction
                 {
                     Id = id,
-                    MovementType = dto.MovementType,
+                    IdInventoryTransactionType = dto.IdInventoryTransactionType,
                     IdWarehouseOrigin = dto.IdWarehouseOrigin,
                     IdWarehouseDest = dto.IdWarehouseDest,
                     Reference = dto.Reference,
@@ -400,7 +400,7 @@ namespace CMS.API.Controllers
                     GetCurrentUserId(), GetCurrentUser(),
                     dto.ArrivalTime, dto.DepartureTime, dto.OdometerOut,
                     dto.DestSeal, dto.NextWarehouseId,
-                    lineQtysDict, dto.Signature);
+                    lineQtysDict, dto.Signature, dto.TransitGroupId);
                 var lines = await _service.GetLinesAsync(companyId, id);
                 txn.Lines = lines;
                 return Ok(MapToDto(txn, true));
@@ -463,6 +463,27 @@ namespace CMS.API.Controllers
         }
 
         // ================================================================
+        // GET /api/inventorytransaction/{id}/transit-groups
+        // ================================================================
+        [HttpGet("{id:int}/transit-groups")]
+        public async Task<IActionResult> GetTransitGroups(int id)
+        {
+            try
+            {
+                var companyId = GetCurrentCompanyId();
+                var groups    = await _service.GetTransitGroupsAsync(companyId, id);
+                var lines     = await _service.GetLinesAsync(companyId, id);
+                return Ok(groups.Select(g =>
+                    MapTransitGroupToDto(g, lines.Where(l => l.IdInventoryTransactionWarehouseTransit == g.Id))));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo grupos de tránsito del movimiento {Id}", id);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // ================================================================
         // MAPPERS
         // ================================================================
 
@@ -472,8 +493,8 @@ namespace CMS.API.Controllers
             {
                 t.Id,
                 t.TransactionNumber,
-                t.MovementType,
-                t.Status,
+                t.IdInventoryTransactionType,
+                t.IdInventoryTransactionStatus,
                 t.IdWarehouseOrigin,
                 t.IdWarehouseDest,
                 t.Reference,
@@ -504,6 +525,7 @@ namespace CMS.API.Controllers
         {
             l.Id,
             l.IdInventoryTransaction,
+            l.IdInventoryTransactionWarehouseTransit,
             l.LineNumber,
             l.IdItem,
             l.ItemCode,
@@ -511,29 +533,37 @@ namespace CMS.API.Controllers
             l.QtyRequested,
             l.QtyDispatched,
             l.QtyReceived,
-            l.IdWarehouseOriginLine,
-            l.IdWarehouseDestLine,
-            l.LineStatus,
-            l.ReceivedDate,
-            l.ReceivedByUserId,
             l.IdUnitOfMeasure,
             l.UnitOfMeasureCode,
             l.UnitCost,
             l.TotalCost,
             l.LotNumber,
-            ExpiryDate = l.ExpiryDate?.ToString("yyyy-MM-dd"),
-            l.Notes,
-            l.DestSecuritySeal,
-            DepartureTime = l.DepartureTime?.ToString("HH:mm"),
-            ArrivalTime = l.ArrivalTime?.ToString("HH:mm"),
-            l.OdometerOut,
-            l.Signature
+            ExpiryDate = l.ExpiryDate?.ToString("yyyy-MM-dd")
+        };
+
+        private static object MapTransitGroupToDto(InventoryTransactionWarehouseTransit g, IEnumerable<InventoryTransactionLine>? lines = null) => new
+        {
+            g.Id,
+            g.IdInventoryTransaction,
+            g.LineNumber,
+            g.IdWarehouseOriginLine,
+            g.IdWarehouseDestLine,
+            g.LineStatus,
+            g.DestSecuritySeal,
+            DepartureTime = g.DepartureTime?.ToString("HH:mm"),
+            ArrivalTime   = g.ArrivalTime?.ToString("HH:mm"),
+            g.OdometerOut,
+            g.Signature,
+            g.ReceivedDate,
+            g.ReceivedByUserId,
+            g.Notes,
+            Lines = lines?.Select(MapLineToDto)
         };
 
         private static InventoryTransaction MapFromDto(CreateInventoryTransactionDto dto) => new()
         {
             TransactionNumber = dto.TransactionNumber ?? string.Empty,
-            MovementType = dto.MovementType,
+            IdInventoryTransactionType = dto.IdInventoryTransactionType,
             IdWarehouseOrigin = dto.IdWarehouseOrigin,
             IdWarehouseDest = dto.IdWarehouseDest,
             Reference = dto.Reference,
@@ -548,22 +578,17 @@ namespace CMS.API.Controllers
 
         private static InventoryTransactionLine MapLineFromDto(InventoryTransactionLineDto dto) => new()
         {
-            IdItem = dto.IdItem,
-            ItemCode = dto.ItemCode,
-            ItemName = dto.ItemName,
-            QtyRequested = dto.QtyRequested,
-            IdWarehouseOriginLine = dto.IdWarehouseOriginLine,
-            IdWarehouseDestLine = dto.IdWarehouseDestLine,
-            IdUnitOfMeasure = dto.IdUnitOfMeasure,
+            IdItem            = dto.IdItem,
+            ItemCode          = dto.ItemCode,
+            ItemName          = dto.ItemName,
+            QtyRequested      = dto.QtyRequested,
+            IdWarehouseDestLine   = dto.IdWarehouseDestLine,   // [NotMapped] transitorio para agrupar
+            IdWarehouseOriginLine = dto.IdWarehouseOriginLine, // [NotMapped] transitorio
+            IdUnitOfMeasure   = dto.IdUnitOfMeasure,
             UnitOfMeasureCode = dto.UnitOfMeasureCode,
-            UnitCost = dto.UnitCost,
-            LotNumber = dto.LotNumber,
-            ExpiryDate = dto.ExpiryDate,
-            Notes = dto.Notes,
-            DestSecuritySeal = string.IsNullOrWhiteSpace(dto.DestSecuritySeal) ? null : dto.DestSecuritySeal.Trim(),
-            DepartureTime = TimeOnly.TryParse(dto.DepartureTime, out var dtL) ? dtL : null,
-            ArrivalTime   = TimeOnly.TryParse(dto.ArrivalTime,   out var atL) ? atL : null,
-            OdometerOut   = dto.OdometerOut
+            UnitCost          = dto.UnitCost,
+            LotNumber         = dto.LotNumber,
+            ExpiryDate        = dto.ExpiryDate
         };
     }
 
@@ -574,7 +599,7 @@ namespace CMS.API.Controllers
     public class CreateInventoryTransactionDto
     {
         public string? TransactionNumber { get; set; }
-        public string MovementType { get; set; } = InventoryMovementType.Transfer;
+        public int IdInventoryTransactionType { get; set; }
         public int IdWarehouseOrigin { get; set; }
         public int? IdWarehouseDest { get; set; }
         public string? Reference { get; set; }
@@ -590,7 +615,7 @@ namespace CMS.API.Controllers
 
     public class UpdateInventoryTransactionDto
     {
-        public string MovementType { get; set; } = InventoryMovementType.Transfer;
+        public int IdInventoryTransactionType { get; set; }
         public int IdWarehouseOrigin { get; set; }
         public int? IdWarehouseDest { get; set; }
         public string? Reference { get; set; }
@@ -609,18 +634,15 @@ namespace CMS.API.Controllers
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
         public decimal QtyRequested { get; set; }
+        /// <summary>Usado como campo transitorio para agrupar líneas por bodega en TransitTransfer.</summary>
         public int? IdWarehouseOriginLine { get; set; }
+        /// <summary>Usado como campo transitorio para agrupar líneas por bodega en TransitTransfer.</summary>
         public int? IdWarehouseDestLine { get; set; }
         public int? IdUnitOfMeasure { get; set; }
         public string? UnitOfMeasureCode { get; set; }
         public decimal? UnitCost { get; set; }
         public string? LotNumber { get; set; }
         public DateOnly? ExpiryDate { get; set; }
-        public string? Notes { get; set; }
-        public string? DestSecuritySeal { get; set; }
-        public string? DepartureTime { get; set; }
-        public string? ArrivalTime { get; set; }
-        public decimal? OdometerOut { get; set; }
     }
 
     public class ReceiveLineQtyDto
@@ -644,6 +666,8 @@ namespace CMS.API.Controllers
         public string? DestSeal { get; set; }
         /// <summary>Id de la siguiente bodega destino (para asociar el sello)</summary>
         public int? NextWarehouseId { get; set; }
+        /// <summary>Id del grupo de tránsito que se está recibiendo (sinai.inventory_transaction_warehouse_transit)</summary>
+        public int? TransitGroupId { get; set; }
         /// <summary>Firma digital del receptor (base64 PNG data URI)</summary>
         public string? Signature { get; set; }
     }

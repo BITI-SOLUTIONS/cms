@@ -3589,7 +3589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType91"
+                  "$ref": "#/components/schemas/StringStringStringStringDateTime<>f__AnonymousType92"
                 }
               }
             }
@@ -3770,17 +3770,19 @@
             }
           },
           {
-            "name": "movementType",
+            "name": "idInventoryTransactionType",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
-            "name": "status",
+            "name": "idInventoryTransactionStatus",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -4302,6 +4304,163 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/InventoryTransaction/{id}/transit-groups": {
+      "get": {
+        "tags": [
+          "InventoryTransaction"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/inventory-transaction-status": {
+      "get": {
+        "tags": [
+          "InventoryTransactionStatus"
+        ],
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "InventoryTransactionStatus"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionStatus"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionStatus"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionStatus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/inventory-transaction-status/{id}": {
+      "get": {
+        "tags": [
+          "InventoryTransactionStatus"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InventoryTransactionStatus"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionStatus"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionStatus"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryTransactionStatus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "InventoryTransactionStatus"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -11394,9 +11553,9 @@
             "type": "string",
             "nullable": true
           },
-          "movementType": {
-            "type": "string",
-            "nullable": true
+          "idInventoryTransactionType": {
+            "type": "integer",
+            "format": "int32"
           },
           "idWarehouseOrigin": {
             "type": "integer",
@@ -12791,27 +12950,87 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryTransactionStatus": {
+        "required": [
+          "code",
+          "createdBy",
+          "name",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
           },
-          "notes": {
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
             "type": "string",
             "nullable": true
           },
-          "destSecuritySeal": {
+          "icon": {
+            "maxLength": 50,
             "type": "string",
             "nullable": true
           },
-          "departureTime": {
+          "emoji": {
+            "maxLength": 10,
             "type": "string",
             "nullable": true
           },
-          "arrivalTime": {
+          "cssClass": {
+            "maxLength": 60,
             "type": "string",
             "nullable": true
           },
-          "odometerOut": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
+          "isFinalState": {
+            "type": "boolean"
+          },
+          "allowsEdit": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedBy": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rowpointer": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -14073,6 +14292,11 @@
             "format": "int32",
             "nullable": true
           },
+          "transitGroupId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "signature": {
             "type": "string",
             "nullable": true
@@ -15084,7 +15308,7 @@
         },
         "additionalProperties": false
       },
-      "StringStringStringStringDateTime<>f__AnonymousType91": {
+      "StringStringStringStringDateTime<>f__AnonymousType92": {
         "type": "object",
         "properties": {
           "status": {
@@ -16122,9 +16346,9 @@
       "UpdateInventoryTransactionDto": {
         "type": "object",
         "properties": {
-          "movementType": {
-            "type": "string",
-            "nullable": true
+          "idInventoryTransactionType": {
+            "type": "integer",
+            "format": "int32"
           },
           "idWarehouseOrigin": {
             "type": "integer",

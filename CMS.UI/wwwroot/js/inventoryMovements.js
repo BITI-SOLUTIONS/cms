@@ -24,6 +24,7 @@ const INV = {
     // Datos cacheados
     warehouses:    [],
     movementTypes: [],   // tipos cargados desde admin.inventory_transaction_type
+    transactionStatuses: [], // estados cargados desde admin.inventory_transaction_status
     items:      [],
     // Estado del modal
     editingId:  null,
@@ -35,28 +36,63 @@ const INV = {
     cancelTargetId: null,
 };
 
-// Constantes de tipo y estado
-const MOVEMENT_TYPES = {
-    Transfer:         { label: 'Traslado',        icon: '📦', css: 'tp-Transfer'         },
-    TransitTransfer:  { label: 'Tránsito',         icon: '🚛', css: 'tp-TransitTransfer'  },
-    PurchaseReceipt:  { label: 'Entrada Compra',   icon: '🟢', css: 'tp-PurchaseReceipt'  },
-    SaleIssue:        { label: 'Salida Venta',     icon: '🔴', css: 'tp-SaleIssue'        },
-    AdjustmentIn:     { label: 'Ajuste (+)',       icon: '➕', css: 'tp-AdjustmentIn'     },
-    AdjustmentOut:    { label: 'Ajuste (-)',       icon: '➖', css: 'tp-AdjustmentOut'    },
-    CustomerReturn:   { label: 'Dev. Cliente',     icon: '↩️', css: 'tp-CustomerReturn'   },
-    SupplierReturn:   { label: 'Dev. Proveedor',   icon: '↪️', css: 'tp-SupplierReturn'   },
-    WriteOff:         { label: 'Merma',            icon: '🗑️', css: 'tp-WriteOff'         },
-    PhysicalCount:    { label: 'Conteo Físico',    icon: '📋', css: 'tp-PhysicalCount'    },
-};
+// ============================================================
+// HELPERS DE TIPO DE MOVIMIENTO (usando catálogo admin.inventory_transaction_type)
+// Siempre leen de INV.movementTypes — NO hay mapa estático hardcodeado.
+// ============================================================
 
-const STATUS_META = {
-    Draft:             { label: 'Borrador',       icon: '📝', css: 'st-Draft'             },
-    Confirmed:         { label: 'Confirmado',     icon: '✔️', css: 'st-Confirmed'         },
-    InTransit:         { label: 'En Tránsito',    icon: '🚛', css: 'st-InTransit'         },
-    PartiallyReceived: { label: 'Parcial',        icon: '⏳', css: 'st-PartiallyReceived' },
-    Completed:         { label: 'Completado',     icon: '✅', css: 'st-Completed'         },
-    Cancelled:         { label: 'Cancelado',      icon: '❌', css: 'st-Cancelled'         },
-};
+/**
+ * Devuelve { code, label, icon, css } para un id_inventory_transaction_type.
+ */
+function txnTypeInfo(id) {
+    const t = INV.movementTypes.find(m => m.id == id);
+    if (!t) return { code: '', label: 'Desconocido', icon: '📦', css: '' };
+    return { code: t.code, label: t.name, icon: t.emoji || '📦', css: t.cssClass || '' };
+}
+
+/**
+ * Retorna true si el id_inventory_transaction_type dado corresponde al code indicado.
+ */
+function txnTypeIs(id, code) {
+    return txnTypeInfo(id).code === code;
+}
+
+/**
+ * Retorna el id_inventory_transaction_type que tiene el code indicado, o null.
+ */
+function txnTypeIdByCode(code) {
+    const t = INV.movementTypes.find(m => m.code === code);
+    return t ? t.id : null;
+}
+
+// ============================================================
+// HELPERS DE ESTADO (usando catálogo admin.inventory_transaction_status)
+// Siempre leen de INV.transactionStatuses — NO hay mapa estático hardcodeado.
+// ============================================================
+
+/**
+ * Devuelve { code, label, icon, css } para un idInventoryTransactionStatus.
+ */
+function txnStatusInfo(id) {
+    const s = INV.transactionStatuses.find(x => x.id == id);
+    if (!s) return { code: '', label: 'Desconocido', icon: '❓', css: 'st-Draft' };
+    return { code: s.code, label: s.name, icon: s.emoji || '❓', css: s.cssClass || '' };
+}
+
+/**
+ * Retorna true si el idInventoryTransactionStatus dado corresponde al code indicado.
+ */
+function txnStatusIs(id, code) {
+    return txnStatusInfo(id).code === code;
+}
+
+/**
+ * Retorna el idInventoryTransactionStatus que tiene el code indicado, o null.
+ */
+function txnStatusIdByCode(code) {
+    const s = INV.transactionStatuses.find(x => x.code === code);
+    return s ? s.id : null;
+}
 
 // ============================================================
 // FETCH HELPER
@@ -86,7 +122,7 @@ async function invFetch(path, options = {}) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await Promise.all([loadWarehouses(), loadMovementTypes()]);
+    await Promise.all([loadWarehouses(), loadMovementTypes(), loadTransactionStatuses()]);
     loadMovements();
     bindEvents();
 });
@@ -113,16 +149,6 @@ async function loadMovementTypes() {
         const types = await invFetch('/api/inventory-transaction-type?isActive=true');
         INV.movementTypes = types || [];
 
-        // Reconstruir el mapa MOVEMENT_TYPES con los datos del servidor
-        for (const key of Object.keys(MOVEMENT_TYPES)) delete MOVEMENT_TYPES[key];
-        for (const t of INV.movementTypes) {
-            MOVEMENT_TYPES[t.code] = {
-                label: t.name,
-                icon:  t.emoji || '📦',
-                css:   t.cssClass || '',
-            };
-        }
-
         // Poblar el select del modal (fldType)
         populateMovementTypeSelect('fldType');
 
@@ -130,7 +156,6 @@ async function loadMovementTypes() {
         populateMovementTypeSelect('fType', true);
     } catch (e) {
         console.warn('No se pudieron cargar tipos de movimiento:', e);
-        // Fallback: mantener las opciones que ya vengan en el select (vacío o default)
     }
 }
 
@@ -140,14 +165,40 @@ function populateMovementTypeSelect(selectId, includeAll = false) {
     const prev = sel.value;
     const allOpt = includeAll ? '<option value="">— Todos los tipos —</option>' : '';
     sel.innerHTML = allOpt + INV.movementTypes
-        .map(t => `<option value="${t.code}">${t.emoji ? t.emoji + ' ' : ''}${t.name}</option>`)
+        .map(t => `<option value="${t.id}">${t.emoji ? t.emoji + ' ' : ''}${t.name}</option>`)
         .join('');
     // Restaurar selección previa si sigue siendo válida
-    if (prev && INV.movementTypes.some(t => t.code === prev)) sel.value = prev;
+    if (prev && INV.movementTypes.some(t => t.id == prev)) sel.value = prev;
 }
 
 // ============================================================
-// LISTAR MOVIMIENTOS
+// CARGAR ESTADOS DE TRANSACCIÓN (caché + select dinámico)
+// ============================================================
+
+async function loadTransactionStatuses() {
+    try {
+        const statuses = await invFetch('/api/inventory-transaction-status?isActive=true');
+        INV.transactionStatuses = statuses || [];
+        populateStatusSelect('fStatus', true);
+    } catch (e) {
+        console.warn('No se pudieron cargar estados de transacción:', e);
+    }
+}
+
+function populateStatusSelect(selectId, includeAll = false) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const prev = sel.value;
+    const allOpt = includeAll ? '<option value="">Todos los estados</option>' : '';
+    sel.innerHTML = allOpt + INV.transactionStatuses
+        .filter(s => s.isActive !== false)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map(s => `<option value="${s.id}">${s.emoji ? s.emoji + ' ' : ''}${s.name}</option>`)
+        .join('');
+    if (prev && INV.transactionStatuses.some(s => s.id == prev)) sel.value = prev;
+}
+
+// ============================================================
 // ============================================================
 
 async function loadMovements(page = 1) {
@@ -161,8 +212,8 @@ async function loadMovements(page = 1) {
             pageSize: INV.pageSize,
         });
         if (INV.filters.search)   params.set('search',      INV.filters.search);
-        if (INV.filters.type)     params.set('movementType', INV.filters.type);
-        if (INV.filters.status)   params.set('status',       INV.filters.status);
+        if (INV.filters.type)     params.set('idInventoryTransactionType', INV.filters.type);
+        if (INV.filters.status)   params.set('idInventoryTransactionStatus', INV.filters.status);
         if (INV.filters.dateFrom) params.set('dateFrom',     INV.filters.dateFrom);
         if (INV.filters.dateTo)   params.set('dateTo',       INV.filters.dateTo);
 
@@ -190,8 +241,8 @@ function renderTable(items) {
     }
 
     tb.innerHTML = items.map(t => {
-        const typeM = MOVEMENT_TYPES[t.movementType] || { label: t.movementType, icon: '📦', css: '' };
-        const statM = STATUS_META[t.status] || { label: t.status, icon: '', css: '' };
+        const typeM = txnTypeInfo(t.idInventoryTransactionType);
+        const statM = txnStatusInfo(t.idInventoryTransactionStatus);
         const originName = warehouseName(t.idWarehouseOrigin);
         const destName   = t.idWarehouseDest ? warehouseName(t.idWarehouseDest) : '—';
 
@@ -215,20 +266,20 @@ function renderTable(items) {
 
 function actionButtons(t) {
     const btns = [];
-    if (t.status === 'Draft') {
+    if (txnStatusIs(t.idInventoryTransactionStatus, 'Draft')) {
         btns.push(`<button class="btn btn-sm btn-outline-warning me-1 btn-inv" onclick="openEdit(${t.id})" title="Editar"><i class="bi bi-pencil"></i></button>`);
         btns.push(`<button class="btn btn-sm btn-outline-info btn-inv" onclick="confirmTxn(${t.id})" title="Confirmar"><i class="bi bi-check2-circle"></i></button>`);
     }
-    if (t.status === 'InTransit' || t.status === 'PartiallyReceived') {
+    if (txnStatusIs(t.idInventoryTransactionStatus, 'InTransit') || txnStatusIs(t.idInventoryTransactionStatus, 'PartiallyReceived')) {
         btns.push(`<button class="btn btn-sm btn-outline-success btn-inv" onclick="openReceive(${t.id})" title="Recibir"><i class="bi bi-box-arrow-in-down"></i></button>`);
     }
-    if (t.status === 'Confirmed') {
+    if (txnStatusIs(t.idInventoryTransactionStatus, 'Confirmed')) {
         btns.push(`<button class="btn btn-sm btn-outline-success btn-inv" onclick="completeTxn(${t.id})" title="Completar"><i class="bi bi-check-all"></i></button>`);
     }
-    if (t.status === 'Completed' || t.status === 'Cancelled') {
+    if (txnStatusIs(t.idInventoryTransactionStatus, 'Completed') || txnStatusIs(t.idInventoryTransactionStatus, 'Cancelled')) {
         btns.push(`<button class="btn btn-sm btn-outline-info btn-inv" onclick="openDetail(${t.id})" title="Ver detalle"><i class="bi bi-eye"></i></button>`);
     }
-    if (!['Completed','Cancelled'].includes(t.status)) {
+    if (!txnStatusIs(t.idInventoryTransactionStatus, 'Completed') && !txnStatusIs(t.idInventoryTransactionStatus, 'Cancelled')) {
         btns.push(`<button class="btn btn-sm btn-outline-danger btn-inv" onclick="openCancel(${t.id})" title="Cancelar"><i class="bi bi-x-circle"></i></button>`);
     }
     return btns.join('');
@@ -240,10 +291,10 @@ function actionButtons(t) {
 
 function updateKpis(items, total) {
     document.getElementById('kpiTotal').textContent     = total;
-    document.getElementById('kpiDraft').textContent     = items.filter(i => i.status === 'Draft').length;
-    document.getElementById('kpiTransit').textContent   = items.filter(i => i.status === 'InTransit').length;
-    document.getElementById('kpiPartial').textContent   = items.filter(i => i.status === 'PartiallyReceived').length;
-    document.getElementById('kpiCompleted').textContent = items.filter(i => i.status === 'Completed').length;
+    document.getElementById('kpiDraft').textContent     = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Draft')).length;
+    document.getElementById('kpiTransit').textContent   = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'InTransit')).length;
+    document.getElementById('kpiPartial').textContent   = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'PartiallyReceived')).length;
+    document.getElementById('kpiCompleted').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Completed')).length;
 }
 
 // ============================================================
@@ -292,7 +343,9 @@ async function openCreate() {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('fldDate').value    = today;
     document.getElementById('fldDate').min      = today;
-    document.getElementById('fldType').value    = 'Transfer';
+    // Seleccionar el primer tipo disponible o el que tenga el code='Transfer' si se puede
+    const defaultType = INV.movementTypes.find(t => t.code === 'Transfer') || INV.movementTypes[0];
+    document.getElementById('fldType').value    = defaultType ? defaultType.id : '';
     document.getElementById('fldOrigin').value  = '';
     document.getElementById('fldDest').value    = '';
     document.getElementById('fldReference').value = '';
@@ -339,7 +392,7 @@ async function openEdit(id) {
         document.getElementById('fldNumber').value    = txn.transactionNumber;
         document.getElementById('fldDate').value      = txn.transactionDate;
         document.getElementById('fldDate').min        = '';
-        document.getElementById('fldType').value      = txn.movementType;
+        document.getElementById('fldType').value      = txn.idInventoryTransactionType;
         document.getElementById('fldReference').value = txn.reference || '';
         document.getElementById('fldNotes').value     = txn.notes || '';
         document.getElementById('sealError').classList.add('d-none');
@@ -350,48 +403,41 @@ async function openEdit(id) {
         const savedOriginId = txn.idWarehouseOrigin || '';
 
         INV.lines = (lines || []).map(l => ({
-            id:                   l.id || 0,
-            idItem:               l.idItem,
-            itemCode:             l.itemCode,
-            itemName:             l.itemName,
-            qtyRequested:         l.qtyRequested,
-            idWarehouseDestLine:   l.idWarehouseDestLine || null,
-            idUnitOfMeasure:      l.idUnitOfMeasure || null,
-            unitOfMeasureCode:    l.unitOfMeasureCode || '',
-            unitCost:             l.unitCost || null,
-            lotNumber:            l.lotNumber || '',
-            notes:                l.notes || '',
-            // Campos de tránsito por línea (necesarios para reconstruir grupos al editar)
-            destSecuritySeal:     l.destSecuritySeal  || '',
-            departureTime:        l.departureTime     || '',
-            arrivalTime:          l.arrivalTime       || '',
-            odometerOut:          l.odometerOut       != null ? l.odometerOut : '',
-            lineStatus:           l.lineStatus        || 'Pending',
-            signature:            l.signature         || null,
+            id:                                      l.id || 0,
+            idItem:                                  l.idItem,
+            itemCode:                                l.itemCode,
+            itemName:                                l.itemName,
+            qtyRequested:                            l.qtyRequested,
+            idInventoryTransactionWarehouseTransit:  l.idInventoryTransactionWarehouseTransit || null,
+            idUnitOfMeasure:                         l.idUnitOfMeasure || null,
+            unitOfMeasureCode:                       l.unitOfMeasureCode || '',
+            unitCost:                                l.unitCost || null,
+            lotNumber:                               l.lotNumber || '',
+            notes:                                   l.notes || '',
         }));
 
-        // Reconstruir grupos a partir de los destinos únicos de las líneas
-        const isTransitMode = txn.movementType === 'TransitTransfer';
-        if (isTransitMode && INV.lines.length > 0) {
-            const seenDests = [];
-            INV.lines.forEach(l => {
-                const d = l.idWarehouseDestLine || null;
-                if (!seenDests.includes(d)) seenDests.push(d);
-            });
-            // Tomar campos del grupo desde la primera línea de ese destino
-            INV._groups = seenDests.map(d => {
-                const firstLine = INV.lines.find(l => l.idWarehouseDestLine === d) || {};
-                return {
-                    destId:        d,
-                    sealDest:      firstLine.destSecuritySeal || '',
-                    departureTime: firstLine.departureTime    || '',
-                    arrivalTime:   firstLine.arrivalTime      || '',
-                    odometerOut:   firstLine.odometerOut      != null ? firstLine.odometerOut : '',
-                };
-            });
-            if (!INV._groups.length) INV._groups = [{ destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
+        // Reconstruir grupos desde los transit groups cargados del API
+        const isTransitMode = txnTypeIs(txn.idInventoryTransactionType, 'TransitTransfer');
+        if (isTransitMode) {
+            let serverGroups = [];
+            try {
+                serverGroups = await invFetch(`/api/inventorytransaction/${id}/transit-groups`);
+            } catch (_) { serverGroups = []; }
+
+            if (serverGroups.length > 0) {
+                INV._groups = serverGroups.map(g => ({
+                    id:            g.id,
+                    destId:        g.idWarehouseDestLine || null,
+                    sealDest:      g.destSecuritySeal   || '',
+                    departureTime: g.departureTime      || '',
+                    arrivalTime:   g.arrivalTime        || '',
+                    odometerOut:   g.odometerOut        != null ? g.odometerOut : '',
+                }));
+            } else {
+                INV._groups = [{ id: null, destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
+            }
         } else {
-            INV._groups = [{ destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
+            INV._groups = [{ id: null, destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
         }
 
         populateWarehouseSelects();
@@ -442,8 +488,8 @@ async function openEdit(id) {
 // ============================================================
 
 function populateWarehouseSelects() {
-    const type = document.getElementById('fldType').value;
-    const isTransit = type === 'TransitTransfer';
+    const typeId = document.getElementById('fldType').value;
+    const isTransit = txnTypeIs(typeId, 'TransitTransfer');
 
     // Origen: excluir bodegas tipo Transit cuando el movimiento es TransitTransfer
     const originWhs = isTransit
@@ -465,9 +511,11 @@ function populateWarehouseSelects() {
 // ============================================================
 
 function updateTransitUI() {
-    const type      = document.getElementById('fldType').value;
-    const isTransit = type === 'TransitTransfer';
-    const needsDest = ['Transfer', 'TransitTransfer', 'CustomerReturn'].includes(type);
+    const typeId    = document.getElementById('fldType').value;
+    const typeCode  = txnTypeInfo(typeId).code;
+
+    const isTransit = typeCode === 'TransitTransfer';
+    const needsDest = ['Transfer', 'TransitTransfer', 'CustomerReturn'].includes(typeCode);
     const banner    = document.getElementById('transitBanner');
     const destGroup = document.getElementById('destGroup');
     const destLabel = document.getElementById('destLabel');
@@ -587,9 +635,10 @@ function changeGroupDest(groupIdx) {
 function renderLines() {
     const container = document.getElementById('linesContainer');
     const empty     = document.getElementById('linesEmpty');
-    const isTransit = document.getElementById('fldType').value === 'TransitTransfer';
+    const typeId    = document.getElementById('fldType').value;
+    const isTransit = txnTypeIs(typeId, 'TransitTransfer');
 
-    // Ocultar/mostrar el botón global "Agregar Artículo" y el bloque finalDestGroup del header
+    // Ocultar/mostrar el botón global
     const btnAddLine    = document.getElementById('btnAddLine');
     const addLineHeader = document.getElementById('addLineHeader');
     const finalDestGroup = document.getElementById('finalDestGroup');
@@ -713,7 +762,7 @@ function _bindLineEvents(container) {
             const groupDestId = INV.lines[idx] ? INV.lines[idx].idWarehouseDestLine : null;
             INV.lines.splice(idx, 1);
             // Si ese grupo queda sin líneas, quitar el grupo también
-            if (document.getElementById('fldType').value === 'TransitTransfer') {
+            if (txnTypeIs(document.getElementById('fldType').value, 'TransitTransfer')) {
                 const groupIdx = INV._groups.findIndex(g => g.destId === groupDestId);
                 if (groupIdx >= 0 && !INV.lines.some(l => l.idWarehouseDestLine === groupDestId)) {
                     // Solo eliminar el grupo si hay más de uno
@@ -739,8 +788,6 @@ function _getActiveTransitGroupIdx() {
         if (!g.destId) return i; // grupo sin bodega asignada → activo
         const groupLines = INV.lines.filter(l => l.idWarehouseDestLine === g.destId);
         if (!groupLines.length) return i; // sin líneas → activo
-        const allDone = groupLines.every(l => l.lineStatus === 'Received' || l.lineStatus === 'Cancelled');
-        if (!allDone) return i; // al menos una línea pendiente → activo
     }
     return 0; // fallback: primer grupo
 }
@@ -999,12 +1046,13 @@ function renderItemSuggestions(idx, items, inp) {
 async function saveMovement(autoConfirm = false) {
     const number    = document.getElementById('fldNumber').value.trim();
     const date      = document.getElementById('fldDate').value;
-    const type      = document.getElementById('fldType').value;
+    const typeId    = parseInt(document.getElementById('fldType').value) || 0;
     const originId  = parseInt(document.getElementById('fldOrigin').value) || 0;
     const destId    = parseInt(document.getElementById('fldDest').value)   || null;
     const reference = document.getElementById('fldReference').value.trim() || null;
     const notes     = document.getElementById('fldNotes').value.trim()     || null;
-    const isTransit = type === 'TransitTransfer';
+
+    const isTransit = txnTypeIs(typeId, 'TransitTransfer');
     const securitySeal = isTransit
         ? (document.getElementById('fldSecuritySeal').value.trim() || null)
         : null;
@@ -1098,7 +1146,7 @@ async function saveMovement(autoConfirm = false) {
 
     const payload = {
         transactionNumber: number || undefined,
-        movementType:      type,
+        idInventoryTransactionType: typeId,
         idWarehouseOrigin: originId,
         idWarehouseDest:   destId,
         reference,
@@ -1159,13 +1207,15 @@ async function openReceive(id) {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('receiveModal')).show();
 
     try {
-        const txn = await invFetch(`/api/inventorytransaction/${id}`);
+        const txn   = await invFetch(`/api/inventorytransaction/${id}`);
         const lines = txn.lines || await invFetch(`/api/inventorytransaction/${id}/lines`);
-        txn.lines = lines;
+        txn.lines   = lines;
+        if (txn.isTransitTransfer)
+            txn.transitGroups = await invFetch(`/api/inventorytransaction/${id}/transit-groups`);
         INV.currentTxn = txn;
 
         document.getElementById('receiveModalTitle').innerHTML =
-            `<i class="bi bi-box-arrow-in-down me-2 text-success"></i>${txn.transactionNumber} — ${statusBadge(txn.status)}`;
+            `<i class="bi bi-box-arrow-in-down me-2 text-success"></i>${txn.transactionNumber} — ${statusBadge(txn.idInventoryTransactionStatus)}`;
 
         body.innerHTML = renderReceiveBody(txn);
         renderReceiveFooter(txn, footer);
@@ -1447,27 +1497,45 @@ function _bindReceiveBodyEvents(container) {
 }
 
 function _getReceiveDestGroups(txn) {
-    // Agrupa las líneas por bodega destino, en el orden en que aparecen
+    // Si ya tenemos grupos cargados desde /transit-groups, usarlos directamente.
+    // Cada grupo ya contiene sus líneas embebidas (campo lines) devuelto por el endpoint.
+    if (txn.transitGroups && txn.transitGroups.length > 0) {
+        const lines = txn.lines || [];
+        return txn.transitGroups.map(g => ({
+            ...g,
+            destId: g.idWarehouseDestLine || 0,
+            lines:  g.lines ?? lines.filter(l => l.idInventoryTransactionWarehouseTransit === g.id),
+        }));
+    }
+    // Fallback: agrupar líneas por idInventoryTransactionWarehouseTransit (antes del primer load)
     const lines = txn.lines || [];
     const ordered = [];
     const seen = new Set();
     for (const l of lines) {
-        const destId = l.idWarehouseDestLine || 0;
-        if (!seen.has(destId)) { seen.add(destId); ordered.push(destId); }
+        const key = l.idInventoryTransactionWarehouseTransit || 0;
+        if (!seen.has(key)) { seen.add(key); ordered.push(key); }
     }
-    return ordered.map(destId => ({
-        destId,
-        lines: lines.filter(l => (l.idWarehouseDestLine || 0) === destId),
+    return ordered.map(key => ({
+        id: key,
+        destId: 0,
+        idWarehouseDestLine: null,
+        lineStatus: 'Pending',
+        destSecuritySeal: null,
+        departureTime: null,
+        arrivalTime: null,
+        odometerOut: null,
+        signature: null,
+        lines: lines.filter(l => (l.idInventoryTransactionWarehouseTransit || 0) === key),
     }));
 }
 
 function _activeReceiveGroupIdx(groups) {
-    // El primer grupo que tenga al menos una línea NO recibida
-    return groups.findIndex(g => g.lines.some(l => l.lineStatus !== 'Received' && l.lineStatus !== 'Cancelled'));
+    // El primer grupo cuyo lineStatus no esté en estado final (Received / Cancelled)
+    return groups.findIndex(g => g.lineStatus !== 'Received' && g.lineStatus !== 'Cancelled');
 }
 
 function renderReceiveBody(txn) {
-    const typeM = MOVEMENT_TYPES[txn.movementType] || { label: txn.movementType, icon: '📦', css: '' };
+    const typeM = txnTypeInfo(txn.idInventoryTransactionType);
 
     const infoRow = (label, val) =>
         `<div class="col-6 col-md-3 mb-2">
@@ -1479,7 +1547,7 @@ function renderReceiveBody(txn) {
         <div class="row mb-3">
             ${infoRow('Número', `<strong>${txn.transactionNumber}</strong>`)}
             ${infoRow('Tipo', `<span class="badge-type ${typeM.css}">${typeM.icon} ${typeM.label}</span>`)}
-            ${infoRow('Estado', statusBadge(txn.status))}
+            ${infoRow('Estado', statusBadge(txn.idInventoryTransactionStatus))}
             ${infoRow('Fecha', txn.transactionDate)}
             ${infoRow('Origen', warehouseName(txn.idWarehouseOrigin))}
             ${infoRow('Vehículo / Tránsito', txn.idWarehouseDest ? warehouseName(txn.idWarehouseDest) : '—')}
@@ -1498,49 +1566,42 @@ function renderReceiveBody(txn) {
         let groupsHtml = '';
         groups.forEach((g, gIdx) => {
             const isActive   = gIdx === activeIdx;
-            const isReceived = g.lines.every(l => l.lineStatus === 'Received' || l.lineStatus === 'Cancelled');
+            const isReceived = g.lineStatus === 'Received' || g.lineStatus === 'Cancelled';
             const isPending  = !isReceived && !isActive;
 
-            const usedBadges = groups.filter(x => x.destId).map(x => {
-                const w = INV.warehouses.find(wh => wh.id === x.destId);
-                const isCur = x.destId === g.destId;
+            const usedBadges = groups.filter(x => x.idWarehouseDestLine).map(x => {
+                const w = INV.warehouses.find(wh => wh.id === x.idWarehouseDestLine);
+                const isCur = x.idWarehouseDestLine === g.idWarehouseDestLine;
                 return w ? `<span class="badge" style="background:${isCur ? '#2d1b6e' : '#1d3557'};color:${isCur ? '#c4b5fd' : '#93c5fd'};font-size:.72rem;">${w.code}</span>` : '';
             }).join(' ');
 
-            // Primera línea del grupo para leer sello/hora previos
-            const firstLine = g.lines[0] || {};
-
-            // Previous km: from the last received group's line odometerOut, or from the header odometerOut
+            // prevKm: desde el grupo anterior ya recibido o desde el encabezado
             let prevKm = txn.odometerOut || 0;
             if (gIdx > 0) {
                 const prevGroup = groups[gIdx - 1];
-                const prevGroupLine = prevGroup?.lines?.[0];
-                if (prevGroupLine?.odometerOut) prevKm = prevGroupLine.odometerOut;
+                if (prevGroup?.odometerOut) prevKm = prevGroup.odometerOut;
             }
 
-            // Hora de salida de referencia para validar Hora Llegada:
-            // - primer grupo  → usa Hora Salida del encabezado
-            // - grupos posteriores → usa Hora Salida de la bodega anterior ya recibida
+            // Hora de salida de referencia para validar Hora Llegada
             const prevGroupDeparture = gIdx === 0
                 ? (txn.departureTime || '')
-                : (groups[gIdx - 1]?.lines?.[0]?.departureTime || txn.departureTime || '');
+                : (groups[gIdx - 1]?.departureTime || txn.departureTime || '');
             const prevGroupDepartureLabel = gIdx === 0
                 ? 'encabezado'
-                : warehouseName(groups[gIdx - 1]?.destId);
+                : warehouseName(groups[gIdx - 1]?.idWarehouseDestLine);
 
-            // Artículos en tabla — activos con checkbox + qty editable, recibidos en modo lectura
+            // Artículos en tabla
             const artRows = g.lines.map(l => {
-                const ls = { Pending: '⏳', InTransit: '🚛', Received: '✅', Cancelled: '❌' }[l.lineStatus] || '';
-                const alreadyDone = l.lineStatus === 'Received' || l.lineStatus === 'Cancelled';
+                const alreadyDone = !isActive || isReceived;
 
-                if (!isActive || alreadyDone) {
-                    return `<tr style="opacity:${alreadyDone ? '.6' : '1'}">
+                if (alreadyDone) {
+                    return `<tr style="opacity:${isReceived ? '.6' : '1'}">
                         <td style="width:36px;"></td>
                         <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
                         <td class="text-center">${l.qtyRequested}</td>
                         <td class="text-center">${l.qtyDispatched || 0}</td>
                         <td class="text-center text-success">${l.qtyReceived || 0}</td>
-                        <td class="text-center">${ls} ${l.lineStatus}</td>
+                        <td class="text-center">${isReceived ? '✅ Received' : '⏳ Pending'}</td>
                     </tr>`;
                 }
 
@@ -1559,7 +1620,7 @@ function renderReceiveBody(txn) {
                                value="${dispatched}" min="0" step="any" data-dispatched="${dispatched}"
                                style="background:#0d1117;color:#4ade80;border-color:#2a3a5c;width:90px;margin:auto;">
                     </td>
-                    <td class="text-center">${ls} ${l.lineStatus}</td>
+                    <td class="text-center">⏳ Pending</td>
                 </tr>`;
             }).join('');
 
@@ -1579,7 +1640,7 @@ function renderReceiveBody(txn) {
                             <i class="bi bi-shield-lock me-1 text-warning"></i>Sello Destino *
                         </label>
                         <input type="text" id="rcvSeal${gIdx}" class="form-control form-control-sm"
-                               value="${firstLine.destSecuritySeal || ''}" maxlength="50" autocomplete="off"
+                               value="${g.destSecuritySeal || ''}" maxlength="50" autocomplete="off"
                                placeholder="Ingrese el sello de seguridad…"
                                data-txn-id="${txn.id}">
                         <small id="rcvSealErr${gIdx}" style="color:#f87171!important;display:none;">
@@ -1595,7 +1656,7 @@ function renderReceiveBody(txn) {
                             <i class="bi bi-clock me-1 text-warning"></i>Hora Salida *
                         </label>
                         <input type="time" id="rcvDeptTime${gIdx}" class="form-control form-control-sm"
-                               value="${firstLine.departureTime || ''}" step="60" required
+                               value="${g.departureTime || ''}" step="60" required
                                placeholder="--:--">
                         <small id="rcvDeptTimeErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor a la Hora de Llegada</small>
                         <small style="color:#cbd5e1!important;">Obligatorio (Debe ser mayor a la Hora de Llegada)</small>
@@ -1619,9 +1680,9 @@ function renderReceiveBody(txn) {
                                data-prev-km="${prevKm}"
                                data-header-odometer="${txn.odometerOut || 0}">
                         <small id="rcvOdoOutErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor al Km anterior</small>
-                                <small class="rcvOdoHelp${gIdx}" style="color:#cbd5e1!important;">Km al salir hacia siguiente destino${prevKm > 0 ? ` (anterior: ${prevKm})` : ''}${txn.odometerOut ? ` / (encabezado: ${txn.odometerOut})` : ''}</small>
-                                </div>
-                            </div>` : '';
+                        <small class="rcvOdoHelp${gIdx}" style="color:#cbd5e1!important;">Km al salir hacia siguiente destino${prevKm > 0 ? ` (anterior: ${prevKm})` : ''}${txn.odometerOut ? ` / (encabezado: ${txn.odometerOut})` : ''}</small>
+                    </div>
+                </div>` : '';
 
                         // Firma digital del receptor (solo en grupo activo, se coloca al final)
                         const signatureField = isActive ? `
@@ -1647,14 +1708,14 @@ function renderReceiveBody(txn) {
                             </div>` : '';
 
             // Firma guardada — mostrar si el grupo ya fue recibido y tiene firma
-            const savedSignatureBlock = isReceived && firstLine.signature ? `
+            const savedSignatureBlock = isReceived && g.signature ? `
                 <div class="row g-2 mb-2 mt-1">
                     <div class="col-12">
                         <div style="color:#4ade80;font-size:.78rem;font-weight:600;margin-bottom:4px;">
                             <i class="bi bi-pen-fill me-1"></i>Firma del Receptor
                         </div>
                         <div style="border:2px solid #22c55e55;border-radius:8px;background:#fff;display:inline-block;padding:4px;">
-                            <img src="${firstLine.signature}" alt="Firma del receptor"
+                            <img src="${g.signature}" alt="Firma del receptor"
                                  style="display:block;max-width:100%;max-height:120px;border-radius:4px;"
                                  title="Firma capturada al confirmar recepción">
                         </div>
@@ -1686,7 +1747,7 @@ function renderReceiveBody(txn) {
                             <i class="bi bi-geo-alt me-1"></i>Bodega Destino Final ${statusTag}
                         </label>
                         <div class="form-control form-control-sm" style="background:#0d1117;color:#e2e8f0;pointer-events:none;">
-                            ${warehouseName(g.destId)}
+                            ${warehouseName(g.idWarehouseDestLine)}
                         </div>
                         <small style="color:#cbd5e1!important;">Las bodegas ya usadas en este movimiento no aparecen.</small>
                     </div>
@@ -1809,7 +1870,7 @@ function renderReceiveBody(txn) {
 function renderReceiveFooter(txn, footer) {
     const btns = ['<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>'];
 
-    const canReceive = txn.status === 'InTransit' || txn.status === 'PartiallyReceived';
+    const canReceive = txnStatusIs(txn.idInventoryTransactionStatus, 'InTransit') || txnStatusIs(txn.idInventoryTransactionStatus, 'PartiallyReceived');
     if (canReceive) {
         const groups = txn.isTransitTransfer ? _getReceiveDestGroups(txn) : null;
         const activeIdx = groups ? _activeReceiveGroupIdx(groups) : -1;
@@ -1828,7 +1889,7 @@ function renderReceiveFooter(txn, footer) {
         }
     }
 
-    if (!['Completed', 'Cancelled'].includes(txn.status)) {
+    if (!txnStatusIs(txn.idInventoryTransactionStatus, 'Completed') && !txnStatusIs(txn.idInventoryTransactionStatus, 'Cancelled')) {
         btns.push(`<button type="button" class="btn btn-outline-danger" onclick="openCancelFromReceive(${txn.id})">
                     <i class="bi bi-x-circle me-1"></i>Cancelar
                    </button>`);
@@ -1937,7 +1998,7 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         return;
     }
 
-    const pendingLines = activeGroup.lines.filter(l => l.lineStatus !== 'Received' && l.lineStatus !== 'Cancelled');
+    const pendingLines = activeGroup.lines || [];
     if (!pendingLines.length) {
         showInfoDialog('No hay líneas pendientes de recepción en esta bodega.', 'info');
         return;
@@ -1986,12 +2047,13 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
             body: {
                 lineIds,
                 lineQtys,
-                arrivalTime:     arrTime,
-                departureTime:   deptTime,
-                odometerOut:     odoOutNum,
-                destSeal:        currentSeal,
-                nextWarehouseId: nextWarehouseId || null,
-                signature:       signatureDataUrl,
+                arrivalTime:      arrTime,
+                departureTime:    deptTime,
+                odometerOut:      odoOutNum,
+                destSeal:         currentSeal,
+                nextWarehouseId:  nextWarehouseId || null,
+                signature:        signatureDataUrl,
+                transitGroupId:   activeGroup.id || null,
             },
         });
         bootstrap.Modal.getInstance(document.getElementById('receiveModal')).hide();
@@ -2081,9 +2143,11 @@ async function openDetail(id) {
 
         const lines = txn.lines || await invFetch(`/api/inventorytransaction/${id}/lines`);
         txn.lines = lines;
+        if (txn.isTransitTransfer)
+            txn.transitGroups = await invFetch(`/api/inventorytransaction/${id}/transit-groups`);
 
         document.getElementById('detailTitle').innerHTML =
-            `<i class="bi bi-file-earmark-text me-2"></i>${txn.transactionNumber} — ${statusBadge(txn.status)}`;
+            `<i class="bi bi-file-earmark-text me-2"></i>${txn.transactionNumber} — ${statusBadge(txn.idInventoryTransactionStatus)}`;
 
         body.innerHTML = renderDetailBody(txn);
         renderDetailFooter(txn, footer);
@@ -2094,7 +2158,7 @@ async function openDetail(id) {
 }
 
 function renderDetailBody(txn) {
-    const typeM = MOVEMENT_TYPES[txn.movementType] || { label: txn.movementType, icon: '📦', css: '' };
+    const typeM = txnTypeInfo(txn.idInventoryTransactionType);
 
     const infoRow = (label, val) =>
         `<div class="col-6 col-md-3 mb-2">
@@ -2106,7 +2170,7 @@ function renderDetailBody(txn) {
         <div class="row mb-3">
             ${infoRow('Número', `<strong>${txn.transactionNumber}</strong>`)}
             ${infoRow('Tipo', `<span class="badge-type ${typeM.css}">${typeM.icon} ${typeM.label}</span>`)}
-            ${infoRow('Estado', statusBadge(txn.status))}
+            ${infoRow('Estado', statusBadge(txn.idInventoryTransactionStatus))}
             ${infoRow('Fecha', txn.transactionDate)}
             ${infoRow('Origen', warehouseName(txn.idWarehouseOrigin))}
             ${infoRow('Destino', txn.idWarehouseDest ? warehouseName(txn.idWarehouseDest) : '—')}
@@ -2127,11 +2191,10 @@ function renderDetailBody(txn) {
     }[s] || { css: 'bg-secondary', icon: '' });
 
     // TransitTransfer: agrupar por bodega destino, mostrar firma por grupo
-    if (txn.isTransitTransfer && (txn.lines || []).length > 0) {
+    if (txn.isTransitTransfer && ((txn.transitGroups || []).length > 0 || (txn.lines || []).length > 0)) {
         const groups = _getReceiveDestGroups(txn);
         const groupsHtml = groups.map(g => {
-            const firstLine = g.lines[0] || {};
-            const isReceived = g.lines.every(l => l.lineStatus === 'Received' || l.lineStatus === 'Cancelled');
+            const isReceived = g.lineStatus === 'Received' || g.lineStatus === 'Cancelled';
             const borderColor = isReceived ? '#22c55e55' : '#2a3a5c';
             const headerColor = isReceived ? '#4ade80' : '#94a3b8';
             const statusTag = isReceived
@@ -2139,32 +2202,31 @@ function renderDetailBody(txn) {
                 : `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:.72rem;">⏳ Pendiente</span>`;
 
             const infoItems = [
-                firstLine.destSecuritySeal ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-shield-lock me-1 text-warning"></i>Sello: <strong>${firstLine.destSecuritySeal}</strong></span>` : '',
-                firstLine.arrivalTime      ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-clock-fill me-1 text-info"></i>Llegada: <strong>${firstLine.arrivalTime}</strong></span>` : '',
-                firstLine.departureTime    ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-clock me-1 text-warning"></i>Salida: <strong>${firstLine.departureTime}</strong></span>` : '',
-                firstLine.odometerOut != null ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-speedometer me-1 text-warning"></i>Km: <strong>${firstLine.odometerOut}</strong></span>` : '',
+                g.destSecuritySeal ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-shield-lock me-1 text-warning"></i>Sello: <strong>${g.destSecuritySeal}</strong></span>` : '',
+                g.arrivalTime      ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-clock-fill me-1 text-info"></i>Llegada: <strong>${g.arrivalTime}</strong></span>` : '',
+                g.departureTime    ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-clock me-1 text-warning"></i>Salida: <strong>${g.departureTime}</strong></span>` : '',
+                g.odometerOut != null ? `<span style="font-size:.75rem;color:#cbd5e1;"><i class="bi bi-speedometer me-1 text-warning"></i>Km: <strong>${g.odometerOut}</strong></span>` : '',
             ].filter(Boolean).join('&nbsp;&nbsp;');
 
-            const signatureHtml = firstLine.signature ? `
+            const signatureHtml = g.signature ? `
                 <div style="margin-top:8px;">
                     <div style="color:#4ade80;font-size:.75rem;font-weight:600;margin-bottom:4px;">
                         <i class="bi bi-pen-fill me-1"></i>Firma del Receptor
                     </div>
                     <div style="border:2px solid #22c55e55;border-radius:8px;background:#fff;display:inline-block;padding:4px;">
-                        <img src="${firstLine.signature}" alt="Firma"
+                        <img src="${g.signature}" alt="Firma"
                              style="display:block;max-width:300px;max-height:110px;border-radius:4px;"
                              title="Firma capturada al confirmar recepción">
                     </div>
                 </div>` : '';
 
-            const rowsHtml = g.lines.map(l => {
-                const m = lineStatM(l.lineStatus);
+            const rowsHtml = (g.lines || []).map(l => {
                 return `<tr>
                     <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
                     <td class="text-center">${l.qtyRequested}</td>
                     <td class="text-center">${l.qtyDispatched || 0}</td>
                     <td class="text-center text-success">${l.qtyReceived || 0}</td>
-                    <td><span class="badge ${m.css}">${m.icon} ${l.lineStatus}</span></td>
+                    <td><span class="badge bg-secondary">${isReceived ? '✅' : '⏳'} ${g.lineStatus}</span></td>
                 </tr>`;
             }).join('');
 
@@ -2172,7 +2234,7 @@ function renderDetailBody(txn) {
             <div class="mb-3" style="border:1px solid ${borderColor};border-radius:10px;padding:.85rem;background:#111827;">
                 <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                     <span style="color:${headerColor};font-size:.82rem;font-weight:600;">
-                        <i class="bi bi-geo-alt me-1"></i>${warehouseName(g.destId)}
+                        <i class="bi bi-geo-alt me-1"></i>${warehouseName(g.idWarehouseDestLine)}
                     </span>
                     ${statusTag}
                 </div>
@@ -2201,7 +2263,7 @@ function renderDetailBody(txn) {
     // Movimiento no-TransitTransfer: tabla simple
     const linesHtml = (txn.lines || []).map(l => {
         const m = lineStatM(l.lineStatus);
-        const destName = l.idWarehouseDestLine ? warehouseName(l.idWarehouseDestLine) : '—';
+        const destName = l.idWarehouseDest ? warehouseName(l.idWarehouseDest) : '—';
         return `<tr>
             <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
             <td class="text-center">${l.qtyRequested}</td>
@@ -2234,20 +2296,20 @@ function renderDetailBody(txn) {
 function renderDetailFooter(txn, footer) {
     const btns = ['<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>'];
 
-    if (txn.status === 'InTransit' || txn.status === 'PartiallyReceived') {
+    if (txnStatusIs(txn.idInventoryTransactionStatus, 'InTransit') || txnStatusIs(txn.idInventoryTransactionStatus, 'PartiallyReceived')) {
         btns.push(`<button type="button" class="btn btn-success"
                    onclick="bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide(); openReceive(${txn.id});">
                    <i class="bi bi-box-arrow-in-down me-1"></i>Recibir Movimiento
                  </button>`);
     }
 
-    if (txn.status === 'Confirmed') {
+    if (txnStatusIs(txn.idInventoryTransactionStatus, 'Confirmed')) {
         btns.push(`<button type="button" class="btn btn-success" onclick="completeTxn(${txn.id})">
                     <i class="bi bi-check-all me-1"></i>Completar Movimiento
                    </button>`);
     }
 
-    if (!['Completed', 'Cancelled'].includes(txn.status)) {
+    if (!txnStatusIs(txn.idInventoryTransactionStatus, 'Completed') && !txnStatusIs(txn.idInventoryTransactionStatus, 'Cancelled')) {
         btns.push(`<button type="button" class="btn btn-outline-danger" onclick="openCancel(${txn.id})">
                     <i class="bi bi-x-circle me-1"></i>Cancelar
                    </button>`);
@@ -2341,7 +2403,18 @@ function bindEvents() {
     });
 
     // Tipo de movimiento cambia → actualizar UI
-    document.getElementById('fldType').addEventListener('change', updateTransitUI);
+    document.getElementById('fldType').addEventListener('change', () => {
+        const typeId = document.getElementById('fldType').value;
+        const isTransitMode = txnTypeIs(typeId, 'TransitTransfer');
+        if (!isTransitMode && INV._groups.length > 1) {
+            showInfoDialog('Debe eliminar los grupos adicionales antes de cambiar a un tipo que no sea Tránsito.');
+            // Revertir al ID que corresponde a TransitTransfer
+            const transitId = txnTypeIdByCode('TransitTransfer');
+            if (transitId !== null) document.getElementById('fldType').value = transitId;
+            return;
+        }
+        updateTransitUI();
+    });
 
     // Impedir seleccionar fecha menor a hoy en fldDate (tanto en crear como en editar)
     document.getElementById('fldDate').addEventListener('input', () => {
@@ -2381,7 +2454,7 @@ function bindEvents() {
         setSaveBusy(false);
 
         // Limpiar si se deselecciona o no es TransitTransfer
-        if (!destId || document.getElementById('fldType').value !== 'TransitTransfer') {
+        if (!destId || !txnTypeIs(document.getElementById('fldType').value, 'TransitTransfer')) {
             if (fldOdo) fldOdo.value = '';
             if (fldOdoErr) fldOdoErr.style.display = 'none';
             return;
@@ -2478,11 +2551,15 @@ function bindEvents() {
         loadMovements(1);
     });
 
-    // KPI chips como filtros
+    // KPI chips como filtros (data-filter-status es el code en minúsculas, buscamos el ID)
     document.getElementById('kpiRow').querySelectorAll('.kpi-chip').forEach(chip => {
         chip.addEventListener('click', () => {
-            document.getElementById('fStatus').value = chip.dataset.filterStatus || '';
-            INV.filters.status = chip.dataset.filterStatus || '';
+            const code = chip.dataset.filterStatus || '';
+            const statusId = code
+                ? (INV.transactionStatuses.find(s => s.code.toLowerCase() === code)?.id?.toString() || '')
+                : '';
+            document.getElementById('fStatus').value = statusId;
+            INV.filters.status = statusId;
             document.querySelectorAll('.kpi-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             loadMovements(1);
@@ -2503,8 +2580,8 @@ function warehouseName(id) {
     return w ? `${w.code} — ${w.name}` : `#${id}`;
 }
 
-function statusBadge(status) {
-    const m = STATUS_META[status] || { label: status, icon: '', css: 'st-Draft' };
+function statusBadge(idStatus) {
+    const m = txnStatusInfo(idStatus);
     return `<span class="badge-status ${m.css}">${m.icon} ${m.label}</span>`;
 }
 

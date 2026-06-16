@@ -118,6 +118,7 @@ namespace CMS.Data
 
         // ===== CATÁLOGOS INVENTORY (admin schema) =====
         public DbSet<InventoryTransactionType> InventoryTransactionTypes { get; set; }
+        public DbSet<InventoryTransactionStatus> InventoryTransactionStatuses { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
