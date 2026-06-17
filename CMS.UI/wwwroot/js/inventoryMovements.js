@@ -236,7 +236,7 @@ async function loadMovements(page = 1) {
 function renderTable(items) {
     const tb = document.getElementById('invTableBody');
     if (!items.length) {
-        tb.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No se encontraron movimientos.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="8" class="text-center py-4" style="color:#94a3b8;">No se encontraron movimientos.</td></tr>';
         return;
     }
 
@@ -246,10 +246,25 @@ function renderTable(items) {
         const originName = warehouseName(t.idWarehouseOrigin);
         const destName   = t.idWarehouseDest ? warehouseName(t.idWarehouseDest) : '—';
 
+        // Indicador de progreso de recepción para TransitTransfer
+        let progressBadge = '';
+        if (t.isTransitTransfer && t.totalGroups > 0) {
+            const receivedGroups = t.receivedGroups || 0;
+            const totalGroups = t.totalGroups || 0;
+            const percentage = totalGroups > 0 ? Math.round((receivedGroups / totalGroups) * 100) : 0;
+            const progressColor = receivedGroups === totalGroups
+                ? '#22c55e' // verde completo
+                : (receivedGroups > 0 ? '#f59e0b' : '#64748b'); // naranja parcial, gris ninguno
+            progressBadge = `<br><small style="color:${progressColor};font-size:.7rem;font-weight:600;">
+                <i class="bi bi-geo-alt-fill me-1"></i>${receivedGroups}/${totalGroups} Recibidas (${percentage}%)
+            </small>`;
+        }
+
         return `<tr onclick="openDetail(${t.id})" title="Ver detalle">
             <td>
                 <span class="fw-semibold text-white">${t.transactionNumber}</span>
                 ${t.isTransitTransfer ? '<span class="ms-1 badge-type tp-TransitTransfer" style="font-size:.65rem;padding:.1rem .3rem;border-radius:4px;"><i class="bi bi-truck"></i></span>' : ''}
+                ${progressBadge}
             </td>
             <td><span class="badge-type ${typeM.css}">${typeM.icon} ${typeM.label}</span></td>
             <td><span class="badge-status ${statM.css}">${statM.icon} ${statM.label}</span></td>
@@ -295,6 +310,8 @@ function updateKpis(items, total) {
     document.getElementById('kpiTransit').textContent   = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'InTransit')).length;
     document.getElementById('kpiPartial').textContent   = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'PartiallyReceived')).length;
     document.getElementById('kpiCompleted').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Completed')).length;
+    document.getElementById('kpiConfirmed').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Confirmed')).length;
+    document.getElementById('kpiCancelled').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Cancelled')).length;
 }
 
 // ============================================================
@@ -436,6 +453,17 @@ async function openEdit(id) {
             } else {
                 INV._groups = [{ id: null, destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
             }
+
+            // Derivar idWarehouseDestLine en cada línea a partir del grupo de tránsito al que pertenece.
+            // El campo idInventoryTransactionWarehouseTransit coincide con el id del grupo (INV._groups[].id).
+            // Sin este paso, renderTransitGroups no puede asignar líneas a grupos y todos quedan vacíos,
+            // especialmente visible al reordenar grupos con las flechas arriba/abajo.
+            INV.lines.forEach(l => {
+                if (l.idInventoryTransactionWarehouseTransit) {
+                    const grp = INV._groups.find(g => g.id === l.idInventoryTransactionWarehouseTransit);
+                    if (grp) l.idWarehouseDestLine = grp.destId;
+                }
+            });
         } else {
             INV._groups = [{ id: null, destId: null, sealDest: '', departureTime: '', arrivalTime: '', odometerOut: '' }];
         }
@@ -490,11 +518,19 @@ async function openEdit(id) {
 function populateWarehouseSelects() {
     const typeId = document.getElementById('fldType').value;
     const isTransit = txnTypeIs(typeId, 'TransitTransfer');
+    const isAdjustmentIn = txnTypeIs(typeId, 'AdjustmentIn');
+    const isAdjustmentOut = txnTypeIs(typeId, 'AdjustmentOut');
 
-    // Origen: excluir bodegas tipo Transit cuando el movimiento es TransitTransfer
-    const originWhs = isTransit
-        ? INV.warehouses.filter(w => w.warehouseType !== 'Transit')
-        : INV.warehouses;
+    // VALIDACIÓN: Solo mostrar bodegas Transit si es Ajuste de Inventario (+) o (-)
+    // Para todos los demás tipos, excluir bodegas Transit
+    let originWhs;
+    if (isAdjustmentIn || isAdjustmentOut) {
+        // Ajustes de inventario: mostrar TODAS las bodegas (incluir Transit)
+        originWhs = INV.warehouses;
+    } else {
+        // Todos los demás tipos (incluido Transfer y TransitTransfer): excluir bodegas Transit
+        originWhs = INV.warehouses.filter(w => w.warehouseType !== 'Transit');
+    }
 
     const originOpts = originWhs.map(w =>
         `<option value="${w.id}">${w.code} — ${w.name}</option>`
@@ -571,9 +607,21 @@ function updateTransitUI() {
         destLabel.textContent = 'Bodega Tránsito (Vehículo) *';
         destHint.textContent  = 'La bodega tipo Transit actúa como vehículo intermediario.';
     } else {
-        // Para tipos no-transit: poblar destino con todas las bodegas excepto la misma que el origen
+        // Para tipos no-transit: aplicar filtrado según el tipo de movimiento
         const originId = parseInt(document.getElementById('fldOrigin').value) || 0;
-        const destWhs  = INV.warehouses.filter(w => w.id !== originId);
+        const isAdjustmentIn = typeCode === 'AdjustmentIn';
+        const isAdjustmentOut = typeCode === 'AdjustmentOut';
+
+        // VALIDACIÓN: Solo excluir bodegas Transit si NO es un ajuste de inventario
+        let destWhs;
+        if (isAdjustmentIn || isAdjustmentOut) {
+            // Ajustes de inventario: mostrar todas las bodegas excepto la misma que el origen
+            destWhs = INV.warehouses.filter(w => w.id !== originId);
+        } else {
+            // Otros tipos: excluir bodegas Transit y la misma que el origen
+            destWhs = INV.warehouses.filter(w => w.id !== originId && w.warehouseType !== 'Transit');
+        }
+
         const destOpts = destWhs.map(w =>
             `<option value="${w.id}">${w.code} — ${w.name}</option>`
         ).join('');
@@ -648,6 +696,10 @@ function renderLines() {
 
     if (isTransit) {
         if (empty) empty.style.display = 'none';
+        // In transit mode we want the groups to expand naturally (no inner vertical scroll)
+        // so override the lines container scrolling to allow the modal to scroll instead.
+        container.style.maxHeight = 'none';
+        container.style.overflowY = 'visible';
         renderTransitGroups(container);
         return;
     }
@@ -658,6 +710,10 @@ function renderLines() {
         return;
     }
     if (empty) empty.style.display = 'none';
+
+    // Restore scrolling behavior for non-transit mode
+    container.style.maxHeight = '';
+    container.style.overflowY = '';
 
     container.innerHTML = INV.lines.map((l, idx) => _buildLineHtml(l, idx, false)).join('');
     _bindLineEvents(container);
@@ -774,6 +830,36 @@ function _bindLineEvents(container) {
 }
 
 // ============================================================
+// REORDENAR GRUPOS DE DESTINO (modo TransitTransfer)
+// ============================================================
+
+/**
+ * Mueve el grupo en posición gIdx una posición hacia arriba (dir=-1) o abajo (dir=1).
+ * También reordena las líneas para que mantengan coherencia con el nuevo orden.
+ */
+function moveGroup(gIdx, dir) {
+    const targetIdx = gIdx + dir;
+    if (targetIdx < 0 || targetIdx >= INV._groups.length) return;
+    // Remove the group and insert at the new position to preserve order
+    const [moved] = INV._groups.splice(gIdx, 1);
+    INV._groups.splice(targetIdx, 0, moved);
+
+    // Reorder INV.lines so that groups' lines appear in the same order as INV._groups
+    const groupOrder = INV._groups.map(g => g.destId ?? 0);
+    const newLines = [];
+    const used = new Set();
+    for (const destId of groupOrder) {
+        const grpLines = INV.lines.filter(l => (l.idWarehouseDestLine ?? 0) === destId);
+        for (const ln of grpLines) { newLines.push(ln); used.add(ln); }
+    }
+    // Append any lines not mapped to the groups (safety)
+    for (const ln of INV.lines) if (!used.has(ln)) newLines.push(ln);
+    INV.lines = newLines;
+
+    renderLines();
+}
+
+// ============================================================
 // RENDER GRUPOS DE DESTINO (modo TransitTransfer)
 // ============================================================
 
@@ -841,13 +927,15 @@ function renderTransitGroups(container) {
         const linesHtml = groupLineIdxs.map(idx => _buildLineHtml(INV.lines[idx], idx, true)).join('');
 
         const canRemoveGroup = INV._groups.length > 1;
+        const canMoveUp      = gIdx > 0;
+        const canMoveDown    = gIdx < INV._groups.length - 1;
 
         html += `<div class="transit-group-block mb-3" id="grpBlock${gIdx}"
                       style="background:#111827;border:1px solid var(--inv-orange);border-radius:10px;padding:1rem;">
             <div class="row g-2 align-items-end mb-2">
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-5">
                     <label class="form-label text-warning fw-semibold" style="font-size:.8rem;">
-                        <i class="bi bi-geo-alt me-1"></i>Bodega Destino Final *
+                        <i class="bi bi-geo-alt me-1"></i>Bodega Destino Final * <span class="text-muted" style="font-size:.7rem;font-weight:400;">— Parada ${gIdx + 1} de ${INV._groups.length}</span>
                     </label>
                     <select id="grpDest${gIdx}" class="form-select grp-dest-sel" data-gidx="${gIdx}">
                         <option value="">— seleccione bodega destino —</option>
@@ -855,17 +943,25 @@ function renderTransitGroups(container) {
                     </select>
                     <small style="color:#cbd5e1!important;">Las bodegas ya usadas en este movimiento no aparecen.</small>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <div class="d-flex flex-wrap gap-1 align-items-center mt-2">
                         <small class="text-muted" style="font-size:.72rem;">Bodegas usadas en este movimiento:</small>
                         <span>${usedBadges || '<span class="text-muted fst-italic" style="font-size:.72rem;">—</span>'}</span>
                     </div>
                 </div>
-                ${canRemoveGroup ? `<div class="col-12 col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-sm btn-outline-danger w-100 btn-remove-group" data-gidx="${gIdx}">
-                        <i class="bi bi-x-circle me-1"></i>Quitar
+                <div class="col-12 col-md-4 d-flex align-items-end gap-1 justify-content-end">
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-move-group-up" data-gidx="${gIdx}"
+                            title="Subir bodega" ${canMoveUp ? '' : 'disabled'}>
+                        <i class="bi bi-arrow-up"></i>
                     </button>
-                </div>` : ''}
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-move-group-down" data-gidx="${gIdx}"
+                            title="Bajar bodega" ${canMoveDown ? '' : 'disabled'}>
+                        <i class="bi bi-arrow-down"></i>
+                    </button>
+                    ${canRemoveGroup ? `<button type="button" class="btn btn-sm btn-outline-danger btn-remove-group" data-gidx="${gIdx}">
+                        <i class="bi bi-x-circle me-1"></i>Quitar
+                    </button>` : ''}
+                </div>
             </div>
             <!-- Artículos de este grupo -->
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -922,6 +1018,22 @@ function renderTransitGroups(container) {
             INV.lines = INV.lines.filter(l => l.idWarehouseDestLine !== removedDest);
             INV._groups.splice(gIdx, 1);
             renderLines();
+        });
+    });
+
+    // Bind: mover grupo hacia arriba
+    container.querySelectorAll('.btn-move-group-up').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const gIdx = +btn.dataset.gidx;
+            moveGroup(gIdx, -1);
+        });
+    });
+
+    // Bind: mover grupo hacia abajo
+    container.querySelectorAll('.btn-move-group-down').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const gIdx = +btn.dataset.gidx;
+            moveGroup(gIdx, 1);
         });
     });
 
@@ -1568,6 +1680,7 @@ function renderReceiveBody(txn) {
             const isActive   = gIdx === activeIdx;
             const isReceived = g.lineStatus === 'Received' || g.lineStatus === 'Cancelled';
             const isPending  = !isReceived && !isActive;
+            const isLastDest = gIdx === groups.length - 1;
 
             const usedBadges = groups.filter(x => x.idWarehouseDestLine).map(x => {
                 const w = INV.warehouses.find(wh => wh.id === x.idWarehouseDestLine);
@@ -1597,7 +1710,7 @@ function renderReceiveBody(txn) {
                 if (alreadyDone) {
                     return `<tr style="opacity:${isReceived ? '.6' : '1'}">
                         <td style="width:36px;"></td>
-                        <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
+                        <td><strong>${l.itemCode}</strong><br><small style="color:#64748b!important;">${l.itemName}</small></td>
                         <td class="text-center">${l.qtyRequested}</td>
                         <td class="text-center">${l.qtyDispatched || 0}</td>
                         <td class="text-center text-success">${l.qtyReceived || 0}</td>
@@ -1612,7 +1725,7 @@ function renderReceiveBody(txn) {
                                data-dispatched="${dispatched}" style="width:1.1rem;height:1.1rem;cursor:pointer;"
                                title="Marcar como recibido con total despachado">
                     </td>
-                    <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
+                    <td><strong>${l.itemCode}</strong><br><small style="color:#64748b!important;">${l.itemName}</small></td>
                     <td class="text-center">${l.qtyRequested}</td>
                     <td class="text-center">${dispatched}</td>
                     <td class="text-center" style="min-width:90px;">
@@ -1637,7 +1750,7 @@ function renderReceiveBody(txn) {
                 <div class="row g-2 mb-2 mt-1" id="rcv-fields-${gIdx}">
                     <div class="col-12 col-md-4">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                            <i class="bi bi-shield-lock me-1 text-warning"></i>Sello Destino *
+                            <i class="bi bi-shield-lock me-1 text-warning"></i>Sello Destino${isLastDest ? '' : ' *'}
                         </label>
                         <input type="text" id="rcvSeal${gIdx}" class="form-control form-control-sm"
                                value="${g.destSecuritySeal || ''}" maxlength="50" autocomplete="off"
@@ -1649,17 +1762,7 @@ function renderReceiveBody(txn) {
                         <small id="rcvSealOk${gIdx}" style="color:#4ade80!important;display:none;">
                             <i class="bi bi-check-circle me-1"></i>Sello disponible.
                         </small>
-                        <small style="color:#cbd5e1!important;">Obligatorio y único en todo el sistema</small>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
-                            <i class="bi bi-clock me-1 text-warning"></i>Hora Salida *
-                        </label>
-                        <input type="time" id="rcvDeptTime${gIdx}" class="form-control form-control-sm"
-                               value="${g.departureTime || ''}" step="60" required
-                               placeholder="--:--">
-                        <small id="rcvDeptTimeErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor a la Hora de Llegada</small>
-                        <small style="color:#cbd5e1!important;">Obligatorio (Debe ser mayor a la Hora de Llegada)</small>
+                        <small style="color:#cbd5e1!important;">${isLastDest ? 'Opcional en la última bodega destino' : 'Obligatorio y único en todo el sistema'}</small>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
@@ -1670,6 +1773,16 @@ function renderReceiveBody(txn) {
                                data-prev-departure="${prevGroupDeparture}">
                         <small id="rcvArrTimeErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor a la Hora de Salida del ${prevGroupDepartureLabel}</small>
                         <small style="color:#cbd5e1!important;">Obligatorio${prevGroupDeparture ? ` (ref: ${prevGroupDeparture} — ${prevGroupDepartureLabel})` : ''}</small>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
+                            <i class="bi bi-clock me-1 text-warning"></i>Hora Salida *
+                        </label>
+                        <input type="time" id="rcvDeptTime${gIdx}" class="form-control form-control-sm"
+                               value="${g.departureTime || ''}" step="60" required
+                               placeholder="--:--">
+                        <small id="rcvDeptTimeErr${gIdx}" style="color:#f87171!important;display:none;">Debe ser mayor a la Hora de Llegada</small>
+                        <small style="color:#cbd5e1!important;">Obligatorio (Debe ser mayor a la Hora de Llegada)</small>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label" style="color:#94a3b8;font-size:.78rem;">
@@ -1797,8 +1910,8 @@ function renderReceiveBody(txn) {
 
         if (alreadyDone) {
             return `<tr style="opacity:.6">
-                <td style="width:36px;"></td>
-                <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
+                    <td style="width:36px;"></td>
+                    <td><strong>${l.itemCode}</strong><br><small style="color:#64748b!important;">${l.itemName}</small></td>
                 <td class="text-center">${l.qtyRequested}</td>
                 <td class="text-center">${dispatched}</td>
                 <td class="text-center text-success">${l.qtyReceived || 0}</td>
@@ -1811,7 +1924,7 @@ function renderReceiveBody(txn) {
                 <input type="checkbox" class="form-check-input rcv-line-chk" data-line-id="${l.id}"
                        data-dispatched="${dispatched}" style="width:1.1rem;height:1.1rem;cursor:pointer;">
             </td>
-            <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
+            <td><strong>${l.itemCode}</strong><br><small style="color:#64748b!important;">${l.itemName}</small></td>
             <td class="text-center">${l.qtyRequested}</td>
             <td class="text-center">${dispatched}</td>
             <td class="text-center" style="min-width:90px;">
@@ -1960,27 +2073,30 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         odoOutEl?.focus();
         return;
     }
-    // Validate sello destino of the CURRENT group — required and globally unique
+    // Validate sello destino of the CURRENT group — required ONLY if it is NOT the last destination group
     const currentSealEl = document.getElementById(`rcvSeal${activeGroupIdx}`);
     const currentSeal   = currentSealEl?.value?.trim() || '';
-    if (!currentSeal) {
-        showInfoDialog('El Sello Destino es obligatorio para confirmar la recepción.', 'warning');
+    const isLastGroup   = !nextWarehouseId; // nextWarehouseId null/falsy → último destino
+    if (!isLastGroup && !currentSeal) {
+        showInfoDialog('El Sello Destino es obligatorio para confirmar la recepción (excepto en la última bodega destino).', 'warning');
         currentSealEl?.focus();
         return;
     }
-    // Real-time indicator already checked, but do a final server-side uniqueness check
-    try {
-        const url = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(currentSeal)}`;
-        const { exists } = await invFetch(url);
-        if (exists) {
-            showInfoDialog(`El sello '${currentSeal}' ya está en uso. Debe ingresar un sello único.`, 'warning');
-            currentSealEl?.focus();
-            const errEl = document.getElementById(`rcvSealErr${activeGroupIdx}`);
-            if (errEl) errEl.style.display = '';
-            currentSealEl.style.borderColor = '#ef4444';
-            return;
-        }
-    } catch {}
+    // Real-time indicator already checked, but do a final server-side uniqueness check (only if seal was entered)
+    if (currentSeal) {
+        try {
+            const url = `/api/inventorytransaction/check-any-seal?seal=${encodeURIComponent(currentSeal)}`;
+            const { exists } = await invFetch(url);
+            if (exists) {
+                showInfoDialog(`El sello '${currentSeal}' ya está en uso. Debe ingresar un sello único.`, 'warning');
+                currentSealEl?.focus();
+                const errEl = document.getElementById(`rcvSealErr${activeGroupIdx}`);
+                if (errEl) errEl.style.display = '';
+                currentSealEl.style.borderColor = '#ef4444';
+                return;
+            }
+        } catch {}
+    }
 
     // Obtain active group lines
     const txn = INV.currentTxn;

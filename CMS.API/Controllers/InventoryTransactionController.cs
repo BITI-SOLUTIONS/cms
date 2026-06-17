@@ -79,9 +79,16 @@ namespace CMS.API.Controllers
                     companyId, search, idInventoryTransactionType, idInventoryTransactionStatus,
                     warehouseOriginId, warehouseDestId, from, to, page, pageSize);
 
+                // Map items sequentially to avoid concurrent DbContext access
+                var mappedItems = new List<object>();
+                foreach (var item in items)
+                {
+                    mappedItems.Add(await MapToDtoWithProgressAsync(companyId, item));
+                }
+
                 return Ok(new
                 {
-                    items = items.Select(t => MapToDto(t)),
+                    items = mappedItems,
                     totalCount = total,
                     page,
                     pageSize,
@@ -486,6 +493,51 @@ namespace CMS.API.Controllers
         // ================================================================
         // MAPPERS
         // ================================================================
+
+        private async Task<object> MapToDtoWithProgressAsync(int companyId, InventoryTransaction t)
+        {
+            // For TransitTransfer movements, add progress counters
+            if (t.IsTransitTransfer)
+            {
+                var groups = await _service.GetTransitGroupsAsync(companyId, t.Id);
+                var totalGroups = groups.Count;
+                var receivedGroups = groups.Count(g => g.LineStatus == "Received");
+
+                return new
+                {
+                    t.Id,
+                    t.TransactionNumber,
+                    t.IdInventoryTransactionType,
+                    t.IdInventoryTransactionStatus,
+                    t.IdWarehouseOrigin,
+                    t.IdWarehouseDest,
+                    t.Reference,
+                    t.Notes,
+                    t.SecuritySeal,
+                    TransactionDate = t.TransactionDate.ToString("yyyy-MM-dd"),
+                    ExpectedArrivalDate = t.ExpectedArrivalDate?.ToString("yyyy-MM-dd"),
+                    DepartureTime = t.DepartureTime?.ToString("HH:mm"),
+                    t.OdometerOut,
+                    t.ConfirmedDate,
+                    t.CompletedDate,
+                    t.CancelledDate,
+                    t.CancelReason,
+                    t.CreatedByUserId,
+                    t.ConfirmedByUserId,
+                    t.CancelledByUserId,
+                    t.IsTransitTransfer,
+                    t.AffectsStock,
+                    t.CreateDate,
+                    t.CreatedBy,
+                    t.UpdatedBy,
+                    Lines = (object?)null,
+                    TotalGroups = totalGroups,
+                    ReceivedGroups = receivedGroups
+                };
+            }
+
+            return MapToDto(t, false);
+        }
 
         private static object MapToDto(InventoryTransaction t, bool includeLines = false)
         {

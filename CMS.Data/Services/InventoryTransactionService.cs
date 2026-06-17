@@ -258,12 +258,13 @@ namespace CMS.Data.Services
             if (transaction.IsTransitTransfer)
             {
                 // Agrupar líneas por bodega destino para crear los grupos de tránsito
+                // Preserve group order based on the sequence of lines provided by the client
                 var destGroups = lines
                     .GroupBy(l => l.IdWarehouseDestLine ?? 0)
-                    .OrderBy(g => g.Key)
                     .ToList();
 
                 int groupNum = 1;
+                int lineNumGlobal = 1;
                 foreach (var grp in destGroups)
                 {
                     var transit = new InventoryTransactionWarehouseTransit
@@ -282,12 +283,11 @@ namespace CMS.Data.Services
                     db.InventoryTransactionWarehouseTransits.Add(transit);
                     await db.SaveChangesAsync(); // necesitamos el ID del grupo
 
-                    int lineNum = 1;
                     foreach (var line in grp)
                     {
                         line.IdInventoryTransaction = transaction.Id;
                         line.IdInventoryTransactionWarehouseTransit = transit.Id;
-                        line.LineNumber = lineNum++;
+                        line.LineNumber = lineNumGlobal++;
                         line.CreatedBy  = auditUser;
                         line.UpdatedBy  = auditUser;
                         line.CreateDate = DateTime.UtcNow;
@@ -375,9 +375,9 @@ namespace CMS.Data.Services
 
             if (existing.IsTransitTransfer)
             {
+                // Preserve group order based on the sequence of lines provided by the client
                 var destGroups = lines
                     .GroupBy(l => l.IdWarehouseDestLine ?? 0)
-                    .OrderBy(g => g.Key)
                     .ToList();
 
                 int groupNum = 1;

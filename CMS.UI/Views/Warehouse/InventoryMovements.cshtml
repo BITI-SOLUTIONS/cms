@@ -29,23 +29,25 @@
     body { background: var(--inv-bg); color: var(--inv-text); }
 
     /* ---- KPI chips ---- */
+    .kpi-chips { flex-wrap: wrap; }
     .kpi-chip {
         background: var(--inv-card);
         border: 1px solid var(--inv-border);
-        border-radius: 14px;
-        padding: .65rem 1.1rem;
+        border-radius: 10px;
+        padding: .4rem .7rem;
         display: flex;
         align-items: center;
-        gap: .6rem;
-        min-width: 150px;
+        gap: .4rem;
+        min-width: 100px;
+        flex: 1 1 100px;
         cursor: pointer;
         transition: border-color .2s, transform .15s;
     }
     .kpi-chip:hover { border-color: var(--inv-accent); transform: translateY(-2px); }
     .kpi-chip.active { border-color: var(--inv-accent); background: #1e1b4b; }
-    .kpi-chip .kpi-icon { font-size: 1.5rem; }
-    .kpi-chip .kpi-val  { font-size: 1.4rem; font-weight: 700; line-height: 1; }
-    .kpi-chip .kpi-lbl  { font-size: .72rem; color: var(--inv-muted); }
+    .kpi-chip .kpi-icon { font-size: 1.1rem; }
+    .kpi-chip .kpi-val  { font-size: 1.1rem; font-weight: 700; line-height: 1; }
+    .kpi-chip .kpi-lbl  { font-size: .68rem; color: var(--inv-muted); }
 
     /* ---- Filtros ---- */
     .filter-bar { background: var(--inv-card); border: 1px solid var(--inv-border); border-radius: 12px; padding: 1rem; }
@@ -171,8 +173,7 @@
     }
 
     @@media (max-width: 768px) {
-        .kpi-chips { flex-wrap: wrap; }
-        .kpi-chip  { min-width: 130px; flex: 1 1 130px; }
+        .kpi-chip  { min-width: 90px; flex: 1 1 90px; }
         .hide-mobile { display: none !important; }
         .inv-table tbody td, .inv-table thead th { padding: .45rem .5rem; }
     }
@@ -217,6 +218,14 @@
     <div class="kpi-chip" data-filter-status="completed" title="Completados">
         <span class="kpi-icon">✅</span>
         <div><div class="kpi-val" id="kpiCompleted">—</div><div class="kpi-lbl">Completados</div></div>
+    </div>
+    <div class="kpi-chip" data-filter-status="confirmed" title="Confirmados">
+        <span class="kpi-icon">🔵</span>
+        <div><div class="kpi-val" id="kpiConfirmed">—</div><div class="kpi-lbl">Confirmados</div></div>
+    </div>
+    <div class="kpi-chip" data-filter-status="cancelled" title="Cancelados">
+        <span class="kpi-icon">❌</span>
+        <div><div class="kpi-val" id="kpiCancelled">—</div><div class="kpi-lbl">Cancelados</div></div>
     </div>
 </div>
 
