@@ -1714,12 +1714,13 @@ function renderReceiveBody(txn) {
                         <td class="text-center">${l.qtyRequested}</td>
                         <td class="text-center">${l.qtyDispatched || 0}</td>
                         <td class="text-center text-success">${l.qtyReceived || 0}</td>
+                        <td class="text-center text-warning">${l.qtyReturned || 0}</td>
                         <td class="text-center">${isReceived ? '✅ Received' : '⏳ Pending'}</td>
                     </tr>`;
                 }
 
                 const dispatched = l.qtyDispatched || l.qtyRequested || 0;
-                return `<tr id="rcv-row-${l.id}">
+                return `<tr id="rcv-row-${l.id}" data-is-new="false">
                     <td class="text-center" style="width:36px;vertical-align:middle;">
                         <input type="checkbox" class="form-check-input rcv-line-chk" data-line-id="${l.id}"
                                data-dispatched="${dispatched}" style="width:1.1rem;height:1.1rem;cursor:pointer;"
@@ -1732,6 +1733,12 @@ function renderReceiveBody(txn) {
                         <input type="number" id="rcv-qty-${l.id}" class="form-control form-control-sm rcv-qty-input text-center"
                                value="${dispatched}" min="0" step="any" data-dispatched="${dispatched}"
                                style="background:#0d1117;color:#4ade80;border-color:#2a3a5c;width:90px;margin:auto;">
+                    </td>
+                    <td class="text-center" style="min-width:90px;">
+                        <input type="number" id="rcv-return-${l.id}" class="form-control form-control-sm rcv-return-input text-center"
+                               value="0" min="0" step="any"
+                               style="background:#0d1117;color:#fbbf24;border-color:#2a3a5c;width:90px;margin:auto;"
+                               placeholder="0">
                     </td>
                     <td class="text-center">⏳ Pending</td>
                 </tr>`;
@@ -1874,6 +1881,9 @@ function renderReceiveBody(txn) {
                 ${markAllField}
                 <div class="d-flex justify-content-between align-items-center mb-2 mt-2">
                     <span class="fw-semibold text-light" style="font-size:.85rem;"><i class="bi bi-list-ul me-1"></i>Artículos</span>
+                    ${isActive ? `<button type="button" class="btn btn-sm btn-outline-warning" onclick="openAddReturnItem(${gIdx})" title="Agregar artículo de devolución">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar Devolución
+                    </button>` : ''}
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm" style="color:var(--inv-text);">
@@ -1884,6 +1894,7 @@ function renderReceiveBody(txn) {
                                 <th class="text-center">Solicitado</th>
                                 <th class="text-center">Despachado</th>
                                 <th class="text-center">Recibido</th>
+                                <th class="text-center" style="color:#fbbf24;">Devolución</th>
                                 <th class="text-center">Estado</th>
                             </tr>
                         </thead>
@@ -2012,76 +2023,101 @@ function renderReceiveFooter(txn, footer) {
 }
 
 async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
-    const deptTimeEl = document.getElementById(`rcvDeptTime${activeGroupIdx}`);
-    const arrTimeEl  = document.getElementById(`rcvArrTime${activeGroupIdx}`);
-    const odoOutEl   = document.getElementById(`rcvOdoOut${activeGroupIdx}`);
+    // Obtain active group lines first
+    const txn = INV.currentTxn;
+    const groups = _getReceiveDestGroups(txn);
+    const activeGroup = groups[activeGroupIdx];
+    if (!activeGroup) return;
 
-    const arrTime  = arrTimeEl?.value?.trim();
-    const deptTime = deptTimeEl?.value?.trim();
-    const odoOut   = odoOutEl?.value?.trim();
+    const pendingLines = activeGroup.lines || [];
+    if (!pendingLines.length) {
+        showInfoDialog('No hay líneas pendientes de recepción en esta bodega.', 'info');
+        return;
+    }
 
-    // Read reference values from data attributes
-    const prevDeparture   = arrTimeEl?.dataset?.prevDeparture || '';
-    const headerOdometer  = parseFloat(odoOutEl?.dataset?.headerOdometer) || 0;
-    const prevKm          = parseFloat(odoOutEl?.dataset?.prevKm) || 0;
+    // ============================================================
+    // VALIDACIÓN 1: ARTÍCULOS RECIBIDOS
+    // ============================================================
 
-    // Required: hora llegada
-    if (!arrTime) {
-        showInfoDialog('La Hora de Llegada es obligatoria para confirmar la recepción.', 'warning');
-        arrTimeEl?.focus();
+    // Validate that ALL pending lines are checked
+    const uncheckedLines = pendingLines.filter(l => {
+        const chk = document.querySelector(`.rcv-line-chk[data-line-id="${l.id}"]`);
+        return !chk || !chk.checked;
+    });
+
+    if (uncheckedLines.length > 0) {
+        const names = uncheckedLines.map(l => l.itemCode).join(', ');
+        showInfoDialog(`Todos los artículos deben estar marcados como recibidos antes de confirmar la recepción. Pendientes sin marcar: ${names}`, 'warning');
         return;
     }
-    // Hora Llegada must be > previous departure (header for first group, prev group's departure for others)
-    if (prevDeparture && arrTime <= prevDeparture) {
-        showInfoDialog(`La Hora de Llegada (${arrTime}) debe ser mayor a la Hora de Salida de referencia (${prevDeparture}).`, 'warning');
-        arrTimeEl?.focus();
-        return;
+
+    const checkedLineIds = pendingLines.map(l => l.id);
+
+    // Validate quantities > 0
+    for (const lineId of checkedLineIds) {
+        const qtyInput = document.getElementById(`rcv-qty-${lineId}`);
+        const qty = qtyInput ? parseFloat(qtyInput.value) : 0;
+        if (!qty || qty <= 0) {
+            const line = pendingLines.find(l => l.id === lineId);
+            const name = line ? `${line.itemCode} — ${line.itemName}` : `Línea #${lineId}`;
+            showInfoDialog(`La cantidad recibida de "${name}" debe ser mayor a 0.`, 'warning');
+            qtyInput?.focus();
+            return;
+        }
     }
-    // Required: hora salida
-    if (!deptTime) {
-        showInfoDialog('La Hora de Salida es obligatoria para confirmar la recepción.', 'warning');
-        deptTimeEl?.focus();
-        return;
+
+    // ============================================================
+    // VALIDACIÓN 2: DEVOLUCIONES (si hay líneas nuevas)
+    // ============================================================
+
+    const newReturnLines = [];
+    const groupBlock = document.querySelector(`.transit-group-block[data-group-idx="${activeGroupIdx}"][data-is-active="true"]`);
+    if (groupBlock) {
+        const newRows = groupBlock.querySelectorAll('tr[data-is-new="true"]');
+        for (const row of newRows) {
+            const tempId = row.dataset.tempId || row.id.replace('rcv-row-', '');
+            const itemId = parseInt(row.dataset.itemId);
+            const returnInput = document.getElementById(`rcv-return-${tempId}`);
+            const qtyReturned = returnInput ? parseFloat(returnInput.value) : 0;
+
+            // Validar que se haya seleccionado un artículo
+            if (!itemId || itemId <= 0) {
+                showInfoDialog('Debe seleccionar un artículo válido de la lista o eliminar la línea.', 'warning');
+                const searchInput = document.getElementById(`return-item-search-${tempId}`);
+                if (searchInput) searchInput.focus();
+                return;
+            }
+
+            // Validar que la devolución sea mayor a 0 para líneas nuevas
+            if (!qtyReturned || qtyReturned <= 0) {
+                const searchInput = document.getElementById(`return-item-search-${tempId}`);
+                const itemText = searchInput ? searchInput.value : 'Artículo';
+                showInfoDialog(`La cantidad de devolución del artículo "${itemText}" debe ser mayor a 0 o debe eliminar la línea.`, 'warning');
+                returnInput?.focus();
+                return;
+            }
+
+            newReturnLines.push({
+                itemId: itemId,
+                qtyReturned: qtyReturned
+            });
+        }
     }
-    // Hora Salida must be > Hora Llegada
-    if (arrTime && deptTime <= arrTime) {
-        showInfoDialog(`La Hora de Salida (${deptTime}) debe ser mayor a la Hora de Llegada (${arrTime}).`, 'warning');
-        deptTimeEl?.focus();
-        return;
-    }
-    // Required: km salida
-    if (!odoOut || odoOut === '') {
-        showInfoDialog('El Km de Salida es obligatorio para confirmar la recepción.', 'warning');
-        odoOutEl?.focus();
-        return;
-    }
-    const odoOutNum = parseFloat(odoOut);
-    if (isNaN(odoOutNum) || odoOutNum < 0) {
-        showInfoDialog('El Km de Salida debe ser un número válido mayor o igual a cero.', 'warning');
-        odoOutEl?.focus();
-        return;
-    }
-    // Km must be > header odometer
-    if (headerOdometer > 0 && odoOutNum <= headerOdometer) {
-        showInfoDialog(`El Km de Salida (${odoOutNum.toLocaleString('es-CR')}) debe ser mayor al Km de Salida del encabezado (${headerOdometer.toLocaleString('es-CR')}).`, 'warning');
-        odoOutEl?.focus();
-        return;
-    }
-    // Km must also be > previous group km
-    if (prevKm > 0 && odoOutNum <= prevKm) {
-        showInfoDialog(`El Km de Salida (${odoOutNum.toLocaleString('es-CR')}) debe ser mayor al kilometraje anterior (${prevKm.toLocaleString('es-CR')}).`, 'warning');
-        odoOutEl?.focus();
-        return;
-    }
-    // Validate sello destino of the CURRENT group — required ONLY if it is NOT the last destination group
+
+    // ============================================================
+    // VALIDACIÓN 3: SELLO DE SEGURIDAD
+    // ============================================================
+
     const currentSealEl = document.getElementById(`rcvSeal${activeGroupIdx}`);
     const currentSeal   = currentSealEl?.value?.trim() || '';
     const isLastGroup   = !nextWarehouseId; // nextWarehouseId null/falsy → último destino
+
     if (!isLastGroup && !currentSeal) {
         showInfoDialog('El Sello Destino es obligatorio para confirmar la recepción (excepto en la última bodega destino).', 'warning');
         currentSealEl?.focus();
         return;
     }
+
     // Real-time indicator already checked, but do a final server-side uniqueness check (only if seal was entered)
     if (currentSeal) {
         try {
@@ -2098,13 +2134,87 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         } catch {}
     }
 
-    // Obtain active group lines
-    const txn = INV.currentTxn;
-    const groups = _getReceiveDestGroups(txn);
-    const activeGroup = groups[activeGroupIdx];
-    if (!activeGroup) return;
+    // ============================================================
+    // VALIDACIÓN 4: HORA DE LLEGADA
+    // ============================================================
 
-    // Required: firma digital
+    const arrTimeEl  = document.getElementById(`rcvArrTime${activeGroupIdx}`);
+    const arrTime    = arrTimeEl?.value?.trim();
+    const prevDeparture = arrTimeEl?.dataset?.prevDeparture || '';
+
+    if (!arrTime) {
+        showInfoDialog('La Hora de Llegada es obligatoria para confirmar la recepción.', 'warning');
+        arrTimeEl?.focus();
+        return;
+    }
+
+    // Hora Llegada must be > previous departure (header for first group, prev group's departure for others)
+    if (prevDeparture && arrTime <= prevDeparture) {
+        showInfoDialog(`La Hora de Llegada (${arrTime}) debe ser mayor a la Hora de Salida de referencia (${prevDeparture}).`, 'warning');
+        arrTimeEl?.focus();
+        return;
+    }
+
+    // ============================================================
+    // VALIDACIÓN 5: HORA DE SALIDA
+    // ============================================================
+
+    const deptTimeEl = document.getElementById(`rcvDeptTime${activeGroupIdx}`);
+    const deptTime   = deptTimeEl?.value?.trim();
+
+    if (!deptTime) {
+        showInfoDialog('La Hora de Salida es obligatoria para confirmar la recepción.', 'warning');
+        deptTimeEl?.focus();
+        return;
+    }
+
+    // Hora Salida must be > Hora Llegada
+    if (arrTime && deptTime <= arrTime) {
+        showInfoDialog(`La Hora de Salida (${deptTime}) debe ser mayor a la Hora de Llegada (${arrTime}).`, 'warning');
+        deptTimeEl?.focus();
+        return;
+    }
+
+    // ============================================================
+    // VALIDACIÓN 6: KM DE SALIDA
+    // ============================================================
+
+    const odoOutEl   = document.getElementById(`rcvOdoOut${activeGroupIdx}`);
+    const odoOut     = odoOutEl?.value?.trim();
+    const headerOdometer = parseFloat(odoOutEl?.dataset?.headerOdometer) || 0;
+    const prevKm         = parseFloat(odoOutEl?.dataset?.prevKm) || 0;
+
+    if (!odoOut || odoOut === '') {
+        showInfoDialog('El Km de Salida es obligatorio para confirmar la recepción.', 'warning');
+        odoOutEl?.focus();
+        return;
+    }
+
+    const odoOutNum = parseFloat(odoOut);
+    if (isNaN(odoOutNum) || odoOutNum < 0) {
+        showInfoDialog('El Km de Salida debe ser un número válido mayor o igual a cero.', 'warning');
+        odoOutEl?.focus();
+        return;
+    }
+
+    // Km must be > header odometer
+    if (headerOdometer > 0 && odoOutNum <= headerOdometer) {
+        showInfoDialog(`El Km de Salida (${odoOutNum.toLocaleString('es-CR')}) debe ser mayor al Km de Salida del encabezado (${headerOdometer.toLocaleString('es-CR')}).`, 'warning');
+        odoOutEl?.focus();
+        return;
+    }
+
+    // Km must also be > previous group km
+    if (prevKm > 0 && odoOutNum <= prevKm) {
+        showInfoDialog(`El Km de Salida (${odoOutNum.toLocaleString('es-CR')}) debe ser mayor al kilometraje anterior (${prevKm.toLocaleString('es-CR')}).`, 'warning');
+        odoOutEl?.focus();
+        return;
+    }
+
+    // ============================================================
+    // VALIDACIÓN 7: FIRMA (SIEMPRE AL FINAL)
+    // ============================================================
+
     const signatureDataUrl = _getSignatureDataUrl(activeGroupIdx);
     if (!signatureDataUrl) {
         const errEl = document.getElementById(`rcvSignErr${activeGroupIdx}`);
@@ -2114,44 +2224,23 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
         return;
     }
 
-    const pendingLines = activeGroup.lines || [];
-    if (!pendingLines.length) {
-        showInfoDialog('No hay líneas pendientes de recepción en esta bodega.', 'info');
-        return;
-    }
+    // ============================================================
+    // RECOPILACIÓN DE DATOS Y ENVÍO
+    // ============================================================
 
-    // Validate that ALL pending lines are checked and each has qty > 0
-    const uncheckedLines = pendingLines.filter(l => {
-        const chk = document.querySelector(`.rcv-line-chk[data-line-id="${l.id}"]`);
-        return !chk || !chk.checked;
-    });
-
-    if (uncheckedLines.length > 0) {
-        const names = uncheckedLines.map(l => l.itemCode).join(', ');
-        showInfoDialog(`Todos los artículos deben estar marcados como recibidos antes de confirmar la recepción. Pendientes sin marcar: ${names}`, 'warning');
-        return;
-    }
-
-    const checkedLineIds = pendingLines.map(l => l.id);
-
-    for (const lineId of checkedLineIds) {
-        const qtyInput = document.getElementById(`rcv-qty-${lineId}`);
-        const qty = qtyInput ? parseFloat(qtyInput.value) : 0;
-        if (!qty || qty <= 0) {
-            const line = pendingLines.find(l => l.id === lineId);
-            const name = line ? `${line.itemCode} — ${line.itemName}` : `Línea #${lineId}`;
-            showInfoDialog(`La cantidad recibida de "${name}" debe ser mayor a 0.`, 'warning');
-            qtyInput?.focus();
-            return;
-        }
-    }
-
+    // Recopilar cantidades recibidas y devoluciones de líneas existentes
     const lineIds  = checkedLineIds;
     const lineQtys = checkedLineIds.map(lineId => {
         const l = pendingLines.find(x => x.id === lineId);
         const qtyInput = document.getElementById(`rcv-qty-${lineId}`);
+        const returnInput = document.getElementById(`rcv-return-${lineId}`);
         const qty = qtyInput ? parseFloat(qtyInput.value) : null;
-        return { lineId, qty: (qty > 0 ? qty : (l?.qtyDispatched || l?.qtyRequested || 0)) };
+        const qtyReturned = returnInput ? (parseFloat(returnInput.value) || 0) : 0;
+        return { 
+            lineId, 
+            qty: (qty > 0 ? qty : (l?.qtyDispatched || l?.qtyRequested || 0)),
+            qtyReturned: qtyReturned
+        };
     });
 
     const btn = document.getElementById('btnSubmitReceive');
@@ -2163,6 +2252,7 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
             body: {
                 lineIds,
                 lineQtys,
+                newReturnLines,
                 arrivalTime:      arrTime,
                 departureTime:    deptTime,
                 odometerOut:      odoOutNum,
@@ -2236,6 +2326,211 @@ function openCancelFromReceive(id) {
     const rcvModal = bootstrap.Modal.getInstance(document.getElementById('receiveModal'));
     if (rcvModal) rcvModal.hide();
     openCancel(id);
+}
+
+// ============================================================
+// AGREGAR ARTÍCULO DE DEVOLUCIÓN
+// ============================================================
+
+function openAddReturnItem(groupIdx) {
+    // Buscar la tabla del grupo activo
+    const groupBlock = document.querySelector(`.transit-group-block[data-group-idx="${groupIdx}"][data-is-active="true"]`);
+    if (!groupBlock) return;
+
+    const tbody = groupBlock.querySelector('tbody');
+    if (!tbody) return;
+
+    // Generar ID temporal para la nueva línea
+    const tempId = `new-${Date.now()}`;
+    const rowId = `rcv-row-${tempId}`;
+
+    // Crear nueva fila con campo de búsqueda autocompletado
+    const newRow = document.createElement('tr');
+    newRow.id = rowId;
+    newRow.dataset.isNew = 'true';
+    newRow.dataset.itemId = '0';
+    newRow.dataset.tempId = tempId;
+
+    newRow.innerHTML = `
+        <td class="text-center" style="width:36px;vertical-align:middle;">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeReturnItemRow('${tempId}')" title="Eliminar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </td>
+        <td style="position:relative;">
+            <input type="text" 
+                   id="return-item-search-${tempId}" 
+                   class="form-control form-control-sm return-item-search" 
+                   placeholder="Código o nombre..."
+                   data-temp-id="${tempId}"
+                   style="background:#0d1117;color:#e2e8f0;border-color:#2a3a5c;">
+            <div id="return-sugg-${tempId}" style="display:none;"></div>
+        </td>
+        <td class="text-center">
+            <input type="number" class="form-control form-control-sm text-center" value="0" readonly 
+                   style="background:#0d1117;color:#6b7280;border-color:#2a3a5c;width:90px;margin:auto;">
+        </td>
+        <td class="text-center">
+            <input type="number" class="form-control form-control-sm text-center" value="0" readonly 
+                   style="background:#0d1117;color:#6b7280;border-color:#2a3a5c;width:90px;margin:auto;">
+        </td>
+        <td class="text-center">
+            <input type="number" class="form-control form-control-sm text-center" value="0" readonly 
+                   style="background:#0d1117;color:#6b7280;border-color:#2a3a5c;width:90px;margin:auto;">
+        </td>
+        <td class="text-center" style="min-width:90px;">
+            <input type="number" 
+                   id="rcv-return-${tempId}" 
+                   class="form-control form-control-sm rcv-return-input text-center"
+                   value="0" min="0" step="any" required
+                   style="background:#0d1117;color:#fbbf24;border-color:#fbbf24;width:90px;margin:auto;"
+                   placeholder="Cantidad">
+        </td>
+        <td class="text-center">
+            <span class="badge" style="background:#1e3a5f;color:#fbbf24;">➕ Devolución</span>
+        </td>
+    `;
+
+    tbody.appendChild(newRow);
+
+    // Bind eventos de autocompletado
+    const searchInput = document.getElementById(`return-item-search-${tempId}`);
+    let searchTimeout;
+    let suggestionsCache = [];
+
+    searchInput.addEventListener('input', async (e) => {
+        const term = e.target.value.trim();
+
+        if (term.length < 2) {
+            const sugg = document.getElementById(`return-sugg-${tempId}`);
+            if (sugg) sugg.style.display = 'none';
+            return;
+        }
+
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            try {
+                const data = await invFetch(`/api/item?search=${encodeURIComponent(term)}&pageSize=8&isActive=true`);
+                const items = data.items || data || [];
+                suggestionsCache = items;
+                renderReturnItemSuggestions(tempId, items, searchInput);
+
+                // Auto-seleccionar si hay resultado único exacto por código
+                if (items.length === 1) {
+                    const it = items[0];
+                    if (it.code.toLowerCase() === term.toLowerCase() || 
+                        term.toLowerCase() === `${it.code} — ${it.name}`.toLowerCase()) {
+                        applyReturnItemSelection(tempId, it.id, it.code, it.name);
+                    }
+                }
+            } catch (err) {
+                console.error('Error searching items:', err);
+            }
+        }, 300);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const sugg = document.getElementById(`return-sugg-${tempId}`);
+        const first = sugg && sugg.querySelector('.sugg-item');
+        if (first) {
+            const { id, code, name } = first.dataset;
+            applyReturnItemSelection(tempId, id, code, name);
+        }
+    });
+
+    searchInput.addEventListener('blur', () => {
+        setTimeout(() => {
+            const term = searchInput.value.trim().toLowerCase();
+            const row = document.getElementById(rowId);
+            if (!row || row.dataset.itemId !== '0') return;
+
+            if (suggestionsCache.length) {
+                const exact = suggestionsCache.find(it =>
+                    it.code.toLowerCase() === term ||
+                    `${it.code} — ${it.name}`.toLowerCase() === term
+                );
+                const match = exact || (suggestionsCache.length === 1 ? suggestionsCache[0] : null);
+                if (match) {
+                    applyReturnItemSelection(tempId, match.id, match.code, match.name);
+                    return;
+                }
+            }
+
+            const sugg = document.getElementById(`return-sugg-${tempId}`);
+            if (sugg) sugg.style.display = 'none';
+        }, 200);
+    });
+
+    // Focus en el campo de búsqueda
+    setTimeout(() => searchInput.focus(), 50);
+    showAlert('Busque y seleccione el artículo a devolver.', 'info');
+}
+
+function renderReturnItemSuggestions(tempId, items, inp) {
+    let sugg = document.getElementById(`return-sugg-${tempId}`);
+    if (!sugg) return;
+
+    if (!items.length) { 
+        sugg.style.display = 'none'; 
+        return; 
+    }
+
+    sugg.style.cssText = `
+        display:block; position:absolute; z-index:9999;
+        background:#1a2340; border:1px solid #2a3a5c; border-radius:8px;
+        max-height:200px; overflow-y:auto; width:100%;
+        box-shadow:0 4px 12px rgba(0,0,0,0.4);
+    `;
+
+    sugg.innerHTML = items.map(it =>
+        `<div class="sugg-item p-2" style="cursor:pointer;border-bottom:1px solid #2a3a5c;font-size:.82rem;color:#e2e8f0;"
+              data-id="${it.id}" data-code="${it.code}" data-name="${it.name}">
+            <strong>${it.code}</strong> — ${it.name}
+        </div>`
+    ).join('');
+
+    sugg.querySelectorAll('.sugg-item').forEach(el => {
+        el.addEventListener('mousedown', ev => {
+            ev.preventDefault();
+            const { id, code, name } = ev.currentTarget.dataset;
+            applyReturnItemSelection(tempId, id, code, name);
+        });
+        el.addEventListener('mouseenter', () => el.style.background = '#1e2d4a');
+        el.addEventListener('mouseleave', () => el.style.background = 'transparent');
+    });
+}
+
+function applyReturnItemSelection(tempId, itemId, code, name) {
+    const row = document.getElementById(`rcv-row-${tempId}`);
+    if (!row) return;
+
+    row.dataset.itemId = itemId;
+
+    const searchInput = document.getElementById(`return-item-search-${tempId}`);
+    if (searchInput) {
+        searchInput.value = `${code} — ${name}`;
+        searchInput.style.color = '#4ade80'; // Verde para indicar selección válida
+    }
+
+    const sugg = document.getElementById(`return-sugg-${tempId}`);
+    if (sugg) sugg.style.display = 'none';
+
+    // Focus en el campo de devolución
+    const returnInput = document.getElementById(`rcv-return-${tempId}`);
+    if (returnInput) {
+        returnInput.focus();
+        returnInput.select();
+    }
+}
+
+function removeReturnItemRow(tempId) {
+    const row = document.getElementById(`rcv-row-${tempId}`);
+    if (row) {
+        row.remove();
+        showAlert('Artículo eliminado.', 'info');
+    }
 }
 
 // ============================================================
@@ -2337,11 +2632,14 @@ function renderDetailBody(txn) {
                 </div>` : '';
 
             const rowsHtml = (g.lines || []).map(l => {
+                const qtyReturned = l.qtyReturned || 0;
+                const returnColor = qtyReturned > 0 ? '#fbbf24' : '#94a3b8';
                 return `<tr>
                     <td><strong>${l.itemCode}</strong><br><small class="text-muted">${l.itemName}</small></td>
                     <td class="text-center">${l.qtyRequested}</td>
                     <td class="text-center">${l.qtyDispatched || 0}</td>
                     <td class="text-center text-success">${l.qtyReceived || 0}</td>
+                    <td class="text-center" style="color:${returnColor};">${qtyReturned}</td>
                     <td><span class="badge bg-secondary">${isReceived ? '✅' : '⏳'} ${g.lineStatus}</span></td>
                 </tr>`;
             }).join('');
@@ -2364,6 +2662,7 @@ function renderDetailBody(txn) {
                                 <th class="text-center">Solicitado</th>
                                 <th class="text-center">Despachado</th>
                                 <th class="text-center">Recibido</th>
+                                <th class="text-center">Devolución</th>
                                 <th>Estado</th>
                             </tr>
                         </thead>

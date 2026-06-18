@@ -377,6 +377,9 @@ namespace CMS.Entities.Operational
         [Column("qty_received")]
         public decimal QtyReceived { get; set; } = 0;
 
+        [Column("qty_returned")]
+        public decimal QtyReturned { get; set; } = 0;
+
         // ===== UNIDAD DE MEDIDA =====
 
         [Column("id_unit_of_measure")]

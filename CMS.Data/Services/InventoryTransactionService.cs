@@ -17,6 +17,12 @@ using Microsoft.Extensions.Logging;
 
 namespace CMS.Data.Services
 {
+    public class NewReturnLineDto
+    {
+        public int ItemId { get; set; }
+        public decimal QtyReturned { get; set; }
+    }
+
     public class InventoryTransactionService : IInventoryTransactionService
     {
         private readonly ICompanyDbContextFactory _dbContextFactory;
@@ -528,7 +534,9 @@ namespace CMS.Data.Services
             int? nextWarehouseId = null,
             Dictionary<int, decimal>? lineQtys = null,
             string? signature = null,
-            int? transitGroupId = null)
+            int? transitGroupId = null,
+            Dictionary<int, decimal>? lineReturns = null,
+            List<NewReturnLineDto>? newReturnLines = null)
         {
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
 
@@ -614,6 +622,13 @@ namespace CMS.Data.Services
                 line.QtyReceived = (lineQtys != null && lineQtys.TryGetValue(lineId, out var overrideQty) && overrideQty > 0)
                     ? overrideQty
                     : (line.QtyDispatched > 0 ? line.QtyDispatched : line.QtyRequested);
+
+                // Guardar cantidad de devolución si se proveyó
+                if (lineReturns != null && lineReturns.TryGetValue(lineId, out var returnQty))
+                {
+                    line.QtyReturned = returnQty;
+                }
+
                 line.RecordDate = now;
                 line.UpdatedBy  = auditUser;
 
@@ -632,6 +647,55 @@ namespace CMS.Data.Services
                 // Agregar a qty_on_hand en bodega destino final
                 await AdjustExistenceAsync(db, destWarehouseId, line.IdItem, line.ItemCode,
                     line.QtyReceived, 0, 0, line.UnitCost ?? 0, transactionId, now, auditUser);
+            }
+
+            // Procesar nuevas líneas de devolución
+            if (newReturnLines != null && newReturnLines.Count > 0 && activeGroup != null)
+            {
+                var destWarehouseId = activeGroup.IdWarehouseDestLine ?? txn.IdWarehouseDest ?? txn.IdWarehouseOrigin;
+
+                // Obtener el máximo LineNumber existente para asignar números únicos
+                var maxLineNumber = await db.InventoryTransactionLines
+                    .Where(l => l.IdInventoryTransaction == transactionId)
+                    .MaxAsync(l => (int?)l.LineNumber) ?? 0;
+
+                var currentLineNumber = maxLineNumber;
+
+                foreach (var newReturn in newReturnLines)
+                {
+                    // Buscar información del artículo
+                    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == newReturn.ItemId);
+                    if (item == null) continue;
+
+                    currentLineNumber++; // Incrementar para la nueva línea
+
+                    // Crear nueva línea de transacción
+                    var newLine = new InventoryTransactionLine
+                    {
+                        IdInventoryTransaction = transactionId,
+                        LineNumber = currentLineNumber,
+                        IdItem = newReturn.ItemId,
+                        ItemCode = item.Code,
+                        ItemName = item.Name,
+                        QtyRequested = 0,
+                        QtyDispatched = 0,
+                        QtyReceived = 0,
+                        QtyReturned = newReturn.QtyReturned,
+                        IdUnitOfMeasure = item.IdUnitOfMeasure,
+                        UnitOfMeasureCode = null, // Se puede agregar si es necesario
+                        UnitCost = item.CostPrice,
+                        TotalCost = item.CostPrice * newReturn.QtyReturned,
+                        IdInventoryTransactionWarehouseTransit = activeGroup.Id,
+                        CreateDate = now,
+                        RecordDate = now,
+                        CreatedBy = auditUser,
+                        UpdatedBy = auditUser,
+                        Rowpointer = Guid.NewGuid()
+                    };
+
+                    db.InventoryTransactionLines.Add(newLine);
+                    await db.SaveChangesAsync(); // Guardar para obtener el ID
+                }
             }
 
             // Verificar si TODOS los grupos están recibidos

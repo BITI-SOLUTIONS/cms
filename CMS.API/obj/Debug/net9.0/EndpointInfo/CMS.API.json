@@ -13879,6 +13879,20 @@
         },
         "additionalProperties": false
       },
+      "NewReturnLineDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qtyReturned": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "PaymentCategory": {
         "required": [
           "createdBy",
@@ -14248,6 +14262,10 @@
           "qty": {
             "type": "number",
             "format": "double"
+          },
+          "qtyReturned": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -14267,6 +14285,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ReceiveLineQtyDto"
+            },
+            "nullable": true
+          },
+          "newReturnLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewReturnLineDto"
             },
             "nullable": true
           },

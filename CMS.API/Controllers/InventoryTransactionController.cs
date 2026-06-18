@@ -402,12 +402,23 @@ namespace CMS.API.Controllers
                 var lineQtysDict = dto.LineQtys?.Count > 0
                     ? dto.LineQtys.ToDictionary(lq => lq.LineId, lq => lq.Qty)
                     : null;
+                var lineReturnsDict = dto.LineQtys?.Count > 0
+                    ? dto.LineQtys.ToDictionary(lq => lq.LineId, lq => lq.QtyReturned)
+                    : null;
+                var newReturnLinesList = dto.NewReturnLines?.Count > 0
+                    ? dto.NewReturnLines.Select(nr => new Data.Services.NewReturnLineDto
+                    {
+                        ItemId = nr.ItemId,
+                        QtyReturned = nr.QtyReturned
+                    }).ToList()
+                    : null;
                 var txn = await _service.ReceiveLinesAsync(
                     companyId, id, dto.LineIds,
                     GetCurrentUserId(), GetCurrentUser(),
                     dto.ArrivalTime, dto.DepartureTime, dto.OdometerOut,
                     dto.DestSeal, dto.NextWarehouseId,
-                    lineQtysDict, dto.Signature, dto.TransitGroupId);
+                    lineQtysDict, dto.Signature, dto.TransitGroupId,
+                    lineReturnsDict, newReturnLinesList);
                 var lines = await _service.GetLinesAsync(companyId, id);
                 txn.Lines = lines;
                 return Ok(MapToDto(txn, true));
@@ -585,6 +596,7 @@ namespace CMS.API.Controllers
             l.QtyRequested,
             l.QtyDispatched,
             l.QtyReceived,
+            l.QtyReturned,
             l.IdUnitOfMeasure,
             l.UnitOfMeasureCode,
             l.UnitCost,
@@ -701,6 +713,13 @@ namespace CMS.API.Controllers
     {
         public int LineId { get; set; }
         public decimal Qty { get; set; }
+        public decimal QtyReturned { get; set; } = 0;
+    }
+
+    public class NewReturnLineDto
+    {
+        public int ItemId { get; set; }
+        public decimal QtyReturned { get; set; }
     }
 
     public class ReceiveLinesDto
@@ -708,6 +727,8 @@ namespace CMS.API.Controllers
         public List<int> LineIds { get; set; } = new();
         /// <summary>Cantidades recibidas por línea (LineId → Qty)</summary>
         public List<ReceiveLineQtyDto> LineQtys { get; set; } = new();
+        /// <summary>Nuevas líneas de devolución de artículos no asignados originalmente</summary>
+        public List<NewReturnLineDto> NewReturnLines { get; set; } = new();
         /// <summary>Hora de llegada al grupo de bodegas destino que se está recibiendo (HH:mm)</summary>
         public string? ArrivalTime { get; set; }
         /// <summary>Hora de salida del vehículo hacia el siguiente destino (HH:mm)</summary>
