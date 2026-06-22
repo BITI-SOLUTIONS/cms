@@ -1,0 +1,450 @@
+@* ================================================================================
+   VISTA: CMS.UI/Views/Accounting/ChartOfAccounts.cshtml
+   PROPÓSITO: Mantenimiento del Plan de Cuentas (Chart of Accounts)
+   TABLA:     {company_schema}.chart_of_accounts  (BD de compañía)
+   ================================================================================ *@
+@{
+    ViewData["Title"] = "Plan de Cuentas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+    .account-level-1 { font-weight: 700; font-size: 1.1rem; }
+    .account-level-2 { font-weight: 600; padding-left: 1rem; }
+    .account-level-3 { padding-left: 2rem; }
+    .account-level-4 { padding-left: 3rem; }
+    .account-level-5 { padding-left: 4rem; }
+    .account-level-6 { padding-left: 5rem; }
+    .badge-account-type { font-size: .7rem; padding: .25rem .5rem; }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white mb-0">
+                <i class="bi bi-diagram-3 me-2 text-success"></i>Plan de Cuentas
+            </h4>
+            <small class="text-muted">Catálogo de cuentas contables con estructura jerárquica tipo SAP</small>
+        </div>
+        <button class="btn btn-success" onclick="COA.openNew()">
+            <i class="bi bi-plus-lg me-1"></i>Nueva Cuenta
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card bg-dark border-secondary mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-light">Buscar</label>
+                    <input type="text" id="txtSearch" class="form-control"
+                           placeholder="Código, nombre o descripción..." onkeyup="COA.applyFilters()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Tipo de Cuenta</label>
+                    <select id="selAccountType" class="form-select" onchange="COA.applyFilters()">
+                        <option value="">Todos</option>
+                        <option value="Asset">Activo</option>
+                        <option value="Liability">Pasivo</option>
+                        <option value="Equity">Patrimonio</option>
+                        <option value="Revenue">Ingreso</option>
+                        <option value="Expense">Gasto</option>
+                        <option value="Off-Balance">Fuera de Balance</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Tipo</label>
+                    <select id="selIsDetail" class="form-select" onchange="COA.applyFilters()">
+                        <option value="">Todas</option>
+                        <option value="true">Detalle</option>
+                        <option value="false">Encabezado</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Estado</label>
+                    <select id="selIsActive" class="form-select" onchange="COA.applyFilters()">
+                        <option value="">Todas</option>
+                        <option value="true" selected>Activas</option>
+                        <option value="false">Inactivas</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" onclick="COA.clearFilters()">
+                        <i class="bi bi-x-circle me-1"></i>Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div id="coaAlert" class="alert d-none mb-3" role="alert"></div>
+
+    <!-- Tabla -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0" id="tblAccounts">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;">#</th>
+                            <th style="width:140px;">Código</th>
+                            <th>Nombre</th>
+                            <th style="width:120px;">Tipo</th>
+                            <th class="text-center" style="width:80px;">Nivel</th>
+                            <th class="text-center" style="width:100px;">Detalle</th>
+                            <th class="text-center" style="width:100px;">Estado</th>
+                            <th style="width:120px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyAccounts">
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-3">
+                                <i class="bi bi-hourglass-split me-1"></i>Cargando…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-transparent border-secondary">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted" id="lblTotal">Total: 0 cuentas</span>
+                <nav id="pagination"></nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL CREAR / EDITAR
+     ============================================================ -->
+<div class="modal fade" id="coaModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="coaModalTitle">
+                    <i class="bi bi-diagram-3 me-2 text-success"></i>Cuenta Contable
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="coaId">
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabGeneral">
+                            <i class="bi bi-info-circle me-1"></i>General
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabClassification">
+                            <i class="bi bi-tags me-1"></i>Clasificación
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabControls">
+                            <i class="bi bi-gear me-1"></i>Controles
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabReporting">
+                            <i class="bi bi-bar-chart me-1"></i>Reportes
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <!-- TAB: General -->
+                    <div class="tab-pane fade show active" id="tabGeneral">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Código *
+                                    <small class="text-muted">(máx. 50 — único)</small>
+                                </label>
+                                <input type="text" id="coaCode" class="form-control" maxlength="50"
+                                       placeholder="Ej: 1.1.01.001">
+                                <small>Usar estructura jerárquica (ej: 1.1.01.001)</small>
+                            </div>
+                            <div class="col-12 col-md-8">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" id="coaName" class="form-control" maxlength="200"
+                                       placeholder="Ej: Caja General">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Descripción</label>
+                                <textarea id="coaDescription" class="form-control" rows="2" maxlength="500"
+                                          placeholder="Descripción detallada del propósito de la cuenta"></textarea>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Alias</label>
+                                <input type="text" id="coaAlias" class="form-control" maxlength="100"
+                                       placeholder="Nombre alternativo o corto">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Cuenta Padre</label>
+                                <select id="coaParent" class="form-select">
+                                    <option value="">Sin padre (cuenta raíz)</option>
+                                </select>
+                                <small>Selecciona la cuenta padre para crear jerarquía</small>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Nivel</label>
+                                <input type="number" id="coaLevel" class="form-control" min="1" max="6" value="1" readonly>
+                                <small>Calculado automáticamente (1-6)</small>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Tipo de Cuenta *</label>
+                                <select id="coaAccountType" class="form-select" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Asset">Activo</option>
+                                    <option value="Liability">Pasivo</option>
+                                    <option value="Equity">Patrimonio</option>
+                                    <option value="Revenue">Ingreso</option>
+                                    <option value="Expense">Gasto</option>
+                                    <option value="Off-Balance">Fuera de Balance</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6 d-flex align-items-end gap-4">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" id="coaIsHeader">
+                                    <label class="form-check-label" for="coaIsHeader">Es Encabezado</label>
+                                    <div><small>No acepta transacciones</small></div>
+                                </div>
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" id="coaIsDetail" checked>
+                                    <label class="form-check-label" for="coaIsDetail">Es Detalle</label>
+                                    <div><small>Acepta transacciones</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Clasificación -->
+                    <div class="tab-pane fade" id="tabClassification">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Clasificación</label>
+                                <select id="coaAccountClass" class="form-select">
+                                    <option value="">Sin clasificación</option>
+                                    <option value="Current">Corriente</option>
+                                    <option value="Non-Current">No Corriente</option>
+                                    <option value="Operating">Operacional</option>
+                                    <option value="Financial">Financiero</option>
+                                    <option value="Extraordinary">Extraordinario</option>
+                                    <option value="Capital">Capital</option>
+                                    <option value="Retained">Utilidades Retenidas</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Naturaleza *</label>
+                                <select id="coaNormalBalance" class="form-select" required>
+                                    <option value="Debit">Deudora (Debit)</option>
+                                    <option value="Credit">Acreedora (Credit)</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Categoría de Flujo de Efectivo</label>
+                                <select id="coaCashFlowCategory" class="form-select">
+                                    <option value="">N/A</option>
+                                    <option value="Operating">Operación</option>
+                                    <option value="Investing">Inversión</option>
+                                    <option value="Financing">Financiamiento</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Moneda</label>
+                                <input type="text" id="coaCurrencyCode" class="form-control" maxlength="3"
+                                       placeholder="CRC" value="CRC">
+                            </div>
+                            <div class="col-12">
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaMultiCurrency">
+                                            <label class="form-check-label" for="coaMultiCurrency">Multi-moneda</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaIsReceivable">
+                                            <label class="form-check-label" for="coaIsReceivable">Cuentas por Cobrar</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaIsPayable">
+                                            <label class="form-check-label" for="coaIsPayable">Cuentas por Pagar</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaIsReconciliation">
+                                            <label class="form-check-label" for="coaIsReconciliation">Reconciliación</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Controles -->
+                    <div class="tab-pane fade" id="tabControls">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <h6 class="text-light mb-3">Asientos Permitidos</h6>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaAcceptsManualEntry" checked>
+                                            <label class="form-check-label" for="coaAcceptsManualEntry">Asientos Manuales</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaAcceptsAutoEntry" checked>
+                                            <label class="form-check-label" for="coaAcceptsAutoEntry">Asientos Automáticos</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <h6 class="text-light mb-3">Dimensiones Requeridas</h6>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaRequiresCostCenter">
+                                            <label class="form-check-label" for="coaRequiresCostCenter">Centro de Costo</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaRequiresProject">
+                                            <label class="form-check-label" for="coaRequiresProject">Proyecto</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaRequiresPartner">
+                                            <label class="form-check-label" for="coaRequiresPartner">Socio de Negocio</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Código de Impuesto</label>
+                                <input type="text" id="coaTaxCode" class="form-control" maxlength="20"
+                                       placeholder="Ej: IVA13">
+                            </div>
+                            <div class="col-12 col-md-6 d-flex align-items-end">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" id="coaIsTaxRelevant">
+                                    <label class="form-check-label" for="coaIsTaxRelevant">Relevante para Impuestos</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <h6 class="text-light mb-3">Estado</h6>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaIsActive" checked>
+                                            <label class="form-check-label" for="coaIsActive">Activa</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="coaIsBlocked">
+                                            <label class="form-check-label" for="coaIsBlocked">Bloqueada</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12" id="divBlockReason" style="display:none;">
+                                <label class="form-label">Razón del Bloqueo</label>
+                                <input type="text" id="coaBlockReason" class="form-control" maxlength="200">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Reportes -->
+                    <div class="tab-pane fade" id="tabReporting">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Estado Financiero</label>
+                                <select id="coaFinancialStatement" class="form-select">
+                                    <option value="">N/A</option>
+                                    <option value="Balance Sheet">Balance General</option>
+                                    <option value="Income Statement">Estado de Resultados</option>
+                                    <option value="Cash Flow">Flujo de Efectivo</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Orden de Presentación</label>
+                                <input type="number" id="coaSortOrder" class="form-control" min="0" step="1" value="0">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Línea del Reporte</label>
+                                <input type="text" id="coaReportLineItem" class="form-control" maxlength="100"
+                                       placeholder="Ej: Activos Corrientes - Efectivo">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Fecha de Vigencia Desde</label>
+                                <input type="date" id="coaEffectiveDate" class="form-control">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Fecha de Vencimiento</label>
+                                <input type="date" id="coaExpirationDate" class="form-control">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notas</label>
+                                <textarea id="coaNotes" class="form-control" rows="3" maxlength="2000"
+                                          placeholder="Notas y comentarios adicionales"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="COA.save()">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.COA_API   = '@ViewBag.ApiBaseUrl';
+        window.COA_TOKEN = '@ViewBag.ApiToken';
+    </script>
+    <script src="~/js/chartOfAccounts.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            ['coaModal'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) document.body.appendChild(el);
+            });
+
+            // Toggle block reason visibility
+            document.getElementById('coaIsBlocked')?.addEventListener('change', function() {
+                document.getElementById('divBlockReason').style.display = this.checked ? 'block' : 'none';
+            });
+
+            // Mutual exclusion: IsHeader vs IsDetail
+            document.getElementById('coaIsHeader')?.addEventListener('change', function() {
+                if (this.checked) document.getElementById('coaIsDetail').checked = false;
+            });
+            document.getElementById('coaIsDetail')?.addEventListener('change', function() {
+                if (this.checked) document.getElementById('coaIsHeader').checked = false;
+            });
+        });
+    </script>
+}

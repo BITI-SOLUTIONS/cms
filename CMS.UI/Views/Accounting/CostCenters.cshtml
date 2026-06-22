@@ -1,0 +1,443 @@
+@{
+    ViewData["Title"] = "Centros de Costo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* Mejora de legibilidad en tema oscuro */
+        small, .form-text, small.text-muted, .text-muted small {
+            color: #cbd5e1 !important;
+        }
+
+        .cost-center-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .cost-center-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .cost-center-card.type-operational { border-left-color: #3b82f6; }
+        .cost-center-card.type-administrative { border-left-color: #8b5cf6; }
+        .cost-center-card.type-servicecenter { border-left-color: #10b981; }
+        .cost-center-card.type-auxiliary { border-left-color: #f59e0b; }
+
+        .badge-operational { background-color: #3b82f6; }
+        .badge-administrative { background-color: #8b5cf6; }
+        .badge-servicecenter { background-color: #10b981; }
+        .badge-auxiliary { background-color: #f59e0b; }
+
+        .hierarchy-level-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .hierarchy-level-1 { background-color: #ef4444; }
+        .hierarchy-level-2 { background-color: #f59e0b; }
+        .hierarchy-level-3 { background-color: #3b82f6; }
+        .hierarchy-level-4 { background-color: #10b981; }
+        .hierarchy-level-5 { background-color: #8b5cf6; }
+
+        .tree-view {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tree-node {
+            padding: 0.25rem 0;
+            cursor: pointer;
+            color: #e0e0e0;
+        }
+
+        .tree-node:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .tree-node.selected {
+            background: rgba(59, 130, 246, 0.3);
+            font-weight: bold;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .nav-tabs .nav-link {
+            color: #cbd5e1;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            border-color: #667eea #667eea #1a1a2e;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-active { background-color: #10b981; }
+        .status-inactive { background-color: #6b7280; }
+        .status-blocked { background-color: #ef4444; }
+    </style>
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-diagram-3 me-2"></i>Centros de Costo
+                    </h2>
+                    <p class="text-muted mb-0">Gestión de centros de costo para control y asignación de gastos</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="costCenters.openNew()">
+                        <i class="bi bi-plus-circle me-2"></i>Nuevo Centro de Costo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-funnel me-2"></i>Filtros
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Búsqueda</label>
+                    <input type="text" class="form-control" id="filterSearch" placeholder="Código o nombre...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipo</label>
+                    <select class="form-select" id="filterType">
+                        <option value="">Todos</option>
+                        <option value="Operational">Operacional</option>
+                        <option value="Administrative">Administrativo</option>
+                        <option value="ServiceCenter">Centro de Servicio</option>
+                        <option value="Auxiliary">Auxiliar</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Categoría</label>
+                    <input type="text" class="form-control" id="filterCategory" placeholder="Categoría...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" id="filterActive">
+                        <option value="">Todos</option>
+                        <option value="true" selected>Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Permite Imputación</label>
+                    <select class="form-select" id="filterPosting">
+                        <option value="">Todos</option>
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button class="btn btn-secondary w-100" onclick="costCenters.clearFilters()">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs: Vista de Tarjetas / Vista de Árbol -->
+    <ul class="nav nav-tabs mb-3" id="viewTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="cards-tab" data-bs-toggle="tab" data-bs-target="#cards-view" type="button" role="tab">
+                <i class="bi bi-grid-3x3-gap me-2"></i>Vista de Tarjetas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tree-tab" data-bs-toggle="tab" data-bs-target="#tree-view" type="button" role="tab">
+                <i class="bi bi-diagram-3 me-2"></i>Vista de Árbol
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Vista de Tarjetas -->
+        <div class="tab-pane fade show active" id="cards-view" role="tabpanel">
+            <div class="row g-3" id="costCentersContainer">
+                <!-- Las tarjetas se cargarán aquí dinámicamente -->
+            </div>
+
+            <!-- Paginación -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <nav>
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- Paginación dinámica -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista de Árbol -->
+        <div class="tab-pane fade" id="tree-view" role="tabpanel">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-diagram-3 me-2"></i>Jerarquía de Centros de Costo</span>
+                    <button class="btn btn-sm btn-secondary" onclick="costCenters.loadHierarchy()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refrescar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="tree-view" id="treeContainer">
+                        <!-- Árbol jerárquico se carga aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal CRUD -->
+<div class="modal fade" id="costCenterModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="bi bi-diagram-3 me-2"></i>Nuevo Centro de Costo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="costCenterTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                            <i class="bi bi-info-circle me-2"></i>General
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="classification-tab" data-bs-toggle="tab" data-bs-target="#classification" type="button" role="tab">
+                            <i class="bi bi-tags me-2"></i>Clasificación
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="budget-tab" data-bs-toggle="tab" data-bs-target="#budget" type="button" role="tab">
+                            <i class="bi bi-cash-stack me-2"></i>Presupuesto
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="validity-tab" data-bs-toggle="tab" data-bs-target="#validity" type="button" role="tab">
+                            <i class="bi bi-calendar-range me-2"></i>Vigencia
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="controls-tab" data-bs-toggle="tab" data-bs-target="#controls" type="button" role="tab">
+                            <i class="bi bi-toggles me-2"></i>Controles
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Tab General -->
+                    <div class="tab-pane fade show active" id="general" role="tabpanel">
+                        <input type="hidden" id="idCostCenter">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Código <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="code" maxlength="50" placeholder="X-XX-XX-XX-XX">
+                                <small class="form-text">Formato jerárquico X-XX-XX-XX-XX</small>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" maxlength="200">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Descripción</label>
+                                <textarea class="form-control" id="description" rows="2" maxlength="1000"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Centro de Costo Padre</label>
+                                <select class="form-select" id="idParentCostCenter">
+                                    <option value="">Sin padre (nivel raíz)</option>
+                                </select>
+                                <small class="form-text">Seleccione el centro padre para jerarquía</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nivel Jerárquico</label>
+                                <input type="number" class="form-control" id="hierarchyLevel" readonly>
+                                <small class="form-text">Se calcula automáticamente según el padre</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Localización</label>
+                                <input type="text" class="form-control" id="location" maxlength="200" placeholder="Edificio, planta, área">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Departamento</label>
+                                <input type="text" class="form-control" id="department" maxlength="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">División</label>
+                                <input type="text" class="form-control" id="division" maxlength="100">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notas</label>
+                                <textarea class="form-control" id="notes" rows="2" maxlength="2000"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Clasificación -->
+                    <div class="tab-pane fade" id="classification" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Centro <span class="text-danger">*</span></label>
+                                <select class="form-select" id="costCenterType">
+                                    <option value="Operational">Operacional</option>
+                                    <option value="Administrative">Administrativo</option>
+                                    <option value="ServiceCenter">Centro de Servicio</option>
+                                    <option value="Auxiliary">Auxiliar</option>
+                                </select>
+                                <small class="form-text">Tipo de actividad del centro de costo</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Categoría</label>
+                                <input type="text" class="form-control" id="category" maxlength="50" placeholder="Producción, Ventas, etc.">
+                                <small class="form-text">Categoría adicional para clasificación</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Código Centro de Beneficio</label>
+                                <input type="text" class="form-control" id="profitCenterCode" maxlength="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Código Área de Negocio</label>
+                                <input type="text" class="form-control" id="businessAreaCode" maxlength="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Código Compañía</label>
+                                <input type="text" class="form-control" id="companyCode" maxlength="10">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Presupuesto -->
+                    <div class="tab-pane fade" id="budget" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Presupuesto Anual</label>
+                                <input type="number" class="form-control" id="annualBudget" step="0.01" min="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Moneda</label>
+                                <select class="form-select" id="budgetCurrency">
+                                    <option value="CRC">CRC - Colones</option>
+                                    <option value="USD">USD - Dólares</option>
+                                    <option value="EUR">EUR - Euros</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="allowOverBudget">
+                                    <label class="form-check-label" for="allowOverBudget">
+                                        Permitir Sobre-Presupuesto
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Vigencia -->
+                    <div class="tab-pane fade" id="validity" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Válido Desde <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="validFrom">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Válido Hasta</label>
+                                <input type="date" class="form-control" id="validTo">
+                                <small class="form-text">Dejar vacío para vigencia indefinida</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Controles -->
+                    <div class="tab-pane fade" id="controls" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isPostingAllowed" checked>
+                                    <label class="form-check-label" for="isPostingAllowed">
+                                        <strong>Permite Imputación Directa</strong>
+                                    </label>
+                                    <small class="form-text d-block">Permite registrar transacciones directamente</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isBlocked">
+                                    <label class="form-check-label" for="isBlocked">
+                                        <strong>Bloqueado</strong>
+                                    </label>
+                                    <small class="form-text d-block">Bloqueo temporal del centro de costo</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                    <label class="form-check-label" for="isActive">
+                                        <strong>Activo</strong>
+                                    </label>
+                                    <small class="form-text d-block">Centro de costo activo en el sistema</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="costCenters.save()">
+                    <i class="bi bi-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const CC_API = '@ViewBag.ApiBaseUrl/api/CostCenter';
+        const CC_TOKEN = '@ViewBag.ApiToken';
+    </script>
+    <script src="~/js/costCenters.js"></script>
+    <script>
+        // Mover modal al final del body para evitar problemas de z-index con sidebar
+        document.addEventListener('DOMContentLoaded', function () {
+            ['costCenterModal'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) document.body.appendChild(el);
+            });
+        });
+    </script>
+}

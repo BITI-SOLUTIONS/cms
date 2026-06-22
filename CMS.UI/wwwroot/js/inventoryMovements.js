@@ -34,6 +34,8 @@ const INV = {
     // Movimiento actual en detalle
     currentTxn: null,
     cancelTargetId: null,
+    // Parámetros globales (se recargan en tiempo real desde la BD cada vez que se necesitan)
+    allowsReturnsInTransit: true,  // Default true, se recarga en openReceive()
 };
 
 // ============================================================
@@ -122,10 +124,31 @@ async function invFetch(path, options = {}) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await Promise.all([loadWarehouses(), loadMovementTypes(), loadTransactionStatuses()]);
+    await Promise.all([
+        loadWarehouses(), 
+        loadMovementTypes(), 
+        loadTransactionStatuses(),
+        loadGlobalParameters()
+    ]);
     loadMovements();
     bindEvents();
 });
+
+// ============================================================
+// CARGAR PARÁMETROS GLOBALES
+// ============================================================
+
+async function loadGlobalParameters() {
+    try {
+        // Menu ID 8 = "Warehouse & Distribution" (admin.menu.id_menu)
+        const response = await invFetch('/api/globalparameters/8/allows_returns_received_in_transit/value');
+        INV.allowsReturnsInTransit = response.value === true;
+        console.log('✅ Global Parameter loaded: allowsReturnsInTransit =', INV.allowsReturnsInTransit);
+    } catch (e) {
+        console.warn('⚠️ No se pudo cargar el parámetro allows_returns_received_in_transit, usando valor por defecto (true):', e);
+        INV.allowsReturnsInTransit = true;
+    }
+}
 
 // ============================================================
 // CARGAR BODEGAS (caché)
@@ -146,7 +169,8 @@ async function loadWarehouses() {
 
 async function loadMovementTypes() {
     try {
-        const types = await invFetch('/api/inventory-transaction-type?isActive=true');
+        // ✅ Filtrar solo los tipos que deben mostrarse en Inventory Movements
+        const types = await invFetch('/api/inventory-transaction-type?isActive=true&showInInventoryMovements=true');
         INV.movementTypes = types || [];
 
         // Poblar el select del modal (fldType)
@@ -223,7 +247,7 @@ async function loadMovements(page = 1) {
 
         renderTable(items);
         renderPagination(data.totalCount || 0, data.page, data.totalPages);
-        updateKpis(items, data.totalCount);
+        updateKpis(data.totalCount || 0, data.statusCounts || {});
     } catch (e) {
         tb.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">${e.message}</td></tr>`;
     }
@@ -304,14 +328,29 @@ function actionButtons(t) {
 // KPIs
 // ============================================================
 
-function updateKpis(items, total) {
-    document.getElementById('kpiTotal').textContent     = total;
-    document.getElementById('kpiDraft').textContent     = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Draft')).length;
-    document.getElementById('kpiTransit').textContent   = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'InTransit')).length;
-    document.getElementById('kpiPartial').textContent   = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'PartiallyReceived')).length;
-    document.getElementById('kpiCompleted').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Completed')).length;
-    document.getElementById('kpiConfirmed').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Confirmed')).length;
-    document.getElementById('kpiCancelled').textContent = items.filter(i => txnStatusIs(i.idInventoryTransactionStatus, 'Cancelled')).length;
+/**
+ * Actualiza los chips de KPI con conteos globales del servidor.
+ * @param {number} total - Total global de registros
+ * @param {Object} statusCounts - Diccionario { statusId: count }
+ */
+function updateKpis(total, statusCounts = {}) {
+    document.getElementById('kpiTotal').textContent = total;
+
+    // Buscar los IDs de estado desde el catálogo cargado
+    const draftId     = INV.transactionStatuses.find(s => s.code === 'Draft')?.id || 0;
+    const transitId   = INV.transactionStatuses.find(s => s.code === 'InTransit')?.id || 0;
+    const partialId   = INV.transactionStatuses.find(s => s.code === 'PartiallyReceived')?.id || 0;
+    const completedId = INV.transactionStatuses.find(s => s.code === 'Completed')?.id || 0;
+    const confirmedId = INV.transactionStatuses.find(s => s.code === 'Confirmed')?.id || 0;
+    const cancelledId = INV.transactionStatuses.find(s => s.code === 'Cancelled')?.id || 0;
+
+    // Usar los conteos del servidor (statusCounts es { statusId: count })
+    document.getElementById('kpiDraft').textContent     = statusCounts[draftId] || 0;
+    document.getElementById('kpiTransit').textContent   = statusCounts[transitId] || 0;
+    document.getElementById('kpiPartial').textContent   = statusCounts[partialId] || 0;
+    document.getElementById('kpiCompleted').textContent = statusCounts[completedId] || 0;
+    document.getElementById('kpiConfirmed').textContent = statusCounts[confirmedId] || 0;
+    document.getElementById('kpiCancelled').textContent = statusCounts[cancelledId] || 0;
 }
 
 // ============================================================
@@ -425,6 +464,7 @@ async function openEdit(id) {
             itemCode:                                l.itemCode,
             itemName:                                l.itemName,
             qtyRequested:                            l.qtyRequested,
+            qtyReturned:                             l.qtyReturned || 0,
             idInventoryTransactionWarehouseTransit:  l.idInventoryTransactionWarehouseTransit || null,
             idUnitOfMeasure:                         l.idUnitOfMeasure || null,
             unitOfMeasureCode:                       l.unitOfMeasureCode || '',
@@ -721,7 +761,53 @@ function renderLines() {
 
 // Construye el HTML de una línea (usada tanto en modo normal como en grupos transit)
 function _buildLineHtml(l, idx, isTransit) {
-    return `<div class="line-row${isTransit ? ' transit' : ''}" id="lineRow${idx}">
+    // En modo transit, agregamos columna de Devolución
+    if (isTransit) {
+        return `<div class="line-row transit" id="lineRow${idx}">
+            <div class="row g-2">
+                <div class="col-12 col-md-3">
+                    <label class="form-label" style="font-size:.72rem;">Artículo *</label>
+                    <div class="input-group input-group-sm" style="position:relative;">
+                        <input type="text" class="form-control line-item-search" data-idx="${idx}"
+                               value="${l.itemCode ? l.itemCode + ' — ' + l.itemName : ''}"
+                               placeholder="Código o nombre…" autocomplete="off">
+                        <input type="hidden" class="line-item-id"   data-idx="${idx}" value="${l.idItem || ''}">
+                        <input type="hidden" class="line-item-code" data-idx="${idx}" value="${l.itemCode || ''}">
+                        <input type="hidden" class="line-item-name" data-idx="${idx}" value="${l.itemName || ''}">
+                    </div>
+                    <div class="item-suggestions" id="sugg${idx}" style="display:none;position:absolute;z-index:9999;width:calc(100% - 1.5rem);"></div>
+                </div>
+                <div class="col-3 col-md-1">
+                    <label class="form-label" style="font-size:.72rem;">Cant. *</label>
+                    <input type="number" class="form-control form-control-sm line-qty" data-idx="${idx}"
+                           value="${l.qtyRequested || ''}" min="0" step="0.0001">
+                </div>
+                <div class="col-3 col-md-1">
+                    <label class="form-label" style="font-size:.72rem;color:#fbbf24;">Devoluc.</label>
+                    <input type="number" class="form-control form-control-sm line-return" data-idx="${idx}"
+                           value="${l.qtyReturned || 0}" min="0" step="0.0001"
+                           style="background:#0d1117;color:#fbbf24;border-color:#fbbf24;">
+                </div>
+                <div class="col-3 col-md-2">
+                    <label class="form-label" style="font-size:.72rem;">Costo Unit.</label>
+                    <input type="number" class="form-control form-control-sm line-cost" data-idx="${idx}"
+                           value="${l.unitCost || ''}" min="0" step="0.01">
+                </div>
+                <div class="col-3 col-md-2">
+                    <label class="form-label" style="font-size:.72rem;">Lote</label>
+                    <input type="text" class="form-control form-control-sm line-lot" data-idx="${idx}"
+                           value="${l.lotNumber || ''}">
+                </div>
+                <div class="col-12 col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100 btn-remove-line"
+                            data-idx="${idx}"><i class="bi bi-trash3"></i></button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Modo no-transit: HTML original sin columna de devolución
+    return `<div class="line-row" id="lineRow${idx}">
         <div class="row g-2">
             <div class="col-12 col-md-4">
                 <label class="form-label" style="font-size:.72rem;">Artículo *</label>
@@ -810,6 +896,12 @@ function _bindLineEvents(container) {
         inp.addEventListener('change', e => {
             const idx = +e.target.dataset.idx;
             INV.lines[idx].lotNumber = e.target.value;
+        }));
+
+    container.querySelectorAll('.line-return').forEach(inp =>
+        inp.addEventListener('change', e => {
+            const idx = +e.target.dataset.idx;
+            INV.lines[idx].qtyReturned = parseFloat(e.target.value) || 0;
         }));
 
     container.querySelectorAll('.btn-remove-line').forEach(btn =>
@@ -1000,6 +1092,7 @@ function renderTransitGroups(container) {
                 idWarehouseDestLine: destId,
                 idUnitOfMeasure: null, unitOfMeasureCode: '',
                 unitCost: null, lotNumber: '', notes: '',
+                qtyReturned: 0,
             });
             renderLines();
             // Scroll al fondo del modal
@@ -1243,22 +1336,39 @@ async function saveMovement(autoConfirm = false) {
     // Recolectar valores de líneas desde el DOM y propagar campos de grupo
     const container = document.getElementById('linesContainer');
     INV.lines.forEach((l, idx) => {
-        const qtyEl  = container.querySelector(`.line-qty[data-idx="${idx}"]`);
-        const costEl = container.querySelector(`.line-cost[data-idx="${idx}"]`);
-        const lotEl  = container.querySelector(`.line-lot[data-idx="${idx}"]`);
-        if (qtyEl)  l.qtyRequested = parseFloat(qtyEl.value)  || 0;
-        if (costEl) l.unitCost     = parseFloat(costEl.value) || null;
-        if (lotEl)  l.lotNumber    = lotEl.value || null;
+        const qtyEl    = container.querySelector(`.line-qty[data-idx="${idx}"]`);
+        const costEl   = container.querySelector(`.line-cost[data-idx="${idx}"]`);
+        const lotEl    = container.querySelector(`.line-lot[data-idx="${idx}"]`);
+        const returnEl = container.querySelector(`.line-return[data-idx="${idx}"]`);
+        if (qtyEl)    l.qtyRequested = parseFloat(qtyEl.value)    || 0;
+        if (costEl)   l.unitCost     = parseFloat(costEl.value)   || null;
+        if (lotEl)    l.lotNumber    = lotEl.value || null;
+        if (returnEl) l.qtyReturned  = parseFloat(returnEl.value) || 0;
     });
 
     for (const l of INV.lines) {
-        if (!l.idItem)       return showModalAlert('Una línea no tiene artículo asignado.', 'warning');
-        if (!l.qtyRequested) return showModalAlert(`La cantidad de "${l.itemCode}" debe ser mayor a 0.`, 'warning');
+        if (!l.idItem) return showModalAlert('Una línea no tiene artículo asignado.', 'warning');
+
+        if (isTransit) {
+            // Para traslados vía tránsito: permitir si Cantidad O Devolución > 0
+            const qty = l.qtyRequested || 0;
+            const ret = l.qtyReturned || 0;
+
+            if (qty <= 0 && ret <= 0) {
+                return showModalAlert(`La línea "${l.itemCode}" debe tener al menos una cantidad mayor a 0 (Cantidad o Devolución).`, 'warning');
+            }
+        } else {
+            // Para movimientos normales: Cantidad debe ser > 0
+            if (!l.qtyRequested || l.qtyRequested <= 0) {
+                return showModalAlert(`La cantidad de "${l.itemCode}" debe ser mayor a 0.`, 'warning');
+            }
+        }
     }
 
     const payload = {
         transactionNumber: number || undefined,
         idInventoryTransactionType: typeId,
+        idMenu: window.INV_MENU_ID || 8,  // ⚠️ ID del menú de origen (fallback a id_menu=8 si no está definido)
         idWarehouseOrigin: originId,
         idWarehouseDest:   destId,
         reference,
@@ -1273,6 +1383,7 @@ async function saveMovement(autoConfirm = false) {
             itemCode:            l.itemCode,
             itemName:            l.itemName,
             qtyRequested:        l.qtyRequested,
+            qtyReturned:         l.qtyReturned || 0,
             idWarehouseDestLine: l.idWarehouseDestLine || null,
             idUnitOfMeasure:     l.idUnitOfMeasure || null,
             unitOfMeasureCode:   l.unitOfMeasureCode || null,
@@ -1317,6 +1428,10 @@ async function openReceive(id) {
         '<i class="bi bi-box-arrow-in-down me-2 text-success"></i>Recibir Movimiento';
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('receiveModal')).show();
+
+    // ⚠️ IMPORTANTE: Recargar el parámetro global CADA VEZ que se abre el modal
+    // para asegurar que siempre tenga el valor más reciente desde la BD
+    await loadGlobalParameters();
 
     try {
         const txn   = await invFetch(`/api/inventorytransaction/${id}`);
@@ -1736,9 +1851,10 @@ function renderReceiveBody(txn) {
                     </td>
                     <td class="text-center" style="min-width:90px;">
                         <input type="number" id="rcv-return-${l.id}" class="form-control form-control-sm rcv-return-input text-center"
-                               value="0" min="0" step="any"
+                               value="${l.qtyReturned || 0}" min="0" step="any"
                                style="background:#0d1117;color:#fbbf24;border-color:#2a3a5c;width:90px;margin:auto;"
-                               placeholder="0">
+                               placeholder="0"
+                               ${!INV.allowsReturnsInTransit ? 'disabled readonly' : ''}>
                     </td>
                     <td class="text-center">⏳ Pending</td>
                 </tr>`;
@@ -1881,7 +1997,7 @@ function renderReceiveBody(txn) {
                 ${markAllField}
                 <div class="d-flex justify-content-between align-items-center mb-2 mt-2">
                     <span class="fw-semibold text-light" style="font-size:.85rem;"><i class="bi bi-list-ul me-1"></i>Artículos</span>
-                    ${isActive ? `<button type="button" class="btn btn-sm btn-outline-warning" onclick="openAddReturnItem(${gIdx})" title="Agregar artículo de devolución">
+                    ${isActive && INV.allowsReturnsInTransit ? `<button type="button" class="btn btn-sm btn-outline-warning" onclick="openAddReturnItem(${gIdx})" title="Agregar artículo de devolución">
                         <i class="bi bi-plus-circle me-1"></i>Agregar Devolución
                     </button>` : ''}
                 </div>
@@ -2053,14 +2169,21 @@ async function submitReceive(txnId, activeGroupIdx, nextWarehouseId) {
 
     const checkedLineIds = pendingLines.map(l => l.id);
 
-    // Validate quantities > 0
+    // ============================================================
+    // VALIDACIÓN 1B: CANTIDADES (Recibido O Devolución > 0)
+    // ============================================================
+    // Igual que en Nuevo Movimiento: al menos uno de los dos campos debe ser > 0
     for (const lineId of checkedLineIds) {
         const qtyInput = document.getElementById(`rcv-qty-${lineId}`);
+        const returnInput = document.getElementById(`rcv-return-${lineId}`);
         const qty = qtyInput ? parseFloat(qtyInput.value) : 0;
-        if (!qty || qty <= 0) {
+        const qtyReturned = returnInput ? parseFloat(returnInput.value) : 0;
+
+        // Validar que al menos uno sea > 0
+        if ((!qty || qty <= 0) && (!qtyReturned || qtyReturned <= 0)) {
             const line = pendingLines.find(l => l.id === lineId);
             const name = line ? `${line.itemCode} — ${line.itemName}` : `Línea #${lineId}`;
-            showInfoDialog(`La cantidad recibida de "${name}" debe ser mayor a 0.`, 'warning');
+            showInfoDialog(`La cantidad recibida O la cantidad de devolución de "${name}" debe ser mayor a 0.`, 'warning');
             qtyInput?.focus();
             return;
         }

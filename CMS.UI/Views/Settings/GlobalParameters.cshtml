@@ -1,0 +1,150 @@
+@* ================================================================================
+   VISTA: CMS.UI/Views/Settings/GlobalParameters.cshtml
+   PROPÓSITO: Mantenimiento de Parámetros Globales del Sistema por módulo
+   DESCRIPCIÓN: Permite seleccionar un módulo y editar sus parámetros dinámicamente
+   ================================================================================ *@
+@{
+    ViewData["Title"] = "Global Parameters";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+    .param-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; transition: all 0.2s; }
+    .param-card:hover { border-color: #475569; background: #1e3a4f; }
+    .param-label { color: #94a3b8; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .param-key { color: #60a5fa; font-family: 'Courier New', monospace; font-size: .85rem; }
+    .param-description { color: #cbd5e1; font-size: .85rem; line-height: 1.4; }
+    .param-value { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 0.5rem; border-radius: 6px; }
+    .param-value:focus { border-color: #3b82f6; background: #1e293b; }
+    .param-type-badge { font-size: .7rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
+    .module-card { cursor: pointer; transition: all 0.2s; }
+    .module-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); }
+    .module-card.selected { border-color: #3b82f6; background: #1e3a5f; }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white mb-0"><i class="bi bi-gear-wide-connected me-2 text-info"></i>Global Parameters</h4>
+            <small class="text-muted">Configuración de parámetros del sistema por módulo</small>
+        </div>
+        <button class="btn btn-sm btn-outline-primary" onclick="GP.refreshParameters()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+        </button>
+    </div>
+
+    <!-- Selector de Módulo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <label class="form-label param-label"><i class="bi bi-grid-3x3-gap me-1"></i>Seleccionar Módulo</label>
+            <select id="moduleSelector" class="form-select bg-dark text-white border-secondary" onchange="GP.loadMenuParameters()">
+                <option value="">— Seleccione un módulo —</option>
+            </select>
+            <small class="form-text">Seleccione un módulo para ver y editar sus parámetros</small>
+        </div>
+    </div>
+
+    <!-- Lista de Parámetros -->
+    <div id="parametersContainer" style="display: none;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="text-light mb-0"><i class="bi bi-sliders me-2"></i>Parámetros del Módulo</h5>
+            <span id="parameterCount" class="badge bg-info"></span>
+        </div>
+
+        <div id="parametersList">
+            <!-- Se inyecta dinámicamente -->
+        </div>
+
+        <div class="text-center py-4" id="noParametersMessage" style="display: none;">
+            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-2">No hay parámetros configurados para este módulo</p>
+        </div>
+    </div>
+
+    <!-- Mensaje inicial -->
+    <div id="initialMessage" class="text-center py-5">
+        <i class="bi bi-gear-wide-connected" style="font-size: 4rem; color: #64748b;"></i>
+        <p class="mt-3" style="color: #94a3b8; font-size: 1.1rem;">Seleccione un módulo para comenzar</p>
+    </div>
+
+</div>
+
+<!-- Modal para editar parámetro -->
+<div class="modal fade" id="editParameterModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-sliders me-2"></i>Editar Parámetro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editParamId">
+
+                <div class="mb-3">
+                    <label class="form-label param-label">Nombre del Parámetro</label>
+                    <input type="text" id="editParamName" class="form-control param-value" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label param-label">Clave</label>
+                    <div class="param-key p-2 bg-dark rounded" id="editParamKey"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label param-label">Descripción</label>
+                    <textarea id="editParamDescription" class="form-control param-value" rows="3" readonly></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label param-label">Tipo de Dato</label>
+                    <div class="param-key p-2 bg-dark rounded" id="editParamDataType"></div>
+                </div>
+
+                <div class="mb-3" id="editValueContainer">
+                    <label class="form-label param-label">Valor</label>
+                    <div id="editValueField">
+                        <!-- Se inyecta dinámicamente según el tipo de dato -->
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="editParamActive">
+                        <label class="form-check-label text-light" for="editParamActive">Parámetro Activo</label>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="GP.saveParameter()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const API_BASE_URL = '@ViewBag.ApiBaseUrl';
+        const API_TOKEN = '@ViewBag.ApiToken';
+    </script>
+    <script src="~/js/globalParameters.js?v=@DateTime.UtcNow.Ticks"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            GP.init();
+        });
+
+        // Mover modal al final del body para evitar problemas de z-index con el sidebar
+        document.addEventListener('DOMContentLoaded', function () {
+            ['editParameterModal'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) document.body.appendChild(el);
+            });
+        });
+    </script>
+}

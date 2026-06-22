@@ -57,24 +57,24 @@ const ITT = (() => {
 
     async function load() {
         const tbody = document.getElementById('bodyTypes');
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3"><i class="bi bi-hourglass-split me-1"></i>Cargando…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3"><i class="bi bi-hourglass-split me-1"></i>Cargando…</td></tr>';
         try {
             const items = await ittFetch('/api/inventory-transaction-type');
             renderTable(items);
         } catch (e) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-3">${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-3">${e.message}</td></tr>`;
         }
     }
 
     function renderTable(items) {
         const tbody = document.getElementById('bodyTypes');
         if (!items || !items.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">No hay tipos registrados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-light py-3">No hay tipos registrados.</td></tr>';
             return;
         }
         tbody.innerHTML = items.map((t, i) => `
             <tr>
-                <td class="text-muted" style="font-size:.8rem;">${t.sortOrder}</td>
+                <td class="text-light" style="font-size:.8rem;">${t.sortOrder}</td>
                 <td>
                     <code style="color:#7dd3fc;font-size:.82rem;">${t.code}</code>
                 </td>
@@ -83,21 +83,26 @@ const ITT = (() => {
                     ${t.icon  ? `<i class="bi ${t.icon} me-1 text-info" title="${t.icon}"></i>` : ''}
                     ${t.name}
                 </td>
-                <td>
-                    ${t.icon  ? `<span class="text-muted" style="font-size:.75rem;">${t.icon}</span>` : ''}
+                <td class="text-light">
+                    ${t.icon  ? `<span style="font-size:.75rem;color:#cbd5e1;">${t.icon}</span>` : ''}
                     ${t.emoji ? `<span class="ms-2" style="font-size:1rem;">${t.emoji}</span>` : ''}
                 </td>
                 <td>
                     ${t.cssClass
                         ? `<span class="badge-type ${t.cssClass}" style="font-size:.7rem;padding:.15rem .4rem;">${t.cssClass}</span>`
-                        : '<span class="text-muted">—</span>'}
+                        : '<span class="text-light">—</span>'}
                 </td>
                 <td class="text-center">
                     ${t.isTransitTransfer
                         ? '<i class="bi bi-check-circle-fill text-success"></i>'
-                        : '<i class="bi bi-dash text-muted"></i>'}
+                        : '<i class="bi bi-dash text-light"></i>'}
                 </td>
-                <td class="text-center text-muted" style="font-size:.82rem;">${t.sortOrder}</td>
+                <td class="text-center">
+                    ${t.showInInventoryMovements
+                        ? '<i class="bi bi-check-circle-fill text-success" title="Visible en Inventory Movements"></i>'
+                        : '<i class="bi bi-x-circle text-danger" title="Oculto en Inventory Movements"></i>'}
+                </td>
+                <td class="text-center text-light" style="font-size:.82rem;">${t.sortOrder}</td>
                 <td class="text-center">
                     ${t.isActive
                         ? '<span class="badge bg-success">Activo</span>'
@@ -148,6 +153,7 @@ const ITT = (() => {
             document.getElementById('ittOrder').value   = item.sortOrder;
             document.getElementById('ittTransit').checked = item.isTransitTransfer;
             document.getElementById('ittActive').checked  = item.isActive;
+            document.getElementById('ittShowInMovements').checked = item.showInInventoryMovements ?? true;  // ✅ Cargar nuevo campo
             bootstrap.Modal.getOrCreateInstance(document.getElementById('ittModal')).show();
         } catch (e) {
             showAlert(e.message, 'danger');
@@ -177,6 +183,7 @@ const ITT = (() => {
             sortOrder:        parseInt(document.getElementById('ittOrder').value) || 0,
             isTransitTransfer: document.getElementById('ittTransit').checked,
             isActive:         document.getElementById('ittActive').checked,
+            showInInventoryMovements: document.getElementById('ittShowInMovements').checked,  // ✅ Incluir nuevo campo
         };
 
         const isNew  = !id;
@@ -228,6 +235,7 @@ const ITT = (() => {
         document.getElementById('ittOrder').value     = '10';
         document.getElementById('ittTransit').checked = false;
         document.getElementById('ittActive').checked  = true;
+        document.getElementById('ittShowInMovements').checked = true;  // ✅ Valor por defecto TRUE
         // clear validation
         document.querySelectorAll('#ittModal .is-invalid').forEach(el => el.classList.remove('is-invalid'));
     }

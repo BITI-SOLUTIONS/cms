@@ -28,6 +28,16 @@ namespace CMS.Data.Services
             int page = 1,
             int pageSize = 20);
 
+        /// <summary>Obtiene los conteos por estado aplicando los mismos filtros que GetTransactionsAsync.</summary>
+        Task<Dictionary<int, int>> GetStatusCountsAsync(
+            int companyId,
+            string? search = null,
+            int? idInventoryTransactionType = null,
+            int? warehouseOriginId = null,
+            int? warehouseDestId = null,
+            DateOnly? dateFrom = null,
+            DateOnly? dateTo = null);
+
         /// <summary>Obtiene un movimiento por ID con sus líneas.</summary>
         Task<InventoryTransaction?> GetByIdAsync(int companyId, int id);
 

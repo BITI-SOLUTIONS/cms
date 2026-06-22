@@ -342,7 +342,6 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\ne
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\RBush.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\SixLabors.Fonts.dll
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\bin\Debug\net9.0\System.IO.Packaging.dll
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\uic8rouomn-{0}-w7loe70jyf-w7loe70jyf.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\ykh50qbgdf-{0}-l8f82dlqgc-l8f82dlqgc.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\eo3fva7zj2-{0}-ytu2zt9cty-ytu2zt9cty.gz
@@ -356,5 +355,10 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\ne
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\9rmdrnywfv-{0}-y9tgv119yb-y9tgv119yb.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\j3n9q617na-{0}-lbtvh0mfyt-lbtvh0mfyt.gz
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\141gu40xyf-{0}-0uz85crgir-0uz85crgir.gz
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\mhqqu1d46i-{0}-3qe4vm2fdi-3qe4vm2fdi.gz
-C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\64e7c5xocu-{0}-uy2m68hzo2-uy2m68hzo2.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\64e7c5xocu-{0}-8h6jll0wo5-8h6jll0wo5.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\mhqqu1d46i-{0}-k3jqdacssj-k3jqdacssj.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\mgoxe8nby8-{0}-jpwqjz92ks-jpwqjz92ks.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\x2q3d6lpct-{0}-xr7ktpqjoy-xr7ktpqjoy.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\eene5eijuy-{0}-yycz0a6h4d-yycz0a6h4d.gz
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\obj\Debug\net9.0\compressed\o5etezuer9-{0}-g8mwgqiy20-g8mwgqiy20.gz

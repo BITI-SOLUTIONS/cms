@@ -80,6 +80,16 @@ namespace CMS.Entities.Operational
         [Column("id_inventory_transaction_status")]
         public int IdInventoryTransactionStatus { get; set; } = InventoryTransactionStatusCode.IdDraft;
 
+        /// <summary>
+        /// FK lógica cross-db hacia admin.menu.id_menu
+        /// Indica desde qué pantalla/módulo se creó este movimiento de inventario.
+        /// No se puede declarar FK real porque admin.menu está en la BD central (cms)
+        /// y esta tabla está en la BD de la compañía.
+        /// </summary>
+        [Required]
+        [Column("id_menu")]
+        public int IdMenu { get; set; }
+
         // ===== BODEGAS =====
 
         /// <summary>FK lógica a {schema}.warehouse — bodega de origen</summary>
@@ -127,12 +137,15 @@ namespace CMS.Entities.Operational
 
         // ===== RESPONSABLES (FK lógica cross-DB a cms.admin.user) =====
 
+        /// <summary>FK lógica cross-DB hacia cms.admin.user.id_user — usuario que creó el movimiento</summary>
         [Column("created_by_user_id")]
-        public int CreatedByUserId { get; set; }
+        public int CreatedByUserId { get; set; } = 0;
 
+        /// <summary>FK lógica cross-DB hacia cms.admin.user.id_user — usuario que confirmó el movimiento</summary>
         [Column("confirmed_by_user_id")]
         public int? ConfirmedByUserId { get; set; }
 
+        /// <summary>FK lógica cross-DB hacia cms.admin.user.id_user — usuario que canceló el movimiento</summary>
         [Column("cancelled_by_user_id")]
         public int? CancelledByUserId { get; set; }
 

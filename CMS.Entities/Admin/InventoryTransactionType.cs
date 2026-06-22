@@ -72,6 +72,13 @@ namespace CMS.Entities.Admin
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Indica si este tipo debe mostrarse en el dropdown de tipos de movimiento
+        /// en la pantalla Warehouse/InventoryMovements. TRUE = visible, FALSE = oculto.
+        /// </summary>
+        [Column("show_in_inventory_movements")]
+        public bool ShowInInventoryMovements { get; set; } = true;
+
         // ===== AUDITORÍA =====
 
         [Column("createdate")]

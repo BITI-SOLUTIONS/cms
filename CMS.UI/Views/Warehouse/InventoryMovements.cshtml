@@ -3,6 +3,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "";
     var apiToken   = ViewBag.ApiToken   as string ?? "";
+    var idMenu     = ViewBag.IdMenu as int? ?? 0;  // ✅ ID del menú para rastreo
 }
 
 @section Styles {
@@ -524,8 +525,9 @@
 
 @section Scripts {
 <script>
-    window.INV_API  = '@Html.Raw(apiBaseUrl)';
+    window.INV_API   = '@Html.Raw(apiBaseUrl)';
     window.INV_TOKEN = '@Html.Raw(apiToken)';
+    window.INV_MENU_ID = @idMenu;  // ✅ ID del menú para rastreo de origen
 </script>
 <script src="~/js/inventoryMovements.js" asp-append-version="true"></script>
 <script>

@@ -161,6 +161,46 @@ namespace CMS.Data
         /// </summary>
         public DbSet<Employee> Employees { get; set; } = null!;
 
+        // ===== SYSTEM CONFIGURATION =====
+
+        /// <summary>
+        /// Parámetros globales del sistema por módulo (menú)
+        /// Configuración dinámica de comportamiento del sistema
+        /// </summary>
+        public DbSet<GlobalParameter> GlobalParameters { get; set; } = null!;
+
+        // ===== ACCOUNTING TABLES =====
+
+        /// <summary>
+        /// Plan de Cuentas (Chart of Accounts)
+        /// Catálogo jerárquico de cuentas contables
+        /// </summary>
+        public DbSet<ChartOfAccounts> ChartOfAccounts { get; set; } = null!;
+
+        /// <summary>
+        /// Centros de Costo (Cost Centers)
+        /// Dimensiones analíticas para control de costos
+        /// </summary>
+        public DbSet<CostCenter> CostCenters { get; set; } = null!;
+
+        /// <summary>
+        /// Asientos de Diario (Journal Entries) - Encabezados
+        /// Transacciones contables del sistema
+        /// </summary>
+        public DbSet<JournalEntry> JournalEntries { get; set; } = null!;
+
+        /// <summary>
+        /// Líneas de Asientos de Diario (Journal Entry Lines)
+        /// Detalle de débitos y créditos de cada asiento
+        /// </summary>
+        public DbSet<JournalEntryLine> JournalEntryLines { get; set; } = null!;
+
+        /// <summary>
+        /// Razones de Cancelación de Asientos de Diario
+        /// Catálogo de razones predefinidas para cancelar asientos
+        /// </summary>
+        public DbSet<JournalEntryCancelReason> JournalEntryCancelReasons { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -510,6 +550,92 @@ namespace CMS.Data
                 entity.Ignore(e => e.GenderDescription);
                 entity.Ignore(e => e.CurrencyCode);
                 entity.Ignore(e => e.CurrencySymbol);
+            });
+
+            // ===== SYSTEM CONFIGURATION =====
+
+            modelBuilder.Entity<GlobalParameter>(entity =>
+            {
+                entity.ToTable("global_parameter", _schema);
+                entity.HasKey(e => e.ID);
+                entity.Property(e => e.ID).HasColumnName("id_global_parameter");
+                entity.HasIndex(e => new { e.MenuId, e.Code })
+                      .IsUnique()
+                      .HasDatabaseName($"uq_{_schema}_global_parameter_code");
+                entity.HasIndex(e => e.MenuId).HasDatabaseName($"ix_{_schema}_global_parameter_menu");
+                entity.HasIndex(e => e.Category).HasDatabaseName($"ix_{_schema}_global_parameter_category");
+                entity.HasIndex(e => e.IsActive).HasDatabaseName($"ix_{_schema}_global_parameter_active");
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.IsSystem).HasDefaultValue(false);
+                entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            });
+
+            // ===== ACCOUNTING TABLES =====
+
+            modelBuilder.Entity<ChartOfAccounts>(entity =>
+            {
+                entity.ToTable("chart_of_accounts", _schema);
+                entity.HasKey(e => e.IdChartOfAccounts);
+                entity.Property(e => e.IdChartOfAccounts).HasColumnName("id_chart_of_accounts");
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.AccountType);
+                entity.HasIndex(e => e.IdParentAccount);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.IsDetail);
+            });
+
+            modelBuilder.Entity<CostCenter>(entity =>
+            {
+                entity.ToTable("cost_center", _schema);
+                entity.HasKey(e => e.IdCostCenter);
+                entity.Property(e => e.IdCostCenter).HasColumnName("id_cost_center");
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.CostCenterType);
+                entity.HasIndex(e => e.IdParentCostCenter);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.IsPostingAllowed);
+            });
+
+            modelBuilder.Entity<JournalEntry>(entity =>
+            {
+                entity.ToTable("journal_entry", _schema);
+                entity.HasKey(e => e.IdJournalEntry);
+                entity.Property(e => e.IdJournalEntry).HasColumnName("id_journal_entry");
+                entity.HasIndex(e => e.EntryNumber).IsUnique();
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.EntryType);
+                entity.HasIndex(e => e.PostingDate);
+                entity.HasIndex(e => e.IdJournalEntryCancelReason);
+                entity.Ignore(e => e.Lines); // Navigation property
+
+                // Relación con JournalEntryCancelReason
+                entity.HasOne(e => e.CancelReason)
+                      .WithMany(r => r.JournalEntries)
+                      .HasForeignKey(e => e.IdJournalEntryCancelReason)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<JournalEntryCancelReason>(entity =>
+            {
+                entity.ToTable("journal_entry_cancel_reason", _schema);
+                entity.HasKey(e => e.IdJournalEntryCancelReason);
+                entity.Property(e => e.IdJournalEntryCancelReason).HasColumnName("id_journal_entry_cancel_reason");
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.SortOrder);
+            });
+
+            modelBuilder.Entity<JournalEntryLine>(entity =>
+            {
+                entity.ToTable("journal_entry_line", _schema);
+                entity.HasKey(e => new { e.IdJournalEntry, e.IdJournalEntryLine });
+                entity.Property(e => e.IdJournalEntry).HasColumnName("id_journal_entry");
+                entity.Property(e => e.IdJournalEntryLine).HasColumnName("id_journal_entry_line");
+                entity.HasIndex(e => e.IdChartOfAccounts);
+                entity.HasIndex(e => e.CostCenterCode);
+                entity.HasIndex(e => e.ProjectCode);
+                entity.HasIndex(e => e.DepartmentCode);
             });
         }
     }

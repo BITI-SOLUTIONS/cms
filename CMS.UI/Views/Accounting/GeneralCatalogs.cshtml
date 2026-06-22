@@ -1,0 +1,402 @@
+@{
+    ViewData["Title"] = "Catálogos Generales";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* Mejora de legibilidad en tema oscuro */
+        small, .form-text, small.text-muted, .text-muted small {
+            color: #cbd5e1 !important;
+        }
+
+        .catalog-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+        }
+
+        .catalog-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .catalog-card.active-card {
+            background-color: rgba(102, 126, 234, 0.1);
+            border-left-color: #10b981;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-active { background-color: #10b981; }
+        .status-inactive { background-color: #6b7280; }
+
+        .catalog-section {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-dark thead th {
+            background-color: #1a1a2e;
+            border-color: #667eea;
+        }
+    </style>
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-bookshelf me-2"></i>Catálogos Generales
+                    </h2>
+                    <p class="text-muted mb-0">Gestión de catálogos maestros del módulo de contabilidad</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catálogos Disponibles -->
+    <div class="row g-4">
+        <!-- Razones de Cancelación -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header catalog-section">
+                    <h5 class="mb-0">
+                        <i class="bi bi-x-circle me-2"></i>Razones de Cancelación de Asientos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <button class="btn btn-sm btn-primary" onclick="cancelReasons.openNew()">
+                                <i class="bi bi-plus-circle me-2"></i>Nueva Razón
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="cancelReasons.refreshList()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Refrescar
+                            </button>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="filterActiveOnly" checked onchange="cancelReasons.refreshList()">
+                            <label class="form-check-label text-light" for="filterActiveOnly">
+                                Solo activos
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de razones -->
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover" id="cancelReasonsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Orden</th>
+                                    <th style="width: 150px;">Código</th>
+                                    <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th style="width: 100px;">Estado</th>
+                                    <th style="width: 120px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="loadingIndicator" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </div>
+
+                    <div id="emptyState" class="text-center py-5 d-none">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="text-muted mt-3">No hay razones de cancelación registradas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar/Crear Razón de Cancelación -->
+<div class="modal fade" id="modalCancelReason" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCancelReasonTitle">
+                    <i class="bi bi-x-circle me-2"></i>Nueva Razón de Cancelación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCancelReason">
+                    <input type="hidden" id="idJournalEntryCancelReason">
+
+                    <div class="mb-3">
+                        <label for="code" class="form-label text-light">Código <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="code" required maxlength="30">
+                        <small class="form-text">Identificador único (ej: ERROR_DATA, DUPLICATE, etc.)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label text-light">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" required maxlength="200">
+                        <small class="form-text">Nombre descriptivo de la razón</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label text-light">Descripción</label>
+                        <textarea class="form-control" id="description" rows="3" maxlength="500"></textarea>
+                        <small class="form-text">Detalles adicionales (opcional)</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sortOrder" class="form-label text-light">Orden de Visualización <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="sortOrder" value="0" min="0">
+                            <small class="form-text">Orden en listas desplegables</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light">Estado</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                <label class="form-check-label text-light" for="isActive">
+                                    Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="cancelReasons.save()">
+                    <i class="bi bi-check-circle me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mover modales al final del body para evitar conflictos con sidebar
+        document.addEventListener('DOMContentLoaded', function () {
+            ['modalCancelReason'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) document.body.appendChild(el);
+            });
+        });
+
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
+        const apiToken = '@ViewBag.ApiToken';
+
+        // Módulo para gestión de razones de cancelación
+        const cancelReasons = {
+            modal: null,
+            currentId: 0,
+
+            init() {
+                this.modal = new bootstrap.Modal(document.getElementById('modalCancelReason'));
+                this.refreshList();
+            },
+
+            async refreshList() {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const emptyState = document.getElementById('emptyState');
+                const tableBody = document.querySelector('#cancelReasonsTable tbody');
+
+                loadingIndicator.classList.remove('d-none');
+                tableBody.innerHTML = '';
+
+                try {
+                    const activeOnly = document.getElementById('filterActiveOnly').checked;
+                    const url = `${apiBaseUrl}/api/JournalEntryCancelReason${activeOnly ? '?isActive=true' : ''}`;
+
+                    const response = await fetch(url, {
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    });
+
+                    if (!response.ok) throw new Error('Error al cargar razones');
+
+                    const reasons = await response.json();
+
+                    if (reasons.length === 0) {
+                        emptyState.classList.remove('d-none');
+                        loadingIndicator.classList.add('d-none');
+                        return;
+                    }
+
+                    emptyState.classList.add('d-none');
+
+                    // Ordenar por sortOrder
+                    reasons.sort((a, b) => a.sortOrder - b.sortOrder);
+
+                    reasons.forEach(reason => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="text-center">${reason.sortOrder}</td>
+                            <td><code>${reason.code}</code></td>
+                            <td class="text-light">${reason.name}</td>
+                            <td class="text-light">${reason.description || '<span class="text-muted">Sin descripción</span>'}</td>
+                            <td>
+                                <span class="status-indicator status-${reason.isActive ? 'active' : 'inactive'}"></span>
+                                <span class="text-light">${reason.isActive ? 'Activo' : 'Inactivo'}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="cancelReasons.openEdit(${reason.idJournalEntryCancelReason})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="cancelReasons.confirmDelete(${reason.idJournalEntryCancelReason}, '${reason.name}')" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al cargar razones de cancelación');
+                } finally {
+                    loadingIndicator.classList.add('d-none');
+                }
+            },
+
+            openNew() {
+                this.currentId = 0;
+                document.getElementById('modalCancelReasonTitle').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nueva Razón de Cancelación';
+                document.getElementById('formCancelReason').reset();
+                document.getElementById('idJournalEntryCancelReason').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('sortOrder').value = '0';
+                this.modal.show();
+            },
+
+            async openEdit(id) {
+                try {
+                    const response = await fetch(`${apiBaseUrl}/api/JournalEntryCancelReason/${id}`, {
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    });
+
+                    if (!response.ok) throw new Error('Error al cargar razón');
+
+                    const reason = await response.json();
+
+                    document.getElementById('modalCancelReasonTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Razón de Cancelación';
+                    document.getElementById('idJournalEntryCancelReason').value = reason.idJournalEntryCancelReason;
+                    document.getElementById('code').value = reason.code;
+                    document.getElementById('name').value = reason.name;
+                    document.getElementById('description').value = reason.description || '';
+                    document.getElementById('sortOrder').value = reason.sortOrder;
+                    document.getElementById('isActive').checked = reason.isActive;
+
+                    this.currentId = id;
+                    this.modal.show();
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al cargar razón de cancelación');
+                }
+            },
+
+            async save() {
+                const form = document.getElementById('formCancelReason');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                const id = parseInt(document.getElementById('idJournalEntryCancelReason').value) || 0;
+
+                const data = {
+                    idJournalEntryCancelReason: id,
+                    code: document.getElementById('code').value.trim(),
+                    name: document.getElementById('name').value.trim(),
+                    description: document.getElementById('description').value.trim() || null,
+                    sortOrder: parseInt(document.getElementById('sortOrder').value) || 0,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                try {
+                    const method = id > 0 ? 'PUT' : 'POST';
+                    const url = id > 0
+                        ? `${apiBaseUrl}/api/JournalEntryCancelReason/${id}`
+                        : `${apiBaseUrl}/api/JournalEntryCancelReason`;
+
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiToken}`
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Error al guardar');
+                    }
+
+                    this.modal.hide();
+                    this.refreshList();
+                    alert(id > 0 ? 'Razón actualizada correctamente' : 'Razón creada correctamente');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert(error.message || 'Error al guardar razón de cancelación');
+                }
+            },
+
+            confirmDelete(id, name) {
+                if (confirm(`¿Está seguro de eliminar la razón "${name}"?\n\nEsta acción no se puede deshacer.`)) {
+                    this.delete(id);
+                }
+            },
+
+            async delete(id) {
+                try {
+                    const response = await fetch(`${apiBaseUrl}/api/JournalEntryCancelReason/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Error al eliminar');
+                    }
+
+                    this.refreshList();
+                    alert('Razón eliminada correctamente');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert(error.message || 'Error al eliminar razón de cancelación');
+                }
+            }
+        };
+
+        // Inicializar al cargar
+        document.addEventListener('DOMContentLoaded', function () {
+            cancelReasons.init();
+        });
+    </script>
+}

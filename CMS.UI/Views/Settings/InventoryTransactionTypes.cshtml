@@ -44,6 +44,7 @@
                             <th>Icono / Emoji</th>
                             <th>Clase CSS Badge</th>
                             <th class="text-center">Tránsito</th>
+                            <th class="text-center">En Inv.Mov.</th>
                             <th class="text-center">Orden</th>
                             <th class="text-center">Activo</th>
                             <th style="width:100px;"></th>
@@ -51,7 +52,7 @@
                     </thead>
                     <tbody id="bodyTypes">
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-3">
+                            <td colspan="10" class="text-center text-muted py-3">
                                 <i class="bi bi-hourglass-split me-1"></i>Cargando…
                             </td>
                         </tr>
@@ -116,15 +117,23 @@
                         <label class="form-label">Orden de aparición</label>
                         <input type="number" id="ittOrder" class="form-control" min="0" step="1" value="10">
                     </div>
-                    <div class="col-6 col-md-3 d-flex align-items-end gap-4">
+                    <div class="col-6 col-md-3 d-flex align-items-end gap-3">
                         <div class="form-check form-switch mb-1">
                             <input class="form-check-input" type="checkbox" id="ittTransit">
                             <label class="form-check-label" for="ittTransit">Tránsito</label>
                             <div><small>Es TransitTransfer</small></div>
                         </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-end gap-4">
                         <div class="form-check form-switch mb-1">
                             <input class="form-check-input" type="checkbox" id="ittActive" checked>
                             <label class="form-check-label" for="ittActive">Activo</label>
+                            <div><small>Disponible para usar</small></div>
+                        </div>
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" id="ittShowInMovements" checked>
+                            <label class="form-check-label" for="ittShowInMovements">Mostrar en Inventory Movements</label>
+                            <div><small>Visible en dropdown de movimientos</small></div>
                         </div>
                     </div>
                 </div>

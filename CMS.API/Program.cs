@@ -7,6 +7,7 @@
 // ================================================================================
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -132,6 +133,7 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSingleton(new CMS.Shared.Security.EncryptionService(encryptionKey));
 builder.Services.AddScoped<SystemConfigService>();
+builder.Services.AddScoped<GlobalParameterService>();
 builder.Services.AddScoped<CMS.Data.Services.IEmailService, CMS.Data.Services.EmailService>();
 
 // ================================================================================
@@ -148,6 +150,10 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 builder.Services.AddScoped<ICompanyConsecutiveService, CompanyConsecutiveService>();
+builder.Services.AddScoped<IChartOfAccountsService, ChartOfAccountsService>();
+builder.Services.AddScoped<ICostCenterService, CostCenterService>();
+builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
+builder.Services.AddScoped<IJournalEntryCancelReasonService, JournalEntryCancelReasonService>();
 
 // ================================================================================
 // FASE 3: CARGAR CONFIGURACIÓN DESDE [ADMIN].[COMPANY]
@@ -209,8 +215,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 2. AUTORIZACIÓN
-builder.Services.AddAuthorization();
+// 2. AUTORIZACIÓN CON PERMISOS DINÁMICOS
+builder.Services.AddSingleton<IAuthorizationHandler, CMS.API.Authorization.PermissionAuthorizationHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    // Definir políticas dinámicas basadas en permisos
+    // Cada política valida que el usuario tenga el permiso correspondiente en su JWT
+
+    // Global Parameters
+    options.AddPolicy("Settings.GlobalParameters.View", policy =>
+        policy.Requirements.Add(new CMS.API.Authorization.PermissionRequirement("Settings.GlobalParameters.View")));
+
+    options.AddPolicy("Settings.GlobalParameters.Edit", policy =>
+        policy.Requirements.Add(new CMS.API.Authorization.PermissionRequirement("Settings.GlobalParameters.Edit")));
+
+    // TODO: Agregar más políticas según sea necesario
+    // Ejemplo:
+    // options.AddPolicy("Admin.Users.View", policy =>
+    //     policy.Requirements.Add(new PermissionRequirement("Admin.Users.View")));
+});
 
 // 3. CONTROLLERS Y JSON
 builder.Services.AddControllers()

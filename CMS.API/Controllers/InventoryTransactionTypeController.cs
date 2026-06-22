@@ -39,11 +39,18 @@ namespace CMS.API.Controllers
         // GET /api/inventory-transaction-type
         // ================================================================
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] bool? isActive = null)
+        public async Task<IActionResult> GetAll(
+            [FromQuery] bool? isActive = null,
+            [FromQuery] bool? showInInventoryMovements = null)
         {
             var query = _db.InventoryTransactionTypes.AsQueryable();
+
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
+
+            // ✅ Filtrar por show_in_inventory_movements si se solicita
+            if (showInInventoryMovements.HasValue)
+                query = query.Where(x => x.ShowInInventoryMovements == showInInventoryMovements.Value);
 
             var items = await query
                 .OrderBy(x => x.SortOrder)
@@ -60,6 +67,7 @@ namespace CMS.API.Controllers
                     x.IsTransitTransfer,
                     x.SortOrder,
                     x.IsActive,
+                    x.ShowInInventoryMovements  // ✅ Incluir en la respuesta
                 })
                 .ToListAsync();
 
@@ -131,6 +139,7 @@ namespace CMS.API.Controllers
             entity.IsTransitTransfer = dto.IsTransitTransfer;
             entity.SortOrder         = dto.SortOrder;
             entity.IsActive          = dto.IsActive;
+            entity.ShowInInventoryMovements = dto.ShowInInventoryMovements;  // ✅ Actualizar campo
             entity.UpdatedBy         = GetCurrentUser();
             entity.RecordDate        = DateTime.UtcNow;
 

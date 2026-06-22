@@ -200,6 +200,21 @@ namespace CMS.UI.Controllers
         }
 
         // =====================================================
+        // GLOBAL PARAMETERS
+        // =====================================================
+
+        /// <summary>
+        /// Pantalla de mantenimiento de Parámetros Globales del Sistema por módulo.
+        /// GET: /Settings/GlobalParameters
+        /// </summary>
+        public IActionResult GlobalParameters()
+        {
+            ViewBag.ApiBaseUrl = GetApiBaseUrl();
+            ViewBag.ApiToken   = GetApiToken();
+            return View();
+        }
+
+        // =====================================================
         // CATÁLOGOS INVENTORY
         // =====================================================
 

@@ -132,6 +132,12 @@ namespace CMS.UI.Controllers
                              ?? _httpContextAccessor.HttpContext?.Session.GetString("JwtToken")
                              ?? string.Empty;
 
+            // ✅ IdMenu para Inventory Movements (según estructura del menú en copilot-instructions)
+            // El submenú "Inventory Movements" bajo "Warehouse & Distribution" no tiene ID específico documentado,
+            // por lo que usamos el ID del menú padre "Warehouse & Distribution" = 8
+            // Si existe un submenú específico, actualizar este valor con el id_menu correcto
+            ViewBag.IdMenu = 8;
+
             return View("InventoryMovements");
         }
 

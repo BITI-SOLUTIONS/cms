@@ -98,6 +98,58 @@ namespace CMS.Data.Services
             return (items, total);
         }
 
+        /// <summary>
+        /// Obtiene los conteos por estado aplicando los mismos filtros que GetTransactionsAsync
+        /// (excepto el filtro de estado, para obtener conteos de TODOS los estados).
+        /// Devuelve un diccionario: { idInventoryTransactionStatus: count }
+        /// </summary>
+        public async Task<Dictionary<int, int>> GetStatusCountsAsync(
+            int companyId,
+            string? search = null,
+            int? idInventoryTransactionType = null,
+            int? warehouseOriginId = null,
+            int? warehouseDestId = null,
+            DateOnly? dateFrom = null,
+            DateOnly? dateTo = null)
+        {
+            using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
+
+            var query = db.InventoryTransactions.AsQueryable();
+
+            // Aplicar los mismos filtros que GetTransactionsAsync (EXCEPTO el filtro de estado)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.ToLower();
+                query = query.Where(t =>
+                    t.TransactionNumber.ToLower().Contains(s) ||
+                    (t.Reference != null && t.Reference.ToLower().Contains(s)) ||
+                    (t.Notes != null && t.Notes.ToLower().Contains(s)));
+            }
+
+            if (idInventoryTransactionType.HasValue && idInventoryTransactionType.Value > 0)
+                query = query.Where(t => t.IdInventoryTransactionType == idInventoryTransactionType.Value);
+
+            if (warehouseOriginId.HasValue)
+                query = query.Where(t => t.IdWarehouseOrigin == warehouseOriginId.Value);
+
+            if (warehouseDestId.HasValue)
+                query = query.Where(t => t.IdWarehouseDest == warehouseDestId.Value);
+
+            if (dateFrom.HasValue)
+                query = query.Where(t => t.TransactionDate >= dateFrom.Value);
+
+            if (dateTo.HasValue)
+                query = query.Where(t => t.TransactionDate <= dateTo.Value);
+
+            // Agrupar por estado y contar
+            var counts = await query
+                .GroupBy(t => t.IdInventoryTransactionStatus)
+                .Select(g => new { StatusId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            return counts.ToDictionary(x => x.StatusId, x => x.Count);
+        }
+
         public async Task<InventoryTransaction?> GetByIdAsync(int companyId, int id)
         {
             using var db = await _dbContextFactory.CreateDbContextAsync(companyId);
@@ -337,6 +389,7 @@ namespace CMS.Data.Services
                 throw new InvalidOperationException("Solo se pueden editar movimientos en estado Draft");
 
             existing.IdInventoryTransactionType = transaction.IdInventoryTransactionType;
+            existing.IdMenu = transaction.IdMenu;  // ✅ Actualizar IdMenu
             existing.IdWarehouseOrigin = transaction.IdWarehouseOrigin;
             existing.IdWarehouseDest = transaction.IdWarehouseDest;
             existing.Reference = transaction.Reference;

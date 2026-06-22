@@ -1,0 +1,406 @@
+@* ================================================================================
+   VISTA: CMS.UI/Views/Accounting/JournalEntries.cshtml
+   PROPÓSITO: Mantenimiento de Asientos de Diario (Journal Entries)
+   TABLA:     {company_schema}.journal_entry + journal_entry_line
+   ================================================================================ *@
+@{
+    ViewData["Title"] = "Asientos de Diario";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    small, .form-text, small.text-muted, .text-muted small { color: #cbd5e1 !important; }
+
+    .status-draft { color: #fbbf24; }
+    .status-posted { color: #10b981; }
+    .status-reversed { color: #ef4444; }
+    .status-cancelled { color: #6b7280; }
+
+    .badge-draft { background-color: #fbbf24; color: #000; }
+    .badge-posted { background-color: #10b981; color: #fff; }
+    .badge-reversed { background-color: #ef4444; color: #fff; }
+    .badge-cancelled { background-color: #6b7280; color: #fff; }
+
+    .journal-grid { max-height: 400px; overflow-y: auto; }
+    .line-row { cursor: pointer; transition: background-color 0.2s; }
+    .line-row:hover { background-color: #374151; }
+    .line-row.selected { background-color: #1e40af; }
+
+    .debit-cell { color: #10b981; font-weight: 600; }
+    .credit-cell { color: #3b82f6; font-weight: 600; }
+
+    .balance-indicator { font-size: 1.2rem; font-weight: bold; }
+    .balance-ok { color: #10b981; }
+    .balance-error { color: #ef4444; }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white mb-0">
+                <i class="bi bi-journal-text me-2 text-primary"></i>Asientos de Diario
+            </h4>
+            <small class="text-muted">Registro de transacciones contables con partida doble</small>
+        </div>
+        <button class="btn btn-primary" onclick="JE.openNew()">
+            <i class="bi bi-plus-lg me-1"></i>Nuevo Asiento
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card bg-dark border-secondary mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label text-light">Buscar</label>
+                    <input type="text" id="filterSearch" class="form-control"
+                           placeholder="Número, descripción o referencia...">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Estado</label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Draft">Borrador</option>
+                        <option value="Posted" selected>Contabilizado</option>
+                        <option value="Reversed">Revertido</option>
+                        <option value="Cancelled">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Tipo</label>
+                    <select id="filterType" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automatic">Automático</option>
+                        <option value="Reversal">Reversión</option>
+                        <option value="Adjustment">Ajuste</option>
+                        <option value="Closing">Cierre</option>
+                        <option value="Opening">Apertura</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Desde</label>
+                    <input type="date" id="filterDateFrom" class="form-control">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label text-light">Hasta</label>
+                    <input type="date" id="filterDateTo" class="form-control">
+                </div>
+                <div class="col-12 col-md-1 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" onclick="JE.clearFilters()">
+                        <i class="bi bi-x-lg"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de asientos -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Fecha Contable</th>
+                            <th>Período</th>
+                            <th>Descripción</th>
+                            <th>Tipo</th>
+                            <th class="text-end">Débito</th>
+                            <th class="text-end">Crédito</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="journalEntriesTable">
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal CRUD - Asiento de Diario -->
+<div class="modal fade" id="journalEntryModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="bi bi-journal-text me-2"></i>Nuevo Asiento de Diario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="idJournalEntry" value="0">
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#tabHeader">
+                            <i class="bi bi-info-circle me-1"></i>Encabezado
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tabLines">
+                            <i class="bi bi-list-ul me-1"></i>Líneas
+                            <span class="badge bg-primary ms-1" id="linesCount">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tabOptions">
+                            <i class="bi bi-gear me-1"></i>Opciones
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <!-- TAB: Encabezado -->
+                    <div class="tab-pane fade show active" id="tabHeader">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Número de Asiento</strong> <span class="text-danger">*</span></label>
+                                <input type="text" id="entryNumber" class="form-control" readonly>
+                                <small class="form-text">Se genera automáticamente</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Tipo de Asiento</strong> <span class="text-danger">*</span></label>
+                                <select id="entryType" class="form-select">
+                                    <option value="Manual">Manual</option>
+                                    <option value="Automatic">Automático</option>
+                                    <option value="Adjustment">Ajuste</option>
+                                    <option value="Closing">Cierre</option>
+                                    <option value="Opening">Apertura</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Fecha de Asiento</strong> <span class="text-danger">*</span></label>
+                                <input type="date" id="entryDate" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Fecha Contable</strong> <span class="text-danger">*</span></label>
+                                <input type="date" id="postingDate" class="form-control">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label text-light"><strong>Descripción</strong> <span class="text-danger">*</span></label>
+                                <textarea id="description" class="form-control" rows="2" maxlength="500"></textarea>
+                                <small class="form-text">Descripción general del asiento contable</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-light"><strong>Referencia</strong></label>
+                                <input type="text" id="reference" class="form-control" maxlength="100">
+                                <small class="form-text">Número de factura, recibo u otro documento</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Período</strong> <span class="text-danger">*</span></label>
+                                <input type="text" id="period" class="form-control" placeholder="YYYY-MM" maxlength="7">
+                                <small class="form-text">Formato: 2025-01</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label text-light"><strong>Año Fiscal</strong></label>
+                                <input type="number" id="fiscalYear" class="form-control" min="2020" max="2099">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Moneda</strong></label>
+                                <select id="currencyCode" class="form-select">
+                                    <option value="CRC">CRC - Colones</option>
+                                    <option value="USD">USD - Dólares</option>
+                                    <option value="EUR">EUR - Euros</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-light"><strong>Tipo de Cambio</strong></label>
+                                <input type="number" id="exchangeRate" class="form-control" step="0.01" min="0.01" value="1.00">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" id="requiresApproval">
+                                    <label class="form-check-label text-light" for="requiresApproval">
+                                        Requiere Aprobación
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Líneas -->
+                    <div class="tab-pane fade" id="tabLines">
+
+                        <!-- Cuadre del asiento -->
+                        <div class="card bg-secondary mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 text-center">
+                                        <div class="balance-indicator debit-cell" id="totalDebit">0.00</div>
+                                        <small class="text-muted">Total Débito</small>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <div class="balance-indicator credit-cell" id="totalCredit">0.00</div>
+                                        <small class="text-muted">Total Crédito</small>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <div class="balance-indicator" id="difference">0.00</div>
+                                        <small class="text-muted" id="balanceStatus">Cuadrado ✓</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón agregar línea -->
+                        <button type="button" class="btn btn-success btn-sm mb-2" onclick="JE.addLine()">
+                            <i class="bi bi-plus-lg me-1"></i>Agregar Línea
+                        </button>
+
+                        <!-- Grid de líneas -->
+                        <div class="journal-grid">
+                            <table class="table table-dark table-sm table-hover">
+                                <thead class="sticky-top bg-dark">
+                                    <tr>
+                                        <th style="width: 5%">#</th>
+                                        <th style="width: 20%">Cuenta</th>
+                                        <th style="width: 25%">Descripción</th>
+                                        <th style="width: 12%">Débito</th>
+                                        <th style="width: 12%">Crédito</th>
+                                        <th style="width: 15%">Centro Costo</th>
+                                        <th style="width: 6%">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="linesTable">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                            No hay líneas. Haz clic en "Agregar Línea" para comenzar.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+
+                    <!-- TAB: Opciones -->
+                    <div class="tab-pane fade" id="tabOptions">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-light"><strong>Módulo Origen</strong></label>
+                                <input type="text" id="sourceModule" class="form-control" maxlength="50">
+                                <small class="form-text">Ej: Sales, Purchasing, Inventory, etc.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-light"><strong>Tipo Documento Origen</strong></label>
+                                <input type="text" id="sourceDocumentType" class="form-control" maxlength="50">
+                                <small class="form-text">Ej: Invoice, Payment, Receipt, etc.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-light"><strong>ID Documento Origen</strong></label>
+                                <input type="number" id="sourceDocumentId" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-light"><strong>Número Documento Origen</strong></label>
+                                <input type="text" id="sourceDocumentNumber" class="form-control" maxlength="50">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="JE.save()">
+                    <i class="bi bi-save me-1"></i>Guardar Borrador
+                </button>
+                <button type="button" class="btn btn-success" onclick="JE.saveAndPost()">
+                    <i class="bi bi-check-circle me-1"></i>Guardar y Contabilizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal - Línea de Asiento -->
+<div class="modal fade" id="lineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>Editar Línea
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="lineIndex" value="-1">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-light"><strong>Cuenta Contable</strong> <span class="text-danger">*</span></label>
+                        <select id="lineAccount" class="form-select">
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label text-light"><strong>Descripción</strong> <span class="text-danger">*</span></label>
+                        <textarea id="lineDescription" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light"><strong>Débito</strong></label>
+                        <input type="number" id="lineDebit" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light"><strong>Crédito</strong></label>
+                        <input type="number" id="lineCredit" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light"><strong>Centro de Costo</strong></label>
+                        <select id="lineCostCenter" class="form-select">
+                            <option value="">Ninguno</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light"><strong>Referencia</strong></label>
+                        <input type="text" id="lineReference" class="form-control" maxlength="100">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="JE.saveLine()">Guardar Línea</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const JE_API = '@ViewBag.ApiBaseUrl/api/JournalEntry';
+        const JE_TOKEN = '@ViewBag.ApiToken';
+        const COA_API = '@ViewBag.ApiBaseUrl/api/ChartOfAccounts';
+        const CC_API = '@ViewBag.ApiBaseUrl/api/CostCenter';
+    </script>
+    <script src="~/js/journalEntries.js"></script>
+    <script>
+        // Mover modales al final del body para evitar problemas de z-index con sidebar
+        document.addEventListener('DOMContentLoaded', function () {
+            ['journalEntryModal', 'lineModal'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) document.body.appendChild(el);
+            });
+        });
+    </script>
+}

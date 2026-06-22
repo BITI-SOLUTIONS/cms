@@ -79,6 +79,11 @@ namespace CMS.API.Controllers
                     companyId, search, idInventoryTransactionType, idInventoryTransactionStatus,
                     warehouseOriginId, warehouseDestId, from, to, page, pageSize);
 
+                // Obtener conteos por estado (aplicando los mismos filtros excepto el de estado)
+                var statusCounts = await _service.GetStatusCountsAsync(
+                    companyId, search, idInventoryTransactionType,
+                    warehouseOriginId, warehouseDestId, from, to);
+
                 // Map items sequentially to avoid concurrent DbContext access
                 var mappedItems = new List<object>();
                 foreach (var item in items)
@@ -92,7 +97,8 @@ namespace CMS.API.Controllers
                     totalCount = total,
                     page,
                     pageSize,
-                    totalPages = (int)Math.Ceiling(total / (double)pageSize)
+                    totalPages = (int)Math.Ceiling(total / (double)pageSize),
+                    statusCounts = statusCounts  // Agregar conteos por estado
                 });
             }
             catch (Exception ex)
@@ -315,6 +321,7 @@ namespace CMS.API.Controllers
                 {
                     Id = id,
                     IdInventoryTransactionType = dto.IdInventoryTransactionType,
+                    IdMenu = dto.IdMenu,  // ✅ Agregar mapeo de IdMenu
                     IdWarehouseOrigin = dto.IdWarehouseOrigin,
                     IdWarehouseDest = dto.IdWarehouseDest,
                     Reference = dto.Reference,
@@ -628,6 +635,7 @@ namespace CMS.API.Controllers
         {
             TransactionNumber = dto.TransactionNumber ?? string.Empty,
             IdInventoryTransactionType = dto.IdInventoryTransactionType,
+            IdMenu = dto.IdMenu,  // ✅ Agregar mapeo de IdMenu
             IdWarehouseOrigin = dto.IdWarehouseOrigin,
             IdWarehouseDest = dto.IdWarehouseDest,
             Reference = dto.Reference,
@@ -646,6 +654,7 @@ namespace CMS.API.Controllers
             ItemCode          = dto.ItemCode,
             ItemName          = dto.ItemName,
             QtyRequested      = dto.QtyRequested,
+            QtyReturned       = dto.QtyReturned,
             IdWarehouseDestLine   = dto.IdWarehouseDestLine,   // [NotMapped] transitorio para agrupar
             IdWarehouseOriginLine = dto.IdWarehouseOriginLine, // [NotMapped] transitorio
             IdUnitOfMeasure   = dto.IdUnitOfMeasure,
@@ -664,6 +673,7 @@ namespace CMS.API.Controllers
     {
         public string? TransactionNumber { get; set; }
         public int IdInventoryTransactionType { get; set; }
+        public int IdMenu { get; set; }  // ⚠️ Menú desde el cual se crea el movimiento (OBLIGATORIO)
         public int IdWarehouseOrigin { get; set; }
         public int? IdWarehouseDest { get; set; }
         public string? Reference { get; set; }
@@ -680,6 +690,7 @@ namespace CMS.API.Controllers
     public class UpdateInventoryTransactionDto
     {
         public int IdInventoryTransactionType { get; set; }
+        public int IdMenu { get; set; }  // ⚠️ Menú desde el cual se actualiza el movimiento (OBLIGATORIO)
         public int IdWarehouseOrigin { get; set; }
         public int? IdWarehouseDest { get; set; }
         public string? Reference { get; set; }
@@ -698,6 +709,7 @@ namespace CMS.API.Controllers
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
         public decimal QtyRequested { get; set; }
+        public decimal QtyReturned { get; set; } = 0;
         /// <summary>Usado como campo transitorio para agrupar líneas por bodega en TransitTransfer.</summary>
         public int? IdWarehouseOriginLine { get; set; }
         /// <summary>Usado como campo transitorio para agrupar líneas por bodega en TransitTransfer.</summary>

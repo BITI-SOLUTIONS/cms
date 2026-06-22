@@ -66,6 +66,7 @@ namespace CMS.Data
 
         // ===== TABLAS NUEVAS: CONFIGURACIÓN GLOBAL =====
         public DbSet<SystemConfig> SystemConfigs { get; set; }
+        // NOTA: GlobalParameter movido a BD de compañía (ver CMS.Entities.Operational.GlobalParameter)
 
         // ===== TABLAS NUEVAS: CONSECUTIVOS POR COMPAÑÍA =====
         /// <summary>

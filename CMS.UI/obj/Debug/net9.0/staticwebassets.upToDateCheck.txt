@@ -27,6 +27,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.min.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\favicon.svg
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js.map
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\journalEntries.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\location-type.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.min.css
@@ -49,6 +50,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\img\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap.css.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\fleetCatalogs.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.min.css.map
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\chartOfAccounts.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\inventoryTransactionTypes.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.js.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
@@ -56,6 +58,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\jquery\dist\jquery.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.min.css
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\globalParameters.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.css.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.min.css.map
@@ -71,6 +74,7 @@ C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\css\
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\templates\Consulta_de_Estudiantes.html
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap.min.css.map
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.css
+C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\costCenters.js
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\jquery-validation-unobtrusive\LICENSE.txt
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\lib\bootstrap\dist\css\bootstrap.min.css
 C:\Disco\BITI Solutions S.A\BITI Solutions\Proyectos\CMS\CMS\CMS.UI\wwwroot\js\label-items.js
@@ -87,12 +91,16 @@ wwwroot\img\logo-full.svg
 wwwroot\img\logo-mini.svg
 wwwroot\img\logo-tech.svg
 wwwroot\img\logo.png
+wwwroot\js\chartOfAccounts.js
+wwwroot\js\costCenters.js
 wwwroot\js\distributionRoutes.js
 wwwroot\js\employees.js
 wwwroot\js\fleetCatalogs.js
+wwwroot\js\globalParameters.js
 wwwroot\js\insurers.js
 wwwroot\js\inventoryMovements.js
 wwwroot\js\inventoryTransactionTypes.js
+wwwroot\js\journalEntries.js
 wwwroot\js\label-items.js
 wwwroot\js\location-type.js
 wwwroot\js\location.js
